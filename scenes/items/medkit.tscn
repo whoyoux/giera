@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="white"]
+albedo_color = Color(0.98, 0.96, 0.9, 1)
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="red"]
+albedo_color = Color(0.91, 0.25, 0.27, 1)
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="dark"]
+albedo_color = Color(0.17, 0.17, 0.27, 1)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="body"]
+material = SubResource("white")
+size = Vector3(0.42, 0.26, 0.3)
+
+[sub_resource type="BoxMesh" id="band"]
+material = SubResource("red")
+size = Vector3(0.44, 0.05, 0.32)
+
+[sub_resource type="BoxMesh" id="cross_long"]
+material = SubResource("red")
+size = Vector3(0.2, 0.02, 0.07)
+
+[sub_resource type="BoxMesh" id="cross_short"]
+material = SubResource("red")
+size = Vector3(0.07, 0.02, 0.2)
+
+[sub_resource type="BoxMesh" id="handle"]
+material = SubResource("dark")
+size = Vector3(0.18, 0.03, 0.04)
+
+[sub_resource type="BoxMesh" id="handle_side"]
+material = SubResource("dark")
+size = Vector3(0.03, 0.05, 0.04)
+
+[node name="Medkit" type="Node3D"]
+
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = SubResource("body")
+
+[node name="Band" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+mesh = SubResource("band")
+
+[node name="CrossLong" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.135, 0)
+mesh = SubResource("cross_long")
+
+[node name="CrossShort" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.135, 0)
+mesh = SubResource("cross_short")
+
+[node name="Handle" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, -0.09)
+mesh = SubResource("handle")
+
+[node name="HandleLeft" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.075, 0.155, -0.09)
+mesh = SubResource("handle_side")
+
+[node name="HandleRight" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.075, 0.155, -0.09)
+mesh = SubResource("handle_side")

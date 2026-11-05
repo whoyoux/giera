@@ -43,7 +43,9 @@ static func visual_of(stack: Dictionary) -> ItemVisual:
 ## Nazwa do pokazania graczowi, np. "Epicki Blaster".
 static func display_name_of(stack: Dictionary) -> String:
 	var definition := definition_of(stack)
-	return "%s %s" % [Rarity.display_name(tier_of(stack)), definition.display_name] if definition != null else ""
+	if definition == null:
+		return ""
+	return "%s %s" % [Rarity.display_name(tier_of(stack)), definition.display_name] if definition.has_tiers() else definition.display_name
 
 
 static func weapon_stats_of(stack: Dictionary) -> WeaponStats:

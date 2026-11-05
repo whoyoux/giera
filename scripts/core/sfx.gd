@@ -160,6 +160,33 @@ static func exhausted() -> AudioStreamWAV:
 	, func(t: float) -> float: return lerpf(340.0, 240.0, t / 0.26))
 
 
+## Otwarcie apteczki, szelest bandaza i rosnacy dzwonek na koncu.
+static func medkit_use() -> AudioStreamWAV:
+	var clicks: Array[Array] = [[0.12, 980.0, 70.0, 0.8], [0.3, 640.0, 60.0, 0.7], [1.0, 320.0, 30.0, 0.35], [1.35, 320.0, 30.0, 0.35], [1.7, 320.0, 30.0, 0.35]]
+	return _make("medkit_use", 2.5, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for click in clicks:
+			if t >= click[0]:
+				var since: float = t - click[0]
+				sample += (sin(TAU * click[1] * since) * 0.5 + randf_range(-0.4, 0.4)) * exp(-since * click[2]) * click[3]
+		for note: Array in [[2.05, 660.0], [2.17, 880.0], [2.29, 1175.0]]:
+			if t >= note[0]:
+				var since: float = t - note[0]
+				sample += sin(TAU * note[1] * since) * exp(-since * 8.0) * 0.35
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
+## Akord po uleczeniu.
+static func heal() -> AudioStreamWAV:
+	return _make("heal", 0.5, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for frequency: float in [523.0, 659.0, 1047.0]:
+			sample += sin(TAU * frequency * t) * exp(-t * 6.0) * 0.3
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
 static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)

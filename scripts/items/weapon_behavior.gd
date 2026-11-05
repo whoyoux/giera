@@ -19,12 +19,20 @@ func rollback_tick(equipment: Equipment, stack: Dictionary, tick: int) -> void:
 		return
 	equipment.last_fire = tick
 	equipment.set_active_charges(charges - 1)
-	if equipment.claim_server_shot(tick):
+	if equipment.claim_server_action(tick):
 		_resolve_shot(equipment, stats, tick)
 
 
-func on_timed_action_finished(equipment: Equipment, stack: Dictionary) -> void:
+func on_timed_action_finished(equipment: Equipment, stack: Dictionary, _tick: int) -> void:
 	equipment.set_active_charges(ItemStack.weapon_stats_of(stack).magazine)
+
+
+func was_action_completed(equipment: Equipment, stack: Dictionary, slot: int, _action_end: int) -> bool:
+	return equipment.charges(slot) >= ItemStack.weapon_stats_of(stack).magazine
+
+
+func action_sound() -> AudioStreamWAV:
+	return Sfx.reload_sound()
 
 
 func timed_action_seconds(stack: Dictionary) -> float:

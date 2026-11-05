@@ -9,6 +9,8 @@ signal action_cancelled
 ## Zmienil sie przedmiot w reku: inny slot albo inny egzemplarz w tym samym slocie.
 signal active_item_changed
 
+const ACTION_CORRECTION_TICKS := 8
+
 # Stan rollbacku. Osobne liczby zamiast tablicy, bo netfox wysyla tylko zmienione wartosci.
 var active_slot := 0
 var last_fire := -1000
@@ -95,8 +97,21 @@ func start_timed_action(tick: int, seconds: float) -> void:
 	action_end = tick + NetworkTime.seconds_to_ticks(seconds)
 
 
-## Ten sam tick moze byc symulowany kilka razy, ale strzal rozliczamy tylko raz.
-func claim_server_shot(tick: int) -> bool:
+func cancel_timed_action() -> void:
+	action_end = -1
+
+
+## Postep trwajacego dzialania od 0 do 1.
+func action_progress() -> float:
+	var stack := active_stack()
+	if not is_busy() or ItemStack.is_empty(stack):
+		return 0.0
+	var total := NetworkTime.seconds_to_ticks(ItemStack.behavior_of(stack).timed_action_seconds(stack))
+	return clampf(1.0 - float(action_end - NetworkTime.tick) / maxi(total, 1), 0.0, 1.0)
+
+
+## Ten sam tick moze byc symulowany kilka razy, ale strzal czy leczenie rozliczamy tylko raz.
+func claim_server_action(tick: int) -> bool:
 	if not multiplayer.is_server() or tick <= _resolved_up_to:
 		return false
 	_resolved_up_to = tick
@@ -126,7 +141,7 @@ func _rollback_tick(_delta: float, tick: int, _is_fresh: bool) -> void:
 		action_end = -1
 	elif action_end >= 0 and tick >= action_end:
 		action_end = -1
-		ItemStack.behavior_of(stack).on_timed_action_finished(self, stack)
+		ItemStack.behavior_of(stack).on_timed_action_finished(self, stack, tick)
 	if dead or player.sprinting or ItemStack.is_empty(stack) or tick < draw_end:
 		return
 	ItemStack.behavior_of(stack).rollback_tick(self, stack, tick)
@@ -156,7 +171,9 @@ func _after_tick_loop() -> void:
 		_shown_fire = last_fire
 		fired.emit()
 	if action_end != _shown_action_end:
-		_report_action_change()
+		# Korekta serwera moze przesunac koniec o pare tickow, ale to wciaz to samo dzialanie.
+		if action_end < 0 or _shown_action_end < 0 or absi(action_end - _shown_action_end) > ACTION_CORRECTION_TICKS:
+			_report_action_change()
 		_shown_action_end = action_end
 	var uid := _slot_uid(active_slot)
 	if active_slot != _shown_slot or uid != _shown_uid:
@@ -165,12 +182,11 @@ func _after_tick_loop() -> void:
 		active_item_changed.emit()
 
 
-## Koniec dzialania z pelnym magazynkiem to sukces, a kazdy inny to przerwanie.
+## O tym, czy dzialanie sie udalo, decyduje zachowanie przedmiotu.
 func _report_action_change() -> void:
 	if _shown_action_end >= 0:
-		var definition := ItemStack.definition_of(_action_stack)
-		var full := definition.full_charges(ItemStack.tier_of(_action_stack)) if definition != null else 0
-		if charges(_action_slot) < full or action_end >= 0:
+		var behavior := ItemStack.behavior_of(_action_stack)
+		if action_end >= 0 or behavior == null or not behavior.was_action_completed(self, _action_stack, _action_slot, _shown_action_end):
 			action_cancelled.emit()
 	if action_end >= 0:
 		_action_stack = active_stack()
