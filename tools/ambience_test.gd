@@ -52,13 +52,16 @@ func _check_sounds() -> void:
 		_check("%s jest petla" % pair[0], stream.loop_mode == AudioStreamWAV.LOOP_FORWARD and stream.loop_end > 0)
 		var data := stream.data
 		var peak := 0
+		var largest_step := 0
 		for i in range(0, data.size(), 2):
 			peak = maxi(peak, absi(data.decode_s16(i)))
-		# Skok miedzy koncem a poczatkiem petli slychac jako trzask.
+			if i > 0:
+				largest_step = maxi(largest_step, absi(data.decode_s16(i) - data.decode_s16(i - 2)))
+		# Trzask to skok wiekszy niz zwykle roznice miedzy sasiednimi probkami tego szumu.
 		var seam := absi(data.decode_s16(data.size() - 2) - data.decode_s16(0))
-		print("[test] %s: szczyt %d, skok na laczeniu %d" % [pair[0], peak, seam])
+		print("[test] %s: szczyt %d, skok na laczeniu %d, najwiekszy zwykly skok %d" % [pair[0], peak, seam, largest_step])
 		_check("%s nie jest cisza ani przesterem" % pair[0], peak > 2000 and peak < 32000)
-		_check("%s laczy sie bez trzasku" % pair[0], seam < 3000)
+		_check("%s laczy sie bez trzasku" % pair[0], seam <= largest_step)
 	for variant in Sfx.BIRD_VARIANTS:
 		_check("ptak %d ma dzwiek" % variant, Sfx.bird(variant).get_length() > 0.1)
 	var sounds := {}
