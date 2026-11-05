@@ -21,6 +21,8 @@ func _ready() -> void:
 	menu.settings_requested.connect(settings_panel.open)
 	hud.settings_requested.connect(settings_panel.open)
 	Settings.changed.connect(_apply_quality)
+	if not Net.is_headless:
+		add_child(PickupField.new())
 	_apply_quality()
 	hud.visible = false
 	if Net.is_headless:

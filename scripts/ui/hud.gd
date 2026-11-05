@@ -25,6 +25,11 @@ var _item_name: Label
 var _item_name_style: StyleBoxFlat
 var _item_name_tween: Tween
 var _shown_item_uid := -1
+var _prompt_panel: PanelContainer
+var _prompt_style: StyleBoxFlat
+var _prompt_action: Label
+var _prompt_name: Label
+var _shown_prompt_id := -1
 var _ammo_label: Label
 var _ammo_hint: Label
 var _ammo_panel: PanelContainer
@@ -92,6 +97,7 @@ func _process(delta: float) -> void:
 
 	_update_ammo(_player.equipment)
 	_update_item_name(_player.equipment)
+	_update_prompt()
 
 	_crosshair.hidden_for_sprint = _player.sprinting
 	_death_panel.visible = not info.alive
@@ -99,6 +105,27 @@ func _process(delta: float) -> void:
 		var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
 		_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
 	_score_center.visible = Input.is_action_pressed("scoreboard")
+
+
+## Podpowiedz nad paskiem przedmiotow, gdy gracz patrzy na cos do podniesienia.
+func _update_prompt() -> void:
+	var id := WorldItems.focused_id
+	_prompt_panel.visible = id != 0 and WorldItems.items.has(id)
+	if not _prompt_panel.visible:
+		_shown_prompt_id = -1
+		return
+	var stack: Dictionary = WorldItems.items[id].stack
+	var slots := _player.equipment.slots()
+	var swaps := Inventory.first_free(slots) < 0
+	_prompt_action.text = "Zamień na" if swaps else "Podnieś"
+	if id == _shown_prompt_id:
+		return
+	_shown_prompt_id = id
+	_prompt_name.text = ItemStack.display_name_of(stack)
+	var color := Rarity.color(ItemStack.tier_of(stack))
+	_prompt_style.border_color = color
+	_prompt_name.add_theme_color_override("font_color", color.darkened(0.25))
+	_bump(_prompt_panel)
 
 
 ## Po zmianie przedmiotu pokazuje na chwile jego nazwe w kolorze klasy.
@@ -335,6 +362,8 @@ func _build() -> void:
 	_item_name = UiStyle.label("", 19, Color.WHITE)
 	_item_name_panel.add_child(_item_name)
 
+	_build_prompt()
+
 	_feed = VBoxContainer.new()
 	_feed.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_feed.position += Vector2(-24, 22)
@@ -397,6 +426,44 @@ func _build() -> void:
 	add_child(_audio)
 	_hurt_audio = AudioStreamPlayer.new()
 	add_child(_hurt_audio)
+
+
+func _build_prompt() -> void:
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	center.position.y -= 200.0
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center)
+	_prompt_panel = PanelContainer.new()
+	_prompt_style = UiStyle.sticker(UiStyle.PAPER, 18, 5)
+	_prompt_style.set_content_margin_all(8)
+	_prompt_style.content_margin_left = 12
+	_prompt_style.content_margin_right = 18
+	_prompt_panel.add_theme_stylebox_override("panel", _prompt_style)
+	_prompt_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt_panel.visible = false
+	center.add_child(_prompt_panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	_prompt_panel.add_child(row)
+	var key := PanelContainer.new()
+	key.custom_minimum_size = Vector2(36, 36)
+	var key_style := StyleBoxFlat.new()
+	key_style.bg_color = UiStyle.INK
+	key_style.set_corner_radius_all(10)
+	key_style.anti_aliasing = true
+	key.add_theme_stylebox_override("panel", key_style)
+	row.add_child(key)
+	var key_label := UiStyle.label("E", 20, Color.WHITE)
+	key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	key.add_child(key_label)
+	_prompt_action = UiStyle.label("Podnieś", 20, UiStyle.INK, false)
+	row.add_child(_prompt_action)
+	_prompt_name = UiStyle.label("", 21, UiStyle.INK)
+	row.add_child(_prompt_name)
 
 
 func _build_status_sticker() -> void:

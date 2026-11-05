@@ -112,7 +112,7 @@ func server_damage(victim_id: int, amount: int, attacker_id: int) -> void:
 		victim.respawn_id += 1
 		victim.death_tick = NetworkTime.tick
 		victim.respawn_tick = NetworkTime.tick + NetworkTime.seconds_to_ticks(RESPAWN_SECONDS)
-		_clear_loot(victim_id)
+		_drop_loot_on_death(victim_id)
 		if players.has(attacker_id):
 			players[attacker_id].kills += 1
 			_broadcast(attacker_id)
@@ -152,8 +152,59 @@ func server_give_item(id: int, item_id: StringName, tier: int) -> int:
 	return slot
 
 
+## Wklada podniesiony przedmiot do ekwipunku. Zwraca to, co trzeba bylo wyjac, albo pusty slownik.
+func server_store_stack(id: int, stack: Dictionary, active_slot: int) -> Dictionary:
+	var info: Dictionary = players.get(id, {})
+	if info.is_empty():
+		return {}
+	var slot := Inventory.slot_for_pickup(info.slots, active_slot)
+	var replaced := _take_from_slot(id, slot)
+	info.slots[slot] = stack
+	info.inventory_tick = NetworkTime.tick
+	_broadcast(id)
+	return replaced
+
+
+## Wyjmuje przedmiot, jesli w slocie wciaz lezy ten egzemplarz. Inaczej zwraca pusty slownik.
+func server_take_stack(id: int, slot: int, uid: int) -> Dictionary:
+	var info: Dictionary = players.get(id, {})
+	if info.is_empty() or slot < 0 or slot >= Inventory.SLOTS or uid == 0 or ItemStack.uid_of(info.slots[slot]) != uid:
+		return {}
+	var stack := _take_from_slot(id, slot)
+	_broadcast(id)
+	return stack
+
+
+func player_node(id: int) -> Player:
+	for node in get_tree().get_nodes_in_group(&"players"):
+		if (node as Player).peer_id == id and not node.is_queued_for_deletion():
+			return node
+	return null
+
+
+## Naboje zna symulacja, wiec wyjety egzemplarz dostaje ich aktualna liczbe.
+func _take_from_slot(id: int, slot: int) -> Dictionary:
+	var info: Dictionary = players[id]
+	var stack: Dictionary = info.slots[slot]
+	if ItemStack.is_empty(stack):
+		return {}
+	var taken := stack.duplicate()
+	var node := player_node(id)
+	if node != null:
+		taken.charges = node.equipment.charges_of_stack(slot, stack)
+	info.slots[slot] = {}
+	info.inventory_tick = NetworkTime.tick
+	return taken
+
+
+func _give_starter(id: int) -> void:
+	var slot := server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON)
+	if slot >= 0:
+		players[id].slots[slot].starter = true
+
+
 func _give_starting_items(id: int) -> void:
-	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON)
+	_give_starter(id)
 	if Net.args.has("debug-items"):
 		_give_debug_items(id)
 
@@ -163,12 +214,33 @@ func _give_debug_items(id: int) -> void:
 	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
 
 
-## Smierc zabiera wszystko oprocz startowego blastera w pierwszym slocie.
-func _clear_loot(id: int) -> void:
-	var info: Dictionary = players[id]
-	for slot in range(1, Inventory.SLOTS):
-		info.slots[slot] = {}
-	info.inventory_tick = NetworkTime.tick
+## Zwykly zdobyty przedmiot zostaje na ziemi, a jeden startowy blaster przy graczu.
+## Kto swoj wyrzucil, dostaje nowy, zeby nikt nie wracal do gry z pustymi rekami.
+func _drop_loot_on_death(id: int) -> void:
+	var kept_starter := _scatter_loot(id, true)
+	if not kept_starter:
+		_give_starter(id)
+
+
+## Zwraca, czy gracz zachowal startowy blaster. Pozostale startowe znikaja, zeby nie zasmiecac mapy.
+func _scatter_loot(id: int, keep_starter: bool) -> bool:
+	var kept := false
+	var loot := []
+	for slot in Inventory.SLOTS:
+		var stack: Dictionary = players[id].slots[slot]
+		if ItemStack.is_empty(stack):
+			continue
+		if stack.get("starter", false):
+			if keep_starter and not kept:
+				kept = true
+				continue
+			_take_from_slot(id, slot)
+		else:
+			loot.append(_take_from_slot(id, slot))
+	var node := player_node(id)
+	if node != null and not loot.is_empty():
+		WorldItems.server_scatter(loot, node.position, node.get_world_3d())
+	return kept
 
 
 func _broadcast(id: int) -> void:
@@ -194,6 +266,7 @@ func _on_peer_disconnected(id: int) -> void:
 	if not multiplayer.is_server() or not players.has(id):
 		return
 	print("[serwer] wyszedl %s (%d)" % [display_name(id), id])
+	_scatter_loot(id, false)
 	players.erase(id)
 	player_removed.emit(id)
 	_remove_player.rpc(id)

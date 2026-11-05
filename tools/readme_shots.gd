@@ -67,11 +67,29 @@ func _ready() -> void:
 	await _shot("scoreboard.png")
 	Input.action_release("scoreboard")
 
+	await _loot_shot(me, forward, right)
+
 	GameState.players[1].health = 25
 	GameState.damaged.emit(40, 3)
 	await _wait(0.1)
 	await _shot("damage.png")
 	get_tree().quit()
+
+
+## Trzy klasy na ziemi i podpowiedz przy tej, na ktora patrzy gracz.
+func _loot_shot(me: Player, forward: Vector3, right: Vector3) -> void:
+	var feet := me.position
+	var spots := [feet + forward * 2.2, feet + forward * 3.6 - right * 1.6, feet + forward * 4.4 + right * 1.5]
+	var tiers := [Rarity.Tier.LEGENDARY, Rarity.Tier.EPIC, Rarity.Tier.COMMON]
+	for i in spots.size():
+		WorldItems._server_spawn(ItemStack.create(9000 + i, ItemRegistry.DEFAULT_WEAPON, tiers[i]), spots[i], spots[i])
+	me.input.look_pitch = -0.28
+	await _wait(1.0)
+	await _shot("loot.png")
+	for id: int in WorldItems.items.keys():
+		WorldItems._remove_item.rpc(id, 0)
+	me.input.look_pitch = -0.03
+	await _wait(0.2)
 
 
 func _process(delta: float) -> void:

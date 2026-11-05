@@ -70,6 +70,11 @@ func charges(slot: int) -> int:
 	return charges_3
 
 
+## Naboje egzemplarza. Gdy symulacja nie zna go jeszcze, obowiazuje liczba z samego egzemplarza.
+func charges_of_stack(slot: int, stack: Dictionary) -> int:
+	return charges(slot) if _slot_uid(slot) == ItemStack.uid_of(stack) else stack.get("charges", 0)
+
+
 func active_charges() -> int:
 	return charges(active_slot)
 
