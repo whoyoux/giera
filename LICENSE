@@ -1,0 +1,40 @@
+Copyright (c) 2026 whoyoux. All rights reserved.
+
+This repository is published for viewing only.
+
+You may view the source code on GitHub and download and run official builds
+from this repository's Releases page for personal, non-commercial play.
+
+Except as allowed by the paragraph above, or by law, or by GitHub's Terms of
+Service for repositories made public on GitHub, you may not copy, use, modify,
+merge, publish, distribute, sublicense, or sell any part of this project or
+create derivative works from it without prior written permission from the
+copyright holder.
+
+Third-party components keep their own licenses and are not covered by this
+notice. See the license files next to them:
+
+- addons/netfox and addons/netfox.internals (MIT)
+- assets/characters (CC0)
+- assets/weapons (CC0)
+- assets/fonts (SIL Open Font License 1.1)
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES,
+OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
+
+-------------------------------------------------------------------------------
+
+Wersja polska (dla wygody; wiążąca jest wersja angielska)
+
+Copyright (c) 2026 whoyoux. Wszelkie prawa zastrzeżone.
+
+To repozytorium jest opublikowane wyłącznie do wglądu. Możesz przeglądać kod na
+GitHubie oraz pobierać i uruchamiać oficjalne buildy z zakładki Releases do
+osobistej, niekomercyjnej gry.
+
+Poza tym, na co pozwala powyższy akapit, prawo lub regulamin GitHuba dla
+publicznych repozytoriów, bez pisemnej zgody właściciela praw nie wolno
+kopiować, używać, zmieniać, łączyć, publikować, rozpowszechniać,
+sublicencjonować ani sprzedawać żadnej części projektu ani tworzyć na jego
+podstawie utworów zależnych. Składniki innych autorów zachowują własne licencje.

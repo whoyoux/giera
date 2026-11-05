@@ -122,6 +122,10 @@ oraz ponowne hostowanie. `tools/lag_proxy.py` pozwala dodać opóźnienie i utra
 
 ## Licencje
 
+Kod i pozostałe własne pliki projektu są udostępnione wyłącznie do wglądu, a wszelkie
+prawa są zastrzeżone. Szczegóły są w pliku [LICENSE](LICENSE). Licencje składników
+innych autorów:
+
 Addon [netfox](https://github.com/foxssake/netfox) jest na licencji MIT, a jego
 tekst znajduje się w `addons/netfox/LICENSE`. Postacie [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers)
 i [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) są na licencji CC0.
