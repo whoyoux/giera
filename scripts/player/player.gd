@@ -20,6 +20,19 @@ const STAMINA_UNLOCK := 20.0
 ## O tyle kamera poszerza widok w sprincie.
 const SPRINT_FOV_BONUS := 10.0
 const POSITION_HISTORY_TICKS := 30
+const STEP_DISTANCE := 2.3
+const SPRINT_STEP_DISTANCE := 3.0
+const MIN_STEP_SPEED := 1.2
+## Slabsze upadki, np. szczyt skoku, nie licza sie jako ladowanie.
+const LANDING_MIN_SPEED := 3.0
+const LANDING_FULL_SPEED := 14.0
+const JUMP_DETECT_SPEED := 3.0
+const SHAKE_LANDING := 0.42
+const SHAKE_DEATH := 0.8
+const SHAKE_HIT_BASE := 0.25
+const SHAKE_HIT_STRENGTH := 0.35
+const STEP_VOLUME_LOCAL := -11.0
+const STEP_VOLUME_REMOTE := -2.0
 
 var peer_id := 0
 ## Referencja do wpisu w GameState (zdrowie, punkty, respawn).
@@ -45,6 +58,17 @@ var _view_speed := 0.0
 var _switch_audio: AudioStreamPlayer
 var _item_audio: AudioStreamPlayer
 var _drop_requested_uid := 0
+var _shake := CameraShake.new()
+var _body_audio: AudioStreamPlayer
+var _body_audio_3d: AudioStreamPlayer3D
+var _step_distance := 0.0
+var _step_count := 0
+var _jump_count := 0
+var _landing_count := 0
+var _was_grounded := true
+var _fall_speed := 0.0
+var _seen_alive := true
+var _seen_exhausted := false
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -69,6 +93,7 @@ func _ready() -> void:
 	equipment.action_cancelled.connect(_on_action_cancelled)
 	equipment.active_item_changed.connect(_on_active_item_changed)
 	_seen_health = info.health
+	_seen_alive = info.alive
 	equipment.initialize()
 
 	var local := is_local()
@@ -84,6 +109,11 @@ func _ready() -> void:
 		add_child(_switch_audio)
 		_item_audio = AudioStreamPlayer.new()
 		add_child(_item_audio)
+		_body_audio = AudioStreamPlayer.new()
+		add_child(_body_audio)
+		_body_audio_3d = AudioStreamPlayer3D.new()
+		_body_audio_3d.max_distance = 28.0
+		add_child(_body_audio_3d)
 	if not Net.is_headless:
 		if local:
 			view_model.setup(peer_id)
@@ -100,6 +130,11 @@ func punch_camera(strength: float) -> void:
 	var side := -1.0 if randf() < 0.5 else 1.0
 	_punch = Vector3(0.05 * strength, 0.0, 0.09 * strength * side)
 	view_model.add_look(Vector2(14.0 * side, -18.0) * strength)
+	shake_camera(SHAKE_HIT_BASE + SHAKE_HIT_STRENGTH * strength)
+
+
+func shake_camera(amount: float) -> void:
+	_shake.add(amount)
 
 
 ## Klawisz E: przedmiot podnosi od razu, a skrzynke trzeba chwile przytrzymac.
@@ -116,6 +151,8 @@ func try_pickup() -> void:
 		return
 	WorldItems.request_pickup(WorldItems.focused_id)
 	_play_item_sound(Sfx.item_pickup())
+	if not Net.is_headless:
+		view_model.nudge()
 
 
 func try_drop() -> void:
@@ -126,6 +163,8 @@ func try_drop() -> void:
 	_drop_requested_uid = uid
 	WorldItems.request_drop(slot, uid)
 	_play_item_sound(Sfx.item_drop())
+	if not Net.is_headless:
+		view_model.nudge()
 
 
 func is_local() -> bool:
@@ -254,6 +293,7 @@ func _process(delta: float) -> void:
 	if health < _seen_health and health > 0 and not is_local():
 		model.play_hit()
 	_seen_health = health
+	_update_body_feedback(delta, grounded)
 	if is_local():
 		# Predkosc z symulacji jest rowna, a ta liczona z pozycji miedzy klatkami drzy.
 		_view_speed = lerpf(_view_speed, Vector2(velocity.x, velocity.z).length() / SPEED, minf(delta * 10.0, 1.0))
@@ -261,10 +301,71 @@ func _process(delta: float) -> void:
 		var base_fov: float = Settings.value("fov")
 		camera.fov = lerpf(camera.fov, base_fov + SPRINT_FOV_BONUS if sprinting else base_fov, minf(delta * 8.0, 1.0))
 		_punch = _punch.lerp(Vector3.ZERO, minf(delta * 9.0, 1.0))
-		camera.rotation = _punch
+		camera.rotation = (_punch + _shake.update(delta)) * float(Settings.value("camera_shake"))
 	else:
 		var local_velocity := _velocity_smoothed.rotated(Vector3.UP, -rotation.y)
 		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
+
+
+## Kroki, skok i ladowanie slychac u kazdego gracza, a reszta dotyczy tylko wlasnej postaci.
+func _update_body_feedback(delta: float, grounded: bool) -> void:
+	var alive: bool = info.alive
+	if alive != _seen_alive:
+		_seen_alive = alive
+		_on_alive_changed(alive)
+	if is_local() and exhausted != _seen_exhausted:
+		_seen_exhausted = exhausted
+		if exhausted:
+			_play_body_sound(Sfx.exhausted(), -4.0)
+	if not alive:
+		_was_grounded = grounded
+		_fall_speed = 0.0
+		return
+	if _was_grounded and velocity.y > JUMP_DETECT_SPEED:
+		_jump_count += 1
+		_play_body_sound(Sfx.jump(), -8.0)
+	if not grounded:
+		_fall_speed = minf(_fall_speed, velocity.y)
+	elif not _was_grounded and _fall_speed <= -LANDING_MIN_SPEED:
+		_on_landed()
+	if grounded:
+		_fall_speed = 0.0
+	_was_grounded = grounded
+	var moving := Vector2(velocity.x, velocity.z) if is_local() else Vector2(_velocity_smoothed.x, _velocity_smoothed.z)
+	if not grounded or moving.length() < MIN_STEP_SPEED:
+		return
+	_step_distance += moving.length() * delta
+	if _step_distance >= (SPRINT_STEP_DISTANCE if sprinting else STEP_DISTANCE):
+		_step_distance = 0.0
+		_step_count += 1
+		_play_body_sound(Sfx.footstep(), STEP_VOLUME_LOCAL if is_local() else STEP_VOLUME_REMOTE, randf_range(0.88, 1.15))
+
+
+func _on_landed() -> void:
+	_landing_count += 1
+	var power := clampf(-_fall_speed / LANDING_FULL_SPEED, 0.2, 1.0)
+	_play_body_sound(Sfx.land(), lerpf(-9.0, 0.0, power))
+	if is_local():
+		shake_camera(SHAKE_LANDING * power)
+
+
+func _on_alive_changed(alive: bool) -> void:
+	_play_body_sound(Sfx.respawn() if alive else Sfx.death(), -3.0)
+	if is_local() and not alive:
+		shake_camera(SHAKE_DEATH)
+
+
+func _play_body_sound(stream: AudioStreamWAV, volume_db: float, pitch := 1.0) -> void:
+	if is_local():
+		_body_audio.stream = stream
+		_body_audio.volume_db = volume_db
+		_body_audio.pitch_scale = pitch
+		_body_audio.play()
+	else:
+		_body_audio_3d.stream = stream
+		_body_audio_3d.volume_db = volume_db
+		_body_audio_3d.pitch_scale = pitch
+		_body_audio_3d.play()
 
 
 func _update_focus() -> void:
@@ -301,20 +402,22 @@ func _on_item_fired() -> void:
 	shot_audio.play()
 	var aim_yaw := input.look_yaw if is_local() else yaw
 	var aim_pitch := input.look_pitch if is_local() else pitch
-	var muzzle: Vector3
+	var hit := Hitscan.trace(get_world_3d(), eye_position(), Hitscan.direction(aim_yaw, aim_pitch), peer_id, get_tree())
+	var effect_color := Rarity.effect_color(tier)
 	if is_local():
 		view_model.kick(stats.recoil)
-		muzzle = view_model.muzzle_position()
 		_punch.x += stats.camera_kick
+		view_model.on_next_pose(_show_shot.bind(hit, effect_color, stats.tracer_width))
 	else:
 		model.play_shot()
-		muzzle = model.muzzle_position()
-	var hit := Hitscan.trace(get_world_3d(), eye_position(), Hitscan.direction(aim_yaw, aim_pitch), peer_id, get_tree())
+		_show_shot(model.muzzle_position(), hit, effect_color, stats.tracer_width)
+
+
+func _show_shot(muzzle: Vector3, hit: Dictionary, color: Color, width: float) -> void:
 	var fx_root := get_parent()
-	var effect_color := Rarity.effect_color(tier)
-	ShotFx.tracer(fx_root, muzzle, hit.position, effect_color, stats.tracer_width)
+	ShotFx.tracer(fx_root, muzzle, hit.position, color, width)
 	if hit.player != null or hit.hit_world:
-		ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else effect_color)
+		ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else color)
 
 
 func _on_action_started() -> void:

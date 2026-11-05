@@ -6,6 +6,7 @@ signal settings_requested
 
 const FEED_SECONDS := 5.0
 const LOW_HEALTH := 35
+const KILL_SHAKE := 0.28
 const ITEM_NAME_SECONDS := 1.4
 ## Od tylu obrazen reakcja na trafienie jest najmocniejsza.
 const HEAVY_HIT_DAMAGE := 40.0
@@ -30,6 +31,7 @@ var _prompt_style: StyleBoxFlat
 var _prompt_action: Label
 var _prompt_name: Label
 var _prompt_bar: ProgressBar
+var _drop_hint: Control
 var _shown_prompt_id := -1
 var _ammo_label: Label
 var _ammo_hint: Label
@@ -99,6 +101,7 @@ func _process(delta: float) -> void:
 	_update_ammo(_player.equipment)
 	_update_item_name(_player.equipment)
 	_update_prompt()
+	_drop_hint.visible = not ItemStack.is_empty(_player.equipment.active_stack())
 
 	_crosshair.hidden_for_sprint = _player.sprinting
 	_death_panel.visible = not info.alive
@@ -213,6 +216,8 @@ func _on_focus_lost() -> void:
 
 func _on_hit_confirmed(killed: bool) -> void:
 	_crosshair.flash_hit(killed)
+	if killed and _player != null and is_instance_valid(_player):
+		_player.shake_camera(KILL_SHAKE)
 	_audio.stream = Sfx.kill() if killed else Sfx.hit()
 	_audio.play()
 
@@ -385,6 +390,7 @@ func _build() -> void:
 	_item_name_panel.add_child(_item_name)
 
 	_build_prompt()
+	_build_drop_hint()
 
 	_feed = VBoxContainer.new()
 	_feed.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -478,22 +484,43 @@ func _build_prompt() -> void:
 	_prompt_bar.step = 0.0
 	_prompt_bar.visible = false
 	rows.add_child(_prompt_bar)
-	var key := PanelContainer.new()
-	key.custom_minimum_size = Vector2(36, 36)
-	var key_style := StyleBoxFlat.new()
-	key_style.bg_color = UiStyle.INK
-	key_style.set_corner_radius_all(10)
-	key_style.anti_aliasing = true
-	key.add_theme_stylebox_override("panel", key_style)
-	row.add_child(key)
-	var key_label := UiStyle.label("E", 20, Color.WHITE)
-	key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	key.add_child(key_label)
+	row.add_child(_key_chip("E", 36, 20))
 	_prompt_action = UiStyle.label("Podnieś", 20, UiStyle.INK, false)
 	row.add_child(_prompt_action)
 	_prompt_name = UiStyle.label("", 21, UiStyle.INK)
 	row.add_child(_prompt_name)
+
+
+func _key_chip(key_name: String, chip_size: float, font_size: int) -> PanelContainer:
+	var chip := PanelContainer.new()
+	chip.custom_minimum_size = Vector2.ONE * chip_size
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = UiStyle.INK
+	style.set_corner_radius_all(10)
+	style.anti_aliasing = true
+	chip.add_theme_stylebox_override("panel", style)
+	var label := UiStyle.label(key_name, font_size, Color.WHITE)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	chip.add_child(label)
+	return chip
+
+
+## Przypomnienie o wyrzucaniu tuz obok paska przedmiotow.
+func _build_drop_hint() -> void:
+	var anchor := _anchored(Control.PRESET_CENTER_BOTTOM, Vector2(226, -66), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_BEGIN)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.modulate.a = 0.8
+	anchor.add_child(row)
+	row.add_child(_key_chip("G", 28, 16))
+	var label := UiStyle.label("wyrzuć", 16, Color.WHITE)
+	label.add_theme_color_override("font_outline_color", UiStyle.INK)
+	label.add_theme_constant_override("outline_size", 5)
+	row.add_child(label)
+	_drop_hint = row
 
 
 func _build_status_sticker() -> void:

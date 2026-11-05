@@ -39,6 +39,7 @@ var _was_on_floor := true
 var _bob_amount := 0.0
 var _lift := 0.0
 var _landing_shown := 0.0
+var _pose_callbacks: Array[Callable] = []
 
 
 func setup(peer_id: int) -> void:
@@ -142,6 +143,22 @@ func _process(_delta: float) -> void:
 	if _overlay_camera != null:
 		_overlay_camera.global_transform = _main_camera.global_transform
 		_overlay_camera.fov = _main_camera.fov
+		_run_pose_callbacks()
+
+
+## Podaje polozenie lufy, gdy poza na te klatke jest juz gotowa. Strzal zapada w ticku, a wtedy
+## bron stoi jeszcze tam, gdzie w poprzedniej klatce, wiec w ruchu smuga zaczynalaby sie obok niej.
+func on_next_pose(callback: Callable) -> void:
+	_pose_callbacks.append(callback)
+
+
+func _run_pose_callbacks() -> void:
+	if _pose_callbacks.is_empty():
+		return
+	var muzzle := muzzle_position()
+	for callback in _pose_callbacks:
+		callback.call(muzzle)
+	_pose_callbacks.clear()
 
 
 ## Wklada przedmiot do rak z krotka animacja wyciagania albo chowa rece przy pustym slocie.
@@ -199,6 +216,11 @@ func kick(strength := 1.0) -> void:
 		_flash.visible = true
 		_flash.rotation.z = randf() * TAU
 		_flash.scale = Vector3.ONE * randf_range(0.9, 1.5)
+
+
+## Krotkie przysiadniecie broni, np. przy podniesieniu czegos.
+func nudge(amount := 0.45) -> void:
+	_landing = maxf(_landing, amount)
 
 
 func add_look(delta_look: Vector2) -> void:
