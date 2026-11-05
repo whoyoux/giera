@@ -39,6 +39,8 @@ func _ready() -> void:
 	_add_bot(2, me.position + forward * 6.5 - right * 0.4, right)
 	_add_bot(3, me.position + forward * 10.0 - right * 2.4, -right)
 	_add_bot(4, me.position + forward * 13.0 + right * 2.0, right)
+	# Bez przechwyconej myszy ruch uzytkownika nie zmieni kadru.
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	me.input.look_yaw = atan2(-forward.x, -forward.z)
 	me.input.look_pitch = -0.03
 	GameState.players[1].kills = 7
