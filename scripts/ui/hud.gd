@@ -443,6 +443,10 @@ func _build() -> void:
 	_fps_label = UiStyle.label("0 FPS", 17, UiStyle.INK)
 	_fps_panel.add_child(_fps_label)
 
+	var net_graph := NetGraph.new()
+	net_graph.position = Vector2(24, 72)
+	add_child(net_graph)
+
 	_build_status_sticker()
 	_build_ammo_sticker()
 
