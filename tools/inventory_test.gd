@@ -106,6 +106,9 @@ func _ready() -> void:
 		shooter_behavior._resolve_shot(equipment, stats, NetworkTime.tick)
 		var damage_dealt: int = GameState.MAX_HEALTH - GameState.players[2].health
 		print("[test] %s zadaje %d" % [Rarity.display_name(tier), damage_dealt])
+		if damage_dealt == 0:
+			var aim := Hitscan.trace(player.get_world_3d(), player.eye_position(), Hitscan.direction(player.yaw, player.pitch), 1, get_tree())
+			print("[test] diagnostyka: gracz=%s yaw=%.3f pitch=%.3f look_yaw=%.3f look_pitch=%.3f cel=%s trafienie=%s" % [player.position, player.yaw, player.pitch, player.input.look_yaw, player.input.look_pitch, target.position, aim])
 		_check("%s zadaje obrazenia ze swoich danych" % Rarity.display_name(tier), damage_dealt == stats.damage)
 	_pinned = null
 

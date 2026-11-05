@@ -8,7 +8,8 @@ const ACTIVE_SCALE := 1.14
 const ACTIVE_LIFT := -10.0
 const EMPTY_FILL := Color(1.0, 0.98, 0.94, 0.72)
 const BADGE_SIZE := Vector2(30, 30)
-const CHARGES_SIZE := Vector2(46, 26)
+const CHARGES_SIZE := Vector2(58, 26)
+const ACTIVE_BADGE := UiStyle.TEAL
 
 var _cells: Array[Dictionary] = []
 var _equipment: Equipment
@@ -87,7 +88,7 @@ func _animate_selection(cell: Dictionary, active: bool) -> void:
 	var tween := panel.create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(panel, "scale", Vector2.ONE * (ACTIVE_SCALE if active else 1.0), 0.14)
 	tween.tween_property(panel, "position:y", ACTIVE_LIFT if active else 0.0, 0.14)
-	(cell.badge_style as StyleBoxFlat).bg_color = UiStyle.CORAL if active else UiStyle.INK
+	(cell.badge_style as StyleBoxFlat).bg_color = ACTIVE_BADGE if active else UiStyle.INK
 
 
 func _pop(panel: Control) -> void:
@@ -130,8 +131,14 @@ func _build_cell(slot: int) -> Dictionary:
 	charges_pill.position = Vector2((SLOT_SIZE.x - 8.0 - CHARGES_SIZE.x) * 0.5, SLOT_SIZE.y - 8.0 - CHARGES_SIZE.y * 0.5)
 	charges_pill.visible = false
 	inner.add_child(charges_pill)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 2)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charges_pill.add_child(row)
+	row.add_child(UiStyle.ammo_icon(Vector2(19, 19)))
 	var charges := _chip_label("", 16)
-	charges_pill.add_child(charges)
+	row.add_child(charges)
 	return {
 		"panel": panel,
 		"style": style,

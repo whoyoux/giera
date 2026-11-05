@@ -395,15 +395,16 @@ func _build_status_sticker() -> void:
 func _build_ammo_sticker() -> void:
 	var anchor := _anchored(Control.PRESET_BOTTOM_RIGHT, Vector2(-28, -28), Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BEGIN)
 	_ammo_panel = PanelContainer.new()
-	_ammo_panel.custom_minimum_size = Vector2(170, 84)
+	_ammo_panel.custom_minimum_size = Vector2(190, 84)
 	_ammo_panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 22, 6))
 	_ammo_panel.rotation_degrees = 1.5
-	_ammo_panel.position = Vector2(-170, -88)
+	_ammo_panel.position = Vector2(-190, -88)
 	anchor.add_child(_ammo_panel)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_ammo_panel.add_child(row)
+	row.add_child(UiStyle.ammo_icon(Vector2(40, 40)))
 	_ammo_label = UiStyle.label("12", 40, UiStyle.BLUE)
 	row.add_child(_ammo_label)
 	_ammo_hint = UiStyle.label("/ 12", 18, UiStyle.INK, false)

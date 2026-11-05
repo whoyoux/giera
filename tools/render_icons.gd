@@ -4,6 +4,7 @@ extends Node
 ## Po uruchomieniu trzeba zaimportowac nowe pliki: godot --headless --path . --import
 
 const ICON_SIZE := 256
+const AMMO_MODEL := "res://assets/weapons/bullet-foam-tip.glb"
 const TIER_NAMES := { Rarity.Tier.COMMON: "common", Rarity.Tier.EPIC: "epic", Rarity.Tier.LEGENDARY: "legendary" }
 
 
@@ -15,10 +16,11 @@ func _ready() -> void:
 			var path := definition.model_path(tier)
 			if not path.is_empty():
 				await _render(path, "res://assets/icons/%s_%s.png" % [definition.id, TIER_NAMES[tier]])
+	await _render(AMMO_MODEL, "res://assets/icons/ammo.png", 28.0, Vector3(-1.4, 0.8, 0.9))
 	get_tree().quit()
 
 
-func _render(model_path: String, target: String) -> void:
+func _render(model_path: String, target: String, tilt := 0.0, view := Vector3(-1.6, 0.55, -0.35)) -> void:
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(ICON_SIZE, ICON_SIZE)
 	viewport.own_world_3d = true
@@ -40,13 +42,14 @@ func _render(model_path: String, target: String) -> void:
 	viewport.add_child(sun)
 	var model := (load(model_path) as PackedScene).instantiate() as Node3D
 	viewport.add_child(model)
+	model.rotation_degrees.z = -tilt
 	var bounds := _bounds_of(model)
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = maxf(bounds.size.z, bounds.size.y) * 1.2
+	camera.size = maxf(maxf(bounds.size.x, bounds.size.z), bounds.size.y) * 1.2
 	viewport.add_child(camera)
 	var center := bounds.get_center()
-	camera.look_at_from_position(center + Vector3(-1.6, 0.55, -0.35).normalized() * 3.0, center)
+	camera.look_at_from_position(center + view.normalized() * 3.0, center)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	var error := viewport.get_texture().get_image().save_png(target)
