@@ -80,6 +80,12 @@ func display_name(id: int) -> String:
 	return info.get("name", "Gracz")
 
 
+## SteamID gracza albo 0, gdy nie ma konta Steam lub juz wyszedl z gry.
+func steam_id_of(id: int) -> int:
+	var info: Dictionary = players.get(id, {})
+	return info.get("steam_id", 0)
+
+
 # --- Serwer -----------------------------------------------------------------
 
 ## Dodaje gracza i informuje wszystkich. Wywolywane tylko na serwerze.

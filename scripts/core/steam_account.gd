@@ -112,8 +112,8 @@ func _use_fake(account: String) -> void:
 ## Przykladowy obrazek bez prawdziwych danych konta.
 func _fake_avatar(id: int) -> Texture2D:
 	var image := Image.create_empty(FAKE_AVATAR_SIZE, FAKE_AVATAR_SIZE, false, Image.FORMAT_RGBA8)
-	var top := Color.from_hsv(fposmod(id * 0.137, 1.0), 0.55, 0.95)
-	var bottom := Color.from_hsv(fposmod(id * 0.137 + 0.12, 1.0), 0.75, 0.7)
+	var top := Color.from_hsv(fposmod((id % 97) * 0.137, 1.0), 0.55, 0.95)
+	var bottom := Color.from_hsv(fposmod((id % 97) * 0.137 + 0.12, 1.0), 0.75, 0.7)
 	for y in FAKE_AVATAR_SIZE:
 		for x in FAKE_AVATAR_SIZE:
 			image.set_pixel(x, y, top.lerp(bottom, float(x + y) / (FAKE_AVATAR_SIZE * 2 - 2)))

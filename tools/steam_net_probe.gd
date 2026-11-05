@@ -1,7 +1,7 @@
 extends Node
 ## Czesc tools/steam_net_test.sh: sprawdza u klienta, co serwer rozeslal o graczach.
 
-const OWN_ID := 76561197960287930
+const OWN_ID := 76561197960265729
 const WAIT_SECONDS := 9.0
 
 var _failures := 0

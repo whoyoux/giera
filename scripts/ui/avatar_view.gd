@@ -17,6 +17,9 @@ func _init(steam_id: int, player_name: String, side: float) -> void:
 	size = custom_minimum_size
 	pivot_offset = custom_minimum_size * 0.5
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# W wierszach listy naklejka nie moze rozciagac sie do wysokosci tekstu.
+	size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var border := maxi(2, roundi(side * BORDER_RATIO))
 	var style := UiStyle.sticker(FILLS[absi(player_name.hash()) % FILLS.size()], roundi(side * 0.22), border)

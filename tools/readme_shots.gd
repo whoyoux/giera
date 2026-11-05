@@ -1,11 +1,12 @@
 extends Node
 ## Narzedzie: robi zrzuty do README z przykladowymi nazwami i adresem.
-## Uzycie: -- --tool=res://tools/readme_shots.gd --dir=C:/folder --fake-steam=Kapitan:76561197960287930
+## Uzycie: -- --tool=res://tools/readme_shots.gd --dir=C:/folder --fake-steam=Kapitan:76561197960265729
 ## Udawane konto jest wymagane, zeby na zrzut nie trafilo prawdziwe konto Steam.
 ## Nie zapisuje ustawien gracza, wiec nie zmienia nicku ani adresu w menu.
 
 const EXAMPLE_NICK := "Kapitan"
 const EXAMPLE_ADDRESS := "203.0.113.10"
+const EXAMPLE_STEAM_ID := 76561197960265729
 
 var _dir := ""
 var _time := 0.0
@@ -14,7 +15,7 @@ var _bots: Array[Dictionary] = []
 
 func _ready() -> void:
 	if not Net.args.has("fake-steam"):
-		push_error("Uruchom z --fake-steam=%s:76561197960287930" % EXAMPLE_NICK)
+		push_error("Uruchom z --fake-steam=%s:76561197960265729" % EXAMPLE_NICK)
 		get_tree().quit(1)
 		return
 	_dir = Net.args.get("dir", "user://")
@@ -38,8 +39,8 @@ func _ready() -> void:
 	GameState.server_give_item(1, &"shotgun", Rarity.Tier.LEGENDARY)
 	GameState.server_give_item(1, &"knife", Rarity.Tier.COMMON)
 	me.input.select_slot(1)
-	GameState.server_add_player(2, "Ziutek", "skeleton_warrior")
-	GameState.server_add_player(3, "Basia", "mage")
+	GameState.server_add_player(2, "Ziutek", "skeleton_warrior", EXAMPLE_STEAM_ID + 2)
+	GameState.server_add_player(3, "Basia", "mage", EXAMPLE_STEAM_ID + 3)
 	GameState.server_add_player(4, "Mietek", "skeleton_rogue")
 	await _wait(0.3)
 	_add_bot(2, me.position + forward * 6.5 - right * 0.4, right)

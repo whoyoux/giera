@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 GODOT="${GODOT:-$LOCALAPPDATA/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.2-stable_win64_console.exe}"
 PORT="${1:-7821}"
-OWN_ID=76561197960287930
+OWN_ID=76561197960265729
 LOGS=tools/logs
 mkdir -p "$LOGS"
 
