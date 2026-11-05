@@ -187,6 +187,13 @@ static func heal() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 0.0)
 
 
+## Ciche klikniecie przy unoszeniu broni do oka.
+static func aim() -> AudioStreamWAV:
+	return _make("aim", 0.07, func(t: float, _phase: float) -> float:
+		return (sin(TAU * 720.0 * t) * 0.6 + randf_range(-0.2, 0.2)) * exp(-t * 70.0)
+	, func(_t: float) -> float: return 0.0)
+
+
 static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)

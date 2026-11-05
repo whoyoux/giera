@@ -13,6 +13,12 @@ extends Resource
 @export var reload_seconds := 1.6
 @export var draw_seconds := 0.25
 
+@export_group("Celowanie")
+## O tyle zweza sie pole widzenia. Mniej znaczy mocniejsze przyblizenie.
+@export_range(0.3, 1.0) var aim_fov_scale := 0.75
+## O tyle zwalnia gracz, ktory celuje.
+@export_range(0.2, 1.0) var aim_move_scale := 0.65
+
 @export_group("Odczucie strzalu")
 ## Sila odrzutu broni w rekach, gdzie 1 to zwykly blaster.
 @export var recoil := 1.0

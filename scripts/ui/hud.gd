@@ -112,6 +112,7 @@ func _process(delta: float) -> void:
 	_update_heal_feedback(info)
 
 	_crosshair.hidden_for_sprint = _player.sprinting
+	_crosshair.aiming = _player.aiming
 	_death_panel.visible = not info.alive
 	if not info.alive:
 		var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)

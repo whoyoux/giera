@@ -12,6 +12,7 @@ const OPENER_REACH := 2.2
 var move := Vector2.ZERO
 var jump := false
 var use_primary := false
+var aim := false
 ## Slot, ktory gracz chce miec w reku.
 var slot := 0
 var sprint := false
@@ -45,7 +46,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not is_multiplayer_authority():
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		var sensitivity: float = MOUSE_SENSITIVITY * Settings.value("sensitivity")
+		var sensitivity: float = MOUSE_SENSITIVITY * Settings.value("sensitivity") * (get_parent() as Player).aim_sensitivity_scale()
 		var vertical: float = -1.0 if Settings.value("invert_y") else 1.0
 		look_yaw -= event.relative.x * sensitivity
 		look_pitch = clampf(look_pitch - event.relative.y * sensitivity * vertical, -MAX_PITCH, MAX_PITCH)
@@ -110,12 +111,14 @@ func _gather() -> void:
 		move = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		jump = Input.is_action_pressed("jump")
 		use_primary = Input.is_action_pressed("fire")
+		aim = Input.is_action_pressed("aim")
 		sprint = Input.is_action_pressed("sprint")
 		reload = Input.is_action_pressed("reload")
 	else:
 		move = Vector2.ZERO
 		jump = false
 		use_primary = false
+		aim = false
 		sprint = false
 		reload = false
 	slot = _wanted_slot
@@ -165,6 +168,7 @@ func _gather_bot() -> void:
 			var active := _bot_time < float(Net.args.get("bot-seconds", 18.0))
 			use_primary = active and fmod(_bot_time, 2.0) < 1.2
 			reload = active and fmod(_bot_time, 5.0) < 0.1
+			aim = active and fmod(_bot_time, 3.0) < 1.5
 			move = Vector2(sin(_bot_time * 0.8), cos(_bot_time * 0.6)) if active else Vector2.ZERO
 			if active and fmod(_bot_time, 1.5) < NetworkTime.ticktime:
 				select_slot(Inventory.next_occupied(me.info.slots, _wanted_slot, 1))

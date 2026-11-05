@@ -85,6 +85,11 @@ func set_active_charges(value: int) -> void:
 	_set_charges(active_slot, value)
 
 
+## Celowac mozna tylko bronia i nie w trakcie przeladowania.
+func can_aim() -> bool:
+	return active_stats() != null and not is_busy()
+
+
 func is_busy() -> bool:
 	return action_end >= 0
 

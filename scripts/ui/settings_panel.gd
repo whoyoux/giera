@@ -59,6 +59,7 @@ func _build() -> void:
 
 	_add_slider("Głośność", "volume", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Czułość myszy", "sensitivity", 0.1, 3.0, 0.05, func(v: float) -> String: return "%.2f" % v)
+	_add_slider("Czułość przy celowaniu", "aim_sensitivity", 0.3, 1.5, 0.05, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Pole widzenia", "fov", 65.0, 110.0, 1.0, func(v: float) -> String: return "%d°" % roundi(v))
 	_add_slider("Wstrząsy kamery", "camera_shake", 0.0, 1.0, 0.05, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_toggle("Odwrócona mysz w pionie", "invert_y")

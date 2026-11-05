@@ -11,3 +11,5 @@ extends Resource
 @export var fore_grip := Vector3.ZERO
 ## Wylot lufy.
 @export var muzzle := Vector3.ZERO
+## Przesuniecie broni przy celowaniu, gdy muszka modelu zaslanialaby celownik.
+@export var aim_offset := Vector3.ZERO

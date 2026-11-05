@@ -64,13 +64,14 @@ func _ready() -> void:
 	_key(false)
 	print("[test] otwieranie trwalo %.2f s" % elapsed)
 	_check("otwarcie trwa okolo sekundy", elapsed > 0.8 and elapsed < 1.5)
-	_check("wypada jeden przedmiot", WorldItems.items.size() == 1)
+	var dropped := WorldItems.items.size()
+	_check("wypada bron i czasem apteczka", dropped == 1 or dropped == 2)
 	var entry: Dictionary = WorldItems.items.values()[0]
 	_check("lup wypada blisko gracza", _player.position.distance_to(entry.position) < 4.0)
 	await _wait(0.1)
 	_check("otwarta skrzynka nie jest celem", Chests.focused_id == 0)
 	await _hold_key(1.3)
-	_check("otwartej nie da sie otworzyc znowu", WorldItems.items.size() <= 1)
+	_check("otwartej nie da sie otworzyc znowu", WorldItems.items.size() <= dropped)
 	Chests._server_start.rpc_id(1, _chest.id)
 	_check("serwer odrzuca otwarta skrzynke", not Chests._openings.has(1))
 

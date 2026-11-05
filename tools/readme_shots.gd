@@ -68,6 +68,14 @@ func _ready() -> void:
 	await _shot("scoreboard.png")
 	Input.action_release("scoreboard")
 
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Input.action_press("aim")
+	await _wait(0.8)
+	await _shot("aim.png")
+	Input.action_release("aim")
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	await _wait(0.4)
+
 	await _loot_shot(me, forward, right)
 
 	GameState.players[1].health = 25
