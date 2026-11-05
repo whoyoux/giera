@@ -76,7 +76,7 @@ jobs:
           1. Pobierz \`Giera.exe\` i uruchom. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
           2. Wpisz nick i adres serwera podany przez hosta, a potem kliknij **Dołącz**.
 
-          Sterowanie: WASD, mysz, LPM strzał, spacja skok, Tab wyniki, Esc pauza.
+          Sterowanie: WASD, mysz, LPM strzał, R przeładowanie, Shift sprint, spacja skok, Tab wyniki, Esc pauza.
 
           SHA-256: \`$sha\`
           EOF
