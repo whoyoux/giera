@@ -121,9 +121,9 @@ func _ready() -> void:
 		add_child(_body_audio_3d)
 	if not Net.is_headless:
 		if local:
-			view_model.setup(peer_id)
+			view_model.setup(info.character)
 		else:
-			model.setup(peer_id)
+			model.setup(info.character)
 	if local:
 		# Na start patrzymy w strone srodka mapy.
 		input.look_yaw = atan2(position.x, position.z)

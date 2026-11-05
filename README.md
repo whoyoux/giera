@@ -21,6 +21,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Podnoszenie i wyrzucanie:** bronie leżą na ziemi, a po śmierci wypadają dla innych.
 - **Apteczki:** wypadają ze skrzynek obok broni, a przytrzymanie strzału przez 2,5 s leczy o 50 punktów.
 - **Celowanie:** prawy przycisk przybliża widok i zmniejsza odrzut, ale spowalnia ruch. Lepsza broń ma mocniejsze przybliżenie.
+- **Wybór postaci:** 9 modeli do wyboru strzałkami w menu, w tym rycerze i szkielety. Gra zapamiętuje wybór.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
 - **Pokój zabawek:** mapa z książek, klocków, ołówków i piłek, animowane postacie i interfejs w stylu naklejek.
 - **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
@@ -59,4 +60,4 @@ Godot 4.7, GDScript i [netfox](https://github.com/foxssake/netfox). Serwer decyd
 
 Kod i własne pliki projektu są udostępnione wyłącznie do wglądu, a wszelkie prawa są zastrzeżone. Szczegóły są w pliku [LICENSE](LICENSE).
 
-Składniki innych autorów zachowują swoje licencje: [netfox](https://github.com/foxssake/netfox) (MIT), postacie [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers) (CC0), [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) (CC0) i czcionka Fredoka (SIL OFL). Pliki licencji leżą przy zasobach.
+Składniki innych autorów zachowują swoje licencje: [netfox](https://github.com/foxssake/netfox) (MIT), postacie [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers) (CC0), [KayKit Skeletons](https://kaylousberg.itch.io/kaykit-skeletons) (CC0), [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) (CC0) i czcionka Fredoka (SIL OFL). Pliki licencji leżą przy zasobach.

@@ -18,6 +18,7 @@ func _ready() -> void:
 	menu._name_field.text = EXAMPLE_NICK
 	menu._address_field.text = EXAMPLE_ADDRESS
 	menu._status.text = ""
+	menu._picker.select("skeleton_warrior", false)
 	await _wait(1.5)
 	await _shot("menu.png")
 
@@ -33,9 +34,9 @@ func _ready() -> void:
 	GameState.server_give_item(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
 	GameState.server_give_item(1, &"medkit", Rarity.Tier.COMMON)
 	me.input.select_slot(2)
-	GameState.server_add_player(2, "Ziutek")
-	GameState.server_add_player(3, "Basia")
-	GameState.server_add_player(4, "Mietek")
+	GameState.server_add_player(2, "Ziutek", "skeleton_warrior")
+	GameState.server_add_player(3, "Basia", "mage")
+	GameState.server_add_player(4, "Mietek", "skeleton_rogue")
 	await _wait(0.3)
 	_add_bot(2, me.position + forward * 6.5 - right * 0.4, right)
 	_add_bot(3, me.position + forward * 10.0 - right * 2.4, -right)
