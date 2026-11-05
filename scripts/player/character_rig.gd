@@ -22,6 +22,7 @@ var _dead := false
 var _armed := true
 var _gun_holder: Node3D
 var _visual: ItemVisual
+var _dance := DanceCatalog.NONE
 
 
 func setup(character_id: String) -> void:
@@ -42,7 +43,7 @@ func set_item(stack: Dictionary) -> void:
 	if _gun_holder == null:
 		return
 	_armed = not ItemStack.is_empty(stack)
-	_gun_holder.visible = _armed
+	_gun_holder.visible = _armed and _dance == DanceCatalog.NONE
 	if _armed:
 		var visual := ItemStack.visual_of(stack)
 		if visual != _visual:
@@ -71,6 +72,20 @@ func play_hit() -> void:
 	_fire("hit")
 
 
+## Taniec zastepuje cale cialo, a bron znika na jego czas. Zero oznacza koniec tanca.
+func set_dance(dance_id: int) -> void:
+	_dance = dance_id
+	if _gun_holder != null:
+		_gun_holder.visible = _armed and _dance == DanceCatalog.NONE
+	_apply_state()
+
+
+## Wlasna postac liczy animacje tylko wtedy, gdy ja widac, czyli w czasie tanca.
+func set_animating(on: bool) -> void:
+	if _tree != null:
+		_tree.active = on
+
+
 func muzzle_position() -> Vector3:
 	return _muzzle.global_position if _muzzle != null else global_position + Vector3.UP
 
@@ -84,13 +99,24 @@ func update_pose(delta: float, local_velocity: Vector2, on_floor: bool, pitch: f
 	_tree.set("parameters/loco/blend_position", _move)
 	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 8.0)
 	_tree.set("parameters/air/blend_amount", _air)
-	_aim_blend = move_toward(_aim_blend, 0.0 if sprinting or not _armed else 1.0, delta * 8.0)
+	_aim_blend = move_toward(_aim_blend, 0.0 if sprinting or not _armed or _dance != DanceCatalog.NONE else 1.0, delta * 8.0)
 	_tree.set("parameters/aim/blend_amount", _aim_blend)
 	_aim.pitch = pitch * _aim_blend
 	_aim.aim_amount = _aim_blend
 	if dead != _dead:
 		_dead = dead
-		_tree.set("parameters/state/transition_request", "dead" if dead else "alive")
+		_apply_state()
+
+
+func _apply_state() -> void:
+	if _tree == null:
+		return
+	var state := "alive"
+	if _dead:
+		state = "dead"
+	elif _dance != DanceCatalog.NONE:
+		state = "dance_%d" % _dance
+	_tree.set("parameters/state/transition_request", state)
 
 
 func _fire(shot_name: String) -> void:
@@ -100,6 +126,7 @@ func _fire(shot_name: String) -> void:
 
 func _build_tree(character: Node3D) -> void:
 	var player := CharacterAssets.player_of(character)
+	player.add_animation_library(DanceClips.LIBRARY, DanceClips.library())
 	for animation_name in LOOPED:
 		player.get_animation(animation_name).loop_mode = Animation.LOOP_LINEAR
 
@@ -147,6 +174,11 @@ func _build_tree(character: Node3D) -> void:
 	graph.add_node("death", _animation("Death_A"))
 	graph.connect_node("state", 0, previous)
 	graph.connect_node("state", 1, "death")
+	for dance_id in range(1, DanceCatalog.DANCES.size() + 1):
+		var input_name := "dance_%d" % dance_id
+		state.add_input(input_name)
+		graph.add_node(input_name, _animation(DanceCatalog.clip_of(dance_id)))
+		graph.connect_node("state", 1 + dance_id, input_name)
 	graph.connect_node("output", 0, "state")
 
 	_tree = AnimationTree.new()

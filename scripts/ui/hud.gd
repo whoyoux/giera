@@ -65,6 +65,7 @@ var _pause: CenterContainer
 var _audio: AudioStreamPlayer
 var _hurt_audio: AudioStreamPlayer
 var _last_ammo := -1
+var _dance_wheel: DanceWheel
 
 
 func _ready() -> void:
@@ -91,6 +92,7 @@ func bind(player: Player) -> void:
 
 
 func unbind() -> void:
+	_close_dance_wheel()
 	_player = null
 
 
@@ -117,7 +119,12 @@ func _process(delta: float) -> void:
 	_update_use_panel(_player.equipment)
 	_update_heal_feedback(info)
 
-	_crosshair.hidden_for_sprint = _player.sprinting
+	_crosshair.hidden_for_sprint = _player.sprinting or _player.dance_id != DanceCatalog.NONE
+	if _dance_wheel.is_open and (not info.alive or Input.mouse_mode != Input.MOUSE_MODE_CAPTURED):
+		_close_dance_wheel()
+	# Kolo moglo zamknac sie samo, a przycisk myszy wciaz moze byc wcisniety.
+	if _player.input.wheel_open != _dance_wheel.is_open:
+		_player.input.set_wheel_open(_dance_wheel.is_open)
 	_crosshair.aiming = _player.aiming
 	_crosshair.spread_radius = _spread_on_screen(_player)
 	_death_panel.visible = not info.alive
@@ -256,8 +263,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("pause"):
 		_set_paused(not _pause.visible)
+	elif event.is_action_pressed("dance") and _player.is_alive() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		_dance_wheel.open()
+		_player.input.set_wheel_open(true)
 	elif event is InputEventMouseButton and event.pressed and not _pause.visible:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _on_dance_chosen(dance_id: int) -> void:
+	_player.input.set_wheel_open(false)
+	var started := _player.input.request_dance(dance_id)
+	UiSound.play(Sfx.UiCue.CONFIRM if started else Sfx.UiCue.ERROR)
+
+
+func _close_dance_wheel() -> void:
+	_dance_wheel.cancel()
+	if _player != null and is_instance_valid(_player):
+		_player.input.set_wheel_open(false)
 
 
 func _set_paused(paused: bool) -> void:
@@ -430,6 +452,10 @@ func _build() -> void:
 	_crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_crosshair.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_crosshair)
+
+	_dance_wheel = DanceWheel.new()
+	_dance_wheel.chosen.connect(_on_dance_chosen)
+	add_child(_dance_wheel)
 
 	_fps_panel = PanelContainer.new()
 	var fps_style := UiStyle.sticker(UiStyle.PAPER, 14, 3)

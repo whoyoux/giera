@@ -60,8 +60,8 @@ script = ExtResource("3_equipment")
 [node name="RollbackSynchronizer" type="Node" parent="." node_paths=PackedStringArray("root")]
 script = ExtResource("6_sync")
 root = NodePath("..")
-state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", ":stamina", ":sprinting", ":aiming", ":exhausted", ":sprint_stop_tick", "Equipment:active_slot", "Equipment:last_fire", "Equipment:spread_bloom", "Equipment:shot_spread", "Equipment:last_throw", "Equipment:prime_tick", "Equipment:action_end", "Equipment:draw_end", "Equipment:slot_uid_0", "Equipment:slot_uid_1", "Equipment:slot_uid_2", "Equipment:slot_uid_3", "Equipment:charges_0", "Equipment:charges_1", "Equipment:charges_2", "Equipment:charges_3"])
-input_properties = Array[String](["Input:move", "Input:jump", "Input:use_primary", "Input:aim", "Input:slot", "Input:sprint", "Input:reload", "Input:yaw", "Input:pitch", "Input:view_tick"])
+state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", ":stamina", ":sprinting", ":aiming", ":exhausted", ":sprint_stop_tick", ":dance_id", "Equipment:active_slot", "Equipment:last_fire", "Equipment:spread_bloom", "Equipment:shot_spread", "Equipment:last_throw", "Equipment:prime_tick", "Equipment:action_end", "Equipment:draw_end", "Equipment:slot_uid_0", "Equipment:slot_uid_1", "Equipment:slot_uid_2", "Equipment:slot_uid_3", "Equipment:charges_0", "Equipment:charges_1", "Equipment:charges_2", "Equipment:charges_3"])
+input_properties = Array[String](["Input:move", "Input:jump", "Input:use_primary", "Input:aim", "Input:slot", "Input:sprint", "Input:reload", "Input:yaw", "Input:pitch", "Input:view_tick", "Input:dance"])
 enable_input_broadcast = false
 
 [node name="TickInterpolator" type="Node" parent="." node_paths=PackedStringArray("root")]

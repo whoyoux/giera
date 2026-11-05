@@ -13,6 +13,7 @@ const DEFAULTS := {
 	"volume": 0.8,
 	"ambience": 1.0,
 	"ui_sounds": 1.0,
+	"dance_music": 0.8,
 	"sensitivity": 1.0,
 	"invert_y": false,
 	"fov": 80.0,

@@ -21,6 +21,7 @@ const SLASH_SECONDS := 0.34
 var _main_camera: Camera3D
 var _overlay_camera: Camera3D
 var _overlay_viewport: SubViewport
+var _overlay_canvas: CanvasLayer
 var _gun: Node3D
 var _left: Node3D
 var _magazine: Node3D
@@ -86,6 +87,7 @@ func _build_overlay() -> void:
 	var canvas := CanvasLayer.new()
 	canvas.layer = 0
 	add_child(canvas)
+	_overlay_canvas = canvas
 	_overlay_viewport = SubViewport.new()
 	var viewport := _overlay_viewport
 	viewport.transparent_bg = true
@@ -139,6 +141,17 @@ func _match_window_size() -> void:
 
 func overlay_size() -> Vector2i:
 	return _overlay_viewport.size
+
+
+## Bron lezy na osobnej warstwie obrazu, wiec samo visible jej nie chowa.
+func set_shown(shown: bool) -> void:
+	visible = shown
+	if _overlay_canvas != null:
+		_overlay_canvas.visible = shown
+
+
+func is_shown() -> bool:
+	return visible and (_overlay_canvas == null or _overlay_canvas.visible)
 
 
 func overlay_camera() -> Camera3D:

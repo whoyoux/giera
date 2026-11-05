@@ -164,6 +164,27 @@ func _chest_shots(me: Player, forward: Vector3) -> void:
 	WorldItems._server_spawn(ItemStack.create(9100, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY), from, me.position + forward * 1.1)
 	await _wait(0.28)
 	await _shot("chest_open.png")
+	await _dance_shots(me)
+
+
+func _dance_shots(me: Player) -> void:
+	var hud := get_tree().get_first_node_in_group(&"hud") as Hud
+	me.input.look_pitch = -0.1
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	await _wait(0.3)
+	var event := InputEventMouseMotion.new()
+	event.relative = Vector2(-120.0, -70.0)
+	hud._dance_wheel.open()
+	await _wait(0.3)
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
+	await _wait(0.2)
+	await _shot("dance_wheel.png")
+	hud._dance_wheel.cancel()
+	await _wait(0.1)
+	me.input.request_dance(4)
+	await _wait(1.1)
+	await _shot("dance.png")
 
 
 func _process(delta: float) -> void:
