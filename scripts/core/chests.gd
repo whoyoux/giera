@@ -146,7 +146,9 @@ func _process(delta: float) -> void:
 	if chests.is_empty() or not multiplayer.is_server():
 		return
 	for peer: int in _openings.keys():
-		_advance_opening(peer)
+		# Skonczone otwieranie usuwa tez innych graczy przy tej samej skrzynce.
+		if _openings.has(peer):
+			_advance_opening(peer)
 	_respawn_timer += delta
 	if _respawn_timer < RESPAWN_CHECK_SECONDS:
 		return
