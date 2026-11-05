@@ -1,6 +1,7 @@
-# Buduje Giera.exe i publikuje wydanie GitHub po wypchnieciu tagu v*.
+# Buduje gre na Windows i macOS (Apple Silicon), sprawdza wersje na prawdziwym Macu
+# i publikuje wydanie GitHub po wypchnieciu tagu v*.
 # Nie wdraza serwera: Dokploy reaguje tylko na push do galezi main.
-name: Wydanie Windows
+name: Wydanie gry
 
 on:
   push:
@@ -16,7 +17,7 @@ env:
   GODOT_SUMS_SHA512: e5a0b2214c7409871add5171b0d1f91a5018b3ea7eabacdae1c608a1381e5f2542b26fc4f6d3aecac02281802a258d412741277ec113fba4b6634a62773482b1
 
 jobs:
-  windows:
+  build:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -46,7 +47,7 @@ jobs:
           install -D -m 755 "$editor" "$HOME/.local/bin/godot"
           dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           mkdir -p "$dest"
-          unzip -q -j "$templates" 'templates/windows_*_x86_64*' templates/version.txt -d "$dest"
+          unzip -q -j "$templates" 'templates/windows_*_x86_64*' templates/macos.zip templates/version.txt -d "$dest"
           rm -f "$editor.zip" "$templates"
 
       - name: Zaimportuj zasoby
@@ -63,27 +64,93 @@ jobs:
           template="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/windows_release_x86_64.exe"
           test "$(stat -c %s builds/Giera.exe)" -gt "$(stat -c %s "$template")"
 
+      - name: Zbuduj wersje na macOS
+        run: |
+          godot --headless --path . --export-release "macOS" builds/Giera-macOS.zip
+          test -s builds/Giera-macOS.zip
+
+      - name: Przekaz buildy dalej
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: buildy
+          path: builds/
+          if-no-files-found: error
+          retention-days: 3
+
+  test-macos:
+    needs: build
+    # Runner z procesorem Apple Silicon.
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Pobierz buildy
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: buildy
+          path: builds
+
+      - name: Sprawdz aplikacje
+        run: |
+          set -euo pipefail
+          ditto -x -k builds/Giera-macOS.zip unpacked
+          app="unpacked/Giera.app"
+          binary="$app/Contents/MacOS/Giera"
+          test "$(lipo -archs "$binary")" = "arm64"
+          codesign --verify --verbose "$app"
+
+      - name: Uruchom serwer i klienta
+        run: |
+          set -uo pipefail
+          binary="unpacked/Giera.app/Contents/MacOS/Giera"
+          "$binary" --headless -- --server --port=8765 > server.log 2>&1 &
+          server=$!
+          sleep 8
+          "$binary" --headless -- --connect=127.0.0.1 --port=8765 --name=TestMac --bot=runner > client.log 2>&1 &
+          client=$!
+          sleep 15
+          kill "$client" "$server" 2>/dev/null
+          cat server.log
+          grep -q "dolaczyl TestMac" server.log
+          ! grep -q "SCRIPT ERROR" server.log client.log
+
+  publish:
+    needs: [build, test-macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Pobierz buildy
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: buildy
+          path: builds
+
       - name: Opublikuj wydanie
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          sha="$(sha256sum builds/Giera.exe | cut -d' ' -f1)"
+          windows_sha="$(sha256sum builds/Giera.exe | cut -d' ' -f1)"
+          macos_sha="$(sha256sum builds/Giera-macOS.zip | cut -d' ' -f1)"
           cat > notes.md <<EOF
-          Wersja $TAG na Windows.
+          Wersja $TAG na Windows i macOS z procesorem Apple Silicon.
 
-          1. Pobierz \`Giera.exe\` i uruchom. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
-          2. Wpisz nick i adres serwera podany przez hosta, a potem kliknij **Dołącz**.
+          **Windows:** pobierz \`Giera.exe\` i uruchom. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
 
-          Sterowanie: WASD, mysz, LPM strzał, R przeładowanie, Shift sprint, spacja skok, Tab wyniki, Esc pauza.
+          **macOS (Apple Silicon):** pobierz \`Giera-macOS.zip\`, rozpakuj i uruchom \`Giera.app\`. Aplikacja nie ma podpisu Apple, więc system ją zablokuje. Wtedy otwórz **Ustawienia systemowe → Prywatność i ochrona** i wybierz **Otwórz mimo to**. Macy z procesorem Intel nie są obsługiwane.
 
-          SHA-256: \`$sha\`
+          Potem wpisz nick i adres serwera podany przez hosta, a następnie kliknij **Dołącz**.
+
+          Sterowanie: WASD, mysz, LPM strzał, R przeładowanie, 1–4 lub scroll zmiana broni, Shift sprint, spacja skok, Tab wyniki, Esc pauza.
+
+          SHA-256 \`Giera.exe\`: \`$windows_sha\`
+
+          SHA-256 \`Giera-macOS.zip\`: \`$macos_sha\`
           EOF
           # Tag z myslnikiem (np. v0.3.0-rc1) to wersja probna: nie zostanie oznaczona jako najnowsza.
           flags=()
           case "$TAG" in *-*) flags+=(--prerelease) ;; esac
-          gh release create "$TAG" builds/Giera.exe \
+          gh release create "$TAG" builds/Giera.exe builds/Giera-macOS.zip \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --title "Giera $TAG" \

@@ -11,8 +11,11 @@ wspólnego serwera, biegają po mapie i strzelają z blastera.
 
 ## Szybki start
 
-Gotową wersję na Windows pobierzesz z zakładki **Releases**. Uruchom `Giera.exe`, wpisz
-adres serwera podany przez hosta i kliknij **Dołącz**.
+Gotową wersję na Windows (`Giera.exe`) albo na macOS z procesorem Apple Silicon
+(`Giera-macOS.zip`) pobierzesz z zakładki **Releases**. Uruchom grę, wpisz adres serwera
+podany przez hosta i kliknij **Dołącz**. Aplikacja na macOS nie ma podpisu Apple, więc przy
+pierwszym uruchomieniu trzeba wybrać **Otwórz mimo to** w **Ustawienia systemowe →
+Prywatność i ochrona**.
 
 Żeby uruchomić projekt samodzielnie, otwórz folder w Godocie 4.7, naciśnij F5, a potem
 wybierz **Hostuj grę na tym komputerze**.
@@ -74,8 +77,8 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-Workflow `.github/workflows/release.yml` zbuduje `Giera.exe` i po kilku minutach opublikuje
-go w zakładce **Releases**. Postęp widać w zakładce **Actions**.
+Workflow `.github/workflows/release.yml` zbuduje grę na Windows i macOS, uruchomi wersję na
+macOS na prawdziwym Macu z Apple Silicon i po kilku minutach opublikuje obie w zakładce **Releases**. Postęp widać w zakładce **Actions**.
 
 Sam tag nie wdraża serwera, ale każdy push na `main` wdraża go i rozłącza graczy.
 Tag z myślnikiem, np. `v0.2.0-rc1`, tworzy wersję próbną, która nie staje się najnowszą.
