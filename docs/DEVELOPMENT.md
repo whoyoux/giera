@@ -39,6 +39,7 @@ Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA
 ## Zasoby wizualne
 
 - Ikony: `tools/render_icons.gd`, a potem `godot --headless --path . --import`.
+- Ikona aplikacji: `tools/render_app_icon.gd` zapisuje `assets/app_icon.png` i `assets/app_icon.ico`.
 - Zrzuty do README: `tools/readme_shots.gd` z `--dir=<ścieżka do docs/screenshots>`. Odśwież je po każdej zmianie wyglądu.
 
 ## Architektura
