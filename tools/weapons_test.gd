@@ -27,6 +27,7 @@ func _ready() -> void:
 	await _wait(0.2)
 	_target = get_node("/root/Main/Players/2") as Player
 	GameState.hit_confirmed.connect(func(_killed: bool) -> void: _hits += 1)
+	await _test_spread()
 	await _test_shotgun()
 	await _test_knife()
 	print("[test] %s" % ("WSZYSTKO OK" if _failures == 0 else "BLEDY: %d" % _failures))
@@ -43,14 +44,85 @@ func _check_pattern() -> void:
 	for pellet in first:
 		widest = maxf(widest, rad_to_deg(pellet.angle_to(dir)))
 	_check("sruciny nie wychodza poza rozrzut", widest <= 5.51 and widest > 5.0)
-	_check("jedna srucina leci prosto", Hitscan.pellet_directions(dir, 1, 5.5, 3) == [dir])
+	_check("bez rozrzutu pocisk leci prosto", Hitscan.pellet_directions(dir, 1, 0.0, 3)[0].is_equal_approx(dir))
+	var seen := {}
+	var far_enough := false
+	var total := Vector3.ZERO
+	for tick in 300:
+		var single: Vector3 = Hitscan.pellet_directions(dir, 1, 2.0, tick)[0]
+		var off := rad_to_deg(single.angle_to(dir))
+		_check_quiet("pojedynczy pocisk w granicach rozrzutu", off <= 2.01)
+		far_enough = far_enough or off > 1.5
+		seen[single] = true
+		total += single - dir
+	_check("pojedynczy pocisk siega krawedzi", far_enough)
+	_check("kazdy tick ma inny kierunek", seen.size() == 300)
+	_check("rozrzut nie ucieka w jedna strone", rad_to_deg((total / 300.0).length()) < 0.2)
+	_check("ten sam tick to ten sam kierunek", Hitscan.pellet_directions(dir, 1, 2.0, 77) == Hitscan.pellet_directions(dir, 1, 2.0, 77))
+
+
+## Rozrzut na prawdziwych klawiszach: serie, ruch, celowanie i powrot do minimum.
+func _test_spread() -> void:
+	var equipment := _player.equipment
+	var stats := equipment.active_stats()
+	await _wait(0.4)
+	_check("w miejscu rozrzut jest najmniejszy", is_equal_approx(equipment.current_spread(), stats.spread_degrees))
+	_check("zwykly celownik w miejscu", _hud._crosshair.spread_radius < 7.0)
+
+	# Pierwszy strzal jest najcelniejszy, a seria powieksza rozrzut az do limitu.
+	Input.action_press("fire")
+	await _wait(0.1)
+	_check("pierwszy strzal ma najmniejszy rozrzut", is_equal_approx(equipment.shot_spread, stats.spread_degrees))
+	await _wait(0.5)
+	_check("seria zwieksza rozrzut", equipment.spread_bloom > stats.shot_spread_degrees)
+	var charges_left := equipment.active_charges()
+	await _wait(1.6)
+	_check("seria dalej strzela", equipment.active_charges() < charges_left or equipment.is_reloading())
+	_check("seria ma limit", is_equal_approx(equipment.spread_bloom, stats.max_bloom_degrees) or equipment.is_reloading())
+	Input.action_release("fire")
+	await _wait(0.05)
+	_check("celownik pokazuje serie", _hud._crosshair.spread_radius > 7.0)
+	await _wait(stats.max_bloom_degrees / stats.bloom_recovery + float(stats.fire_interval_ticks + Equipment.SPREAD_HOLD_TICKS) / 30.0 + 0.2)
+	_check("po przerwie rozrzut wraca", equipment.spread_bloom == 0.0)
+	Input.action_press("reload")
+	await _wait(0.2)
+	Input.action_release("reload")
+	await _wait(stats.reload_seconds + 0.2)
+	_check("po przeladowaniu magazynek pelny", equipment.active_charges() == stats.magazine)
+
+	# Ruch powieksza rozrzut, a celowanie go zmniejsza.
+	Input.action_press("move_forward")
+	await _wait(0.5)
+	var moving := equipment.current_spread()
+	print("[test] rozrzut: stoi %.2f, biegnie %.2f" % [stats.spread_degrees, moving])
+	_check("ruch powieksza rozrzut", moving > stats.spread_degrees + stats.move_spread_degrees * 0.8)
+	_check("celownik pokazuje ruch", _hud._crosshair.spread_radius > 7.0)
+	Input.action_press("aim")
+	await _wait(0.5)
+	_check("celowanie zmniejsza rozrzut w ruchu", equipment.current_spread() < moving * 0.7)
+	Input.action_release("aim")
+	Input.action_release("move_forward")
+	await _wait(0.5)
+
+	# W powietrzu najgorzej.
+	Input.action_press("jump")
+	await _wait(0.2)
+	Input.action_release("jump")
+	_check("skok powieksza rozrzut", equipment.current_spread() > stats.spread_degrees + stats.move_spread_degrees)
+	await _wait(1.0)
 
 
 func _test_shotgun() -> void:
 	var slot := GameState.server_give_item(1, SHOTGUN, Rarity.Tier.COMMON)
 	await _wait(0.1)
+	# Seria z blastera nie przechodzi na kolejna bron.
+	Input.action_press("fire")
+	await _wait(0.5)
+	Input.action_release("fire")
+	_check("blaster ma narosly rozrzut", _player.equipment.spread_bloom > 0.0)
 	_player.input.select_slot(slot)
 	await _wait(0.1)
+	_check("zmiana broni czysci serie", _player.equipment.spread_bloom == 0.0)
 	var stats := _player.equipment.active_stats()
 	_check("strzelba w rece", _player.view_model.shown_visual() == stats.visual)
 	_check("wyciaganie blokuje strzal", _player.equipment.draw_end > NetworkTime.tick)
@@ -100,7 +172,7 @@ func _test_shotgun() -> void:
 	await _wait(0.3)
 	_player.input.select_slot(0)
 	await _wait(0.3)
-	_check("blaster ma zwykly celownik", _hud._crosshair.spread_radius == 0.0)
+	_check("blaster ma waski celownik", _hud._crosshair.spread_radius < hip_radius / 3.0)
 
 
 func _test_knife() -> void:
@@ -165,7 +237,8 @@ func _test_knife() -> void:
 	Input.action_release("move_forward")
 	print("[test] szybkosc: noz %.2f, blaster %.2f" % [knife_speed, blaster_speed])
 	_check("z nozem biega sie szybciej", absf(knife_speed - Player.SPEED * definition.speed_scale) < 0.3)
-	_check("z blasterem normalnie", absf(blaster_speed - Player.SPEED) < 0.3)
+	# Na pochylym terenie predkosc pozioma jest troche mniejsza.
+	_check("z blasterem normalnie", absf(blaster_speed - Player.SPEED) < 0.6 and knife_speed > blaster_speed + 0.4)
 
 
 ## Rozlicza atak serwera od razu. Netfox przywraca pozycje z historii na poczatku kazdego
@@ -198,6 +271,8 @@ func _attack(from: Vector3, spot: Vector3, look_at_point: Vector3, reset: bool) 
 	_player.pitch = asin(clampf(aim.y, -1.0, 1.0))
 	_player.aiming = false
 	var tick := NetworkTime.tick
+	equipment.spread_bloom = 0.0
+	_player.velocity = Vector3.ZERO
 	equipment.last_fire = -1000
 	equipment._resolved_up_to = -1
 	equipment.input.use_primary = true
@@ -212,6 +287,11 @@ func _attack(from: Vector3, spot: Vector3, look_at_point: Vector3, reset: bool) 
 func _revive_target() -> void:
 	GameState.players[2].health = GameState.MAX_HEALTH
 	GameState.players[2].alive = true
+
+
+func _check_quiet(label: String, passed: bool) -> void:
+	if not passed:
+		_check(label, false)
 
 
 func _wait(seconds: float) -> void:

@@ -15,6 +15,10 @@ signal active_item_changed
 const ACTION_CORRECTION_TICKS := 8
 ## Granica cofania czasu, zeby gracz z bardzo slabym laczem nie trafial "przez sciany".
 const MAX_REWIND_SECONDS := 0.3
+## Rozrzut z serii zaczyna opadac chwile po tym, jak mogl pasc kolejny strzal.
+const SPREAD_HOLD_TICKS := 3
+## W powietrzu strzela sie gorzej niz w pelnym biegu.
+const AIR_MOVE_RATIO := 1.5
 
 # Stan rollbacku. Osobne liczby zamiast tablicy, bo netfox wysyla tylko zmienione wartosci.
 var active_slot := 0
@@ -31,6 +35,10 @@ var charges_0 := 0
 var charges_1 := 0
 var charges_2 := 0
 var charges_3 := 0
+## Rozrzut narosly w serii, w stopniach.
+var spread_bloom := 0.0
+## Rozrzut ostatniego strzalu. Efekty czytaja go pozniej, gdy ruch i seria sa juz inne.
+var shot_spread := 0.0
 
 var _resolved_up_to := -1
 var _shown_fire := -1000
@@ -100,6 +108,18 @@ func move_speed_scale() -> float:
 	return definition.move_speed_scale() if definition != null else 1.0
 
 
+## Rozrzut trzymanej broni w tej chwili, w stopniach. Zero, gdy w reku nie ma broni.
+func current_spread() -> float:
+	var stats := active_stats()
+	return stats.spread_at(_move_ratio(), spread_bloom, player.aiming) if stats != null else 0.0
+
+
+## Zapamietuje rozrzut tego strzalu, a kolejny w serii bedzie mial wiekszy.
+func register_shot(stats: WeaponStats) -> void:
+	shot_spread = current_spread()
+	spread_bloom = minf(spread_bloom + stats.shot_spread_degrees, stats.max_bloom_degrees)
+
+
 ## Do ktorego ticku serwer cofa cele przy rozliczaniu ataku. -1 oznacza stan biezacy.
 func rewind_tick(tick: int) -> int:
 	if input.view_tick < 0:
@@ -148,6 +168,7 @@ func claim_server_action(tick: int) -> bool:
 ## Po odrodzeniu wszystkie przedmioty sa gotowe do uzycia.
 func on_respawn() -> void:
 	action_end = -1
+	spread_bloom = 0.0
 	_sync_slots()
 	for slot in Inventory.SLOTS:
 		var stack: Dictionary = slots()[slot]
@@ -155,9 +176,10 @@ func on_respawn() -> void:
 			_set_charges(slot, ItemStack.definition_of(stack).full_charges(ItemStack.tier_of(stack)))
 
 
-func _rollback_tick(_delta: float, tick: int, _is_fresh: bool) -> void:
+func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	if tick >= player.info.inventory_tick:
 		_sync_slots(tick)
+	_recover_spread(tick, delta)
 	var dead := player.is_dead_at(tick)
 	var wanted := clampi(input.slot, 0, Inventory.SLOTS - 1)
 	if prime_tick >= 0:
@@ -176,6 +198,20 @@ func _rollback_tick(_delta: float, tick: int, _is_fresh: bool) -> void:
 	ItemStack.behavior_of(stack).rollback_tick(self, stack, tick)
 
 
+func _recover_spread(tick: int, delta: float) -> void:
+	var stats := active_stats()
+	if stats == null:
+		spread_bloom = 0.0
+	elif tick - last_fire > stats.fire_interval_ticks + SPREAD_HOLD_TICKS:
+		spread_bloom = maxf(spread_bloom - stats.bloom_recovery * delta, 0.0)
+
+
+func _move_ratio() -> float:
+	if not player.is_on_floor():
+		return AIR_MOVE_RATIO
+	return minf(Vector2(player.velocity.x, player.velocity.z).length() / Player.SPEED, 1.0)
+
+
 ## Przedmiot zniknal z reki, np. po smierci, wiec nie ma juz czego odbezpieczac.
 func _update_primed(tick: int, force_drop: bool) -> void:
 	var stack := active_stack()
@@ -187,6 +223,7 @@ func _update_primed(tick: int, force_drop: bool) -> void:
 
 func _begin_draw(tick: int) -> void:
 	action_end = -1
+	spread_bloom = 0.0
 	var stack := active_stack()
 	var definition := ItemStack.definition_of(stack)
 	draw_end = tick + (NetworkTime.seconds_to_ticks(definition.draw_seconds(ItemStack.tier_of(stack))) if definition != null else 0)

@@ -16,6 +16,7 @@ func rollback_tick(equipment: Equipment, stack: Dictionary, tick: int) -> void:
 		return
 	equipment.last_fire = tick
 	equipment.set_active_charges(charges - 1)
+	equipment.register_shot(stats)
 	if equipment.claim_server_action(tick):
 		_resolve_shot(equipment, stats, tick)
 
@@ -40,13 +41,9 @@ func show_fired(player: Player, stack: Dictionary) -> void:
 	var stats := ItemStack.weapon_stats_of(stack)
 	player.play_shot_sound(Sfx.shot(stats))
 	var hits: Array[Dictionary] = []
-	for direction in _shot_directions(stats, player.look_direction(), player.aiming, player.equipment.last_fire):
+	for direction in Hitscan.pellet_directions(player.look_direction(), stats.pellets, player.equipment.shot_spread, player.equipment.last_fire):
 		hits.append(Hitscan.trace(player.get_world_3d(), player.eye_position(), direction, player.peer_id, player.get_tree()))
 	player.show_shots(hits, stats, ItemStack.tier_of(stack))
-
-
-func _shot_directions(stats: WeaponStats, aim: Vector3, aiming: bool, fire_tick: int) -> Array[Vector3]:
-	return Hitscan.pellet_directions(aim, stats.pellets, stats.current_spread(aiming), fire_tick)
 
 
 ## Klient widzi innych graczy z opoznieniem, wiec serwer cofa ich do chwili, ktora
@@ -56,7 +53,7 @@ func _resolve_shot(equipment: Equipment, stats: WeaponStats, tick: int) -> void:
 	var player := equipment.player
 	var view_tick := equipment.rewind_tick(tick)
 	var damage_by_victim := {}
-	for direction in _shot_directions(stats, Hitscan.direction(player.yaw, player.pitch), player.aiming, tick):
+	for direction in Hitscan.pellet_directions(Hitscan.direction(player.yaw, player.pitch), stats.pellets, equipment.shot_spread, tick):
 		var hit := Hitscan.trace(player.get_world_3d(), player.eye_position(), direction, player.peer_id, player.get_tree(), view_tick)
 		var victim := hit.player as Player
 		if victim != null:

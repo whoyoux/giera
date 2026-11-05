@@ -55,7 +55,8 @@ Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA
 - **Serwer decyduje o wszystkim.** Klient wysyła klawisze, kąt patrzenia i przycisk strzału.
 - **Ruch i broń w ręku** działają w pętli rollbacku netfox: klient przewiduje je od razu, a serwer ewentualnie koryguje.
 - **Strzały i ciosy** rozlicza serwer. Klient widzi innych graczy z opóźnieniem, więc serwer cofa ich do chwili widocznej na ekranie atakującego, najwyżej o 0,3 s.
-- **Strzelba** to zwykła `WeaponDefinition` z `pellets` i `spread_degrees` w `WeaponStats`. Układ śrucin wynika z numeru ticku strzału (`Hitscan.pellet_directions`), więc serwer i klienci liczą to samo bez przesyłania losowania. Śruciny jednego strzału dają jedno trafienie z sumą obrażeń.
+- **Strzelba** to zwykła `WeaponDefinition` z `pellets` i `spread_degrees` w `WeaponStats`. Układ śrucin liczy `Hitscan.pellet_directions`. Śruciny jednego strzału dają jedno trafienie z sumą obrażeń.
+- **Rozrzut** ustawiają pola z grupy „Rozrzut” w `WeaponStats`. Narost z serii (`spread_bloom`) i rozrzut ostatniego strzału (`shot_spread`) są stanem rollbacku w `Equipment`, a kierunek pocisku wynika z numeru ticku, więc serwer i klienci liczą to samo.
 - **Nóż** to `MeleeDefinition` i `MeleeBehavior`. `Hitscan.melee` szuka celu w zasięgu i w stożku przed graczem, a `speed_scale` przyspiesza bieg.
 - **Zdrowie, wyniki i zawartość slotów** nie są stanem rollbacku. Serwer rozsyła je niezawodnym RPC z `game_state.gd`.
 - **Przedmioty na ziemi** są w `world_items.gd`. Klient tylko prosi o podniesienie lub wyrzucenie, a serwer sprawdza zasięg i egzemplarz. Wygląd jest w `pickup_field.gd` i `pickup_view.gd`.

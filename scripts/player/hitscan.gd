@@ -15,6 +15,9 @@ const HEAD_RADIUS := 0.42
 const HEAD_CENTER := 1.38
 ## Kat zlotego podzialu rownomiernie rozklada sruciny, a kolejne strzaly obracaja wzor.
 const GOLDEN_ANGLE := 2.39996
+## Te mnozniki daja niepowtarzalne punkty, ktore nie uciekaja w jedna strone kola.
+const SEQUENCE_A := 0.7548776662
+const SEQUENCE_B := 0.5698402910
 
 
 static func direction(yaw: float, pitch: float) -> Vector3:
@@ -52,16 +55,19 @@ static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, 
 	return result
 
 
-## Kierunki srucin wokol "dir". Wzor wynika tylko z "pattern", czyli numeru ticku strzalu,
+## Kierunki pociskow wokol "dir". Wzor wynika tylko z "pattern", czyli numeru ticku strzalu,
 ## wiec serwer i kazdy klient licza dokladnie to samo bez przesylania losowania.
+## Pojedynczy pocisk trafia w losowo wygladajacy punkt kola, a srut wypelnia je rowno.
 static func pellet_directions(dir: Vector3, count: int, spread_degrees: float, pattern: int) -> Array[Vector3]:
 	var result: Array[Vector3] = []
-	if count <= 1:
-		result.append(dir)
-		return result
 	var right := dir.cross(Vector3.UP if absf(dir.y) < 0.98 else Vector3.RIGHT).normalized()
 	var top := right.cross(dir)
 	var widest := tan(deg_to_rad(spread_degrees))
+	if count <= 1:
+		var angle := fposmod(pattern * SEQUENCE_A, 1.0) * TAU
+		var radius := widest * sqrt(fposmod(pattern * SEQUENCE_B, 1.0))
+		result.append((dir + (right * cos(angle) + top * sin(angle)) * radius).normalized())
+		return result
 	for index in count:
 		var angle := (pattern + index) * GOLDEN_ANGLE
 		var radius := widest * sqrt(float(index) / (count - 1))

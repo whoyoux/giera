@@ -109,6 +109,7 @@ func _ready() -> void:
 func _weapon_shots(me: Player) -> void:
 	me.input.select_slot(2)
 	await _wait(0.9)
+	me.equipment.shot_spread = me.equipment.current_spread()
 	me.equipment.fired.emit()
 	await _wait(0.03)
 	await _shot("shotgun.png")
