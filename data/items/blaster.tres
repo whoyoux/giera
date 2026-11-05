@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/weapon_definition.gd" id="1_definition"]
+[ext_resource type="Script" path="res://scripts/items/weapon_stats.gd" id="2_stats"]
+
+[sub_resource type="Resource" id="common"]
+script = ExtResource("2_stats")
+damage = 20
+headshot_damage = 40
+fire_interval_ticks = 6
+magazine = 12
+reload_seconds = 1.6
+draw_seconds = 0.25
+model_path = "res://assets/weapons/blaster-a.glb"
+icon_path = "res://assets/icons/blaster_common.png"
+
+[sub_resource type="Resource" id="epic"]
+script = ExtResource("2_stats")
+damage = 24
+headshot_damage = 48
+fire_interval_ticks = 5
+magazine = 16
+reload_seconds = 1.4
+draw_seconds = 0.25
+model_path = "res://assets/weapons/blaster-a.glb"
+icon_path = "res://assets/icons/blaster_epic.png"
+
+[sub_resource type="Resource" id="legendary"]
+script = ExtResource("2_stats")
+damage = 26
+headshot_damage = 52
+fire_interval_ticks = 5
+magazine = 20
+reload_seconds = 1.2
+draw_seconds = 0.2
+model_path = "res://assets/weapons/blaster-a.glb"
+icon_path = "res://assets/icons/blaster_legendary.png"
+
+[resource]
+script = ExtResource("1_definition")
+id = &"blaster"
+display_name = "Blaster"
+common = SubResource("common")
+epic = SubResource("epic")
+legendary = SubResource("legendary")

@@ -86,7 +86,7 @@ func _process(delta: float) -> void:
 	elif weapon.ammo == 0:
 		_ammo_hint.text = "naciśnij R"
 	else:
-		_ammo_hint.text = "/ %d" % Weapon.MAGAZINE
+		_ammo_hint.text = "/ %d" % Weapon.stats().magazine
 	if weapon.ammo != _last_ammo:
 		if weapon.ammo < _last_ammo:
 			_crosshair.kick()
@@ -130,7 +130,7 @@ func _on_hit_confirmed(killed: bool) -> void:
 func _on_damaged(amount: int, attacker_id: int) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
-	var strength := clampf(float(amount) / Weapon.HEADSHOT_DAMAGE, 0.5, 1.0)
+	var strength := clampf(float(amount) / Weapon.stats().headshot_damage, 0.5, 1.0)
 	_hit_amount = maxf(_hit_amount, 0.55 + strength * 0.45)
 	_player.punch_camera(strength)
 	_bump(_status_panel)

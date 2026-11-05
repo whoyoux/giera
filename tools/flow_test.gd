@@ -58,13 +58,13 @@ func _ready() -> void:
 	await _wait(1.0)
 
 	# Bron: strzal zuzywa amunicje, R przeladowuje.
-	_check("strzaly zuzyly amunicje", player.weapon.ammo < Weapon.MAGAZINE)
+	_check("strzaly zuzyly amunicje", player.weapon.ammo < Weapon.stats().magazine)
 	Input.action_press("reload")
 	await _wait(0.2)
 	Input.action_release("reload")
 	_check("R zaczyna przeladowanie", player.weapon.is_reloading())
-	await _wait(Weapon.RELOAD_SECONDS + 0.2)
-	_check("przeladowanie uzupelnia magazynek", player.weapon.ammo == Weapon.MAGAZINE and not player.weapon.is_reloading())
+	await _wait(Weapon.stats().reload_seconds + 0.2)
+	_check("przeladowanie uzupelnia magazynek", player.weapon.ammo == Weapon.stats().magazine and not player.weapon.is_reloading())
 
 	# Sprint: limit, blokada po wyczerpaniu i odnawianie.
 	await _wait(1.0)

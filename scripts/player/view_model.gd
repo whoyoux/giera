@@ -214,7 +214,7 @@ func _update_reload(delta: float, reloading: bool) -> float:
 	var tilt := 0.0
 	if _reload_time >= 0.0:
 		_reload_time += delta
-		var t := clampf(_reload_time / Weapon.RELOAD_SECONDS, 0.0, 1.0)
+		var t := clampf(_reload_time / Weapon.stats().reload_seconds, 0.0, 1.0)
 		tilt = smoothstep(0.0, 0.14, t) * (1.0 - smoothstep(0.85, 1.0, t))
 		var dropped := smoothstep(0.14, 0.34, t) * (1.0 - smoothstep(0.42, 0.44, t))
 		var hand_away := smoothstep(0.12, 0.38, t) * (1.0 - smoothstep(0.58, 0.82, t))

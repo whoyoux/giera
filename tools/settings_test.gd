@@ -91,7 +91,7 @@ func _test_reload_sound() -> void:
 		peak = maxi(peak, absi(clip.data.decode_s16(i)))
 	print("[test] dlugosc dzwieku %.2f s, szczyt %d" % [clip.get_length(), peak])
 	_check("dzwiek przeladowania nie jest cichy", peak > 5000)
-	_check("dzwiek trwa tyle co przeladowanie", absf(clip.get_length() - Weapon.RELOAD_SECONDS) < 0.05)
+	_check("dzwiek trwa tyle co przeladowanie", absf(clip.get_length() - Weapon.stats().reload_seconds) < 0.05)
 
 	var hud := get_node("/root/Main/Hud") as Hud
 	await _wait(0.1)
@@ -114,8 +114,8 @@ func _test_reload_sound() -> void:
 	Input.action_release("reload")
 	print("[test] stan: kursor=%d amunicja=%d laduje=%s gra=%s" % [Input.mouse_mode, player.weapon.ammo, player.weapon.is_reloading(), player.reload_audio.playing])
 	_check("dzwiek przeladowania gra", player.reload_audio.playing)
-	await _wait(Weapon.RELOAD_SECONDS + 0.2)
-	_check("przeladowanie uzupelnia magazynek", player.weapon.ammo == Weapon.MAGAZINE)
+	await _wait(Weapon.stats().reload_seconds + 0.2)
+	_check("przeladowanie uzupelnia magazynek", player.weapon.ammo == Weapon.stats().magazine)
 
 	# Sprint przerywa przeladowanie i dzwiek.
 	Input.action_press("fire")
@@ -146,7 +146,7 @@ func _test_reload_sound() -> void:
 	_check("smierc przerywa przeladowanie", not player.weapon.is_reloading())
 	_check("smierc przerywa dzwiek", not player.reload_audio.playing)
 	await _wait(GameState.RESPAWN_SECONDS + 0.3)
-	_check("po odrodzeniu magazynek jest pelny", player.weapon.ammo == Weapon.MAGAZINE)
+	_check("po odrodzeniu magazynek jest pelny", player.weapon.ammo == Weapon.stats().magazine)
 	Net.leave()
 	await _wait(0.3)
 

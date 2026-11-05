@@ -18,6 +18,7 @@ const MAX_HEALTH := 100
 const RESPAWN_SECONDS := 3.0
 const MAX_NAME_LENGTH := 16
 const PING_INTERVAL := 1.0
+const REJECT_FLUSH_SECONDS := 0.5
 
 var players := {}
 ## Ping graczy w milisekundach, mierzony przez serwer. Host ma zawsze 0.
@@ -156,12 +157,24 @@ func _on_peer_disconnected(id: int) -> void:
 # --- RPC --------------------------------------------------------------------
 
 @rpc("any_peer", "call_remote", "reliable")
-func request_join(player_name: String) -> void:
+func request_join(player_name: String, version: int) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
+	if version != Net.PROTOCOL_VERSION:
+		print("[serwer] odrzucono klienta %d: wersja %d zamiast %d" % [sender, version, Net.PROTOCOL_VERSION])
+		_reject_join.rpc_id(sender)
+		await get_tree().create_timer(REJECT_FLUSH_SECONDS).timeout
+		if multiplayer.get_peers().has(sender):
+			multiplayer.multiplayer_peer.disconnect_peer(sender)
+		return
 	if not players.has(sender):
 		server_add_player(sender, player_name)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _reject_join() -> void:
+	Net.leave(Net.OUTDATED_MESSAGE)
 
 
 @rpc("authority", "call_remote", "reliable")
