@@ -4,7 +4,11 @@ extends CanvasLayer
 
 signal closed
 
+## Wysokosc listy ustawien. Reszta przewija sie, wiec okno zostaje niskie.
+const LIST_HEIGHT := 350.0
+
 var _rows: VBoxContainer
+var _scroll: ScrollContainer
 var _refreshers: Array[Callable] = []
 var _shade: ColorRect
 var _card: PanelContainer
@@ -22,6 +26,7 @@ func _ready() -> void:
 
 func open() -> void:
 	_refresh()
+	_scroll.scroll_vertical = 0
 	_focus_before = get_viewport().gui_get_focus_owner()
 	visible = true
 	UiSound.play(Sfx.UiCue.OPEN)
@@ -63,13 +68,28 @@ func _build() -> void:
 	_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
 	center.add_child(_card)
 
-	_rows = VBoxContainer.new()
-	_rows.add_theme_constant_override("separation", 4)
-	_card.add_child(_rows)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 10)
+	_card.add_child(layout)
 
 	var title := UiStyle.label("Ustawienia", 36, UiStyle.BLUE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_rows.add_child(title)
+	layout.add_child(title)
+
+	_scroll = ScrollContainer.new()
+	_scroll.custom_minimum_size = Vector2(0, LIST_HEIGHT)
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Strzalki przewijaja liste do wybranego wiersza.
+	_scroll.follow_focus = true
+	layout.add_child(_scroll)
+	# Odstep, zeby pasek przewijania nie nachodzil na suwaki.
+	var gutter := MarginContainer.new()
+	gutter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gutter.add_theme_constant_override("margin_right", 16)
+	_scroll.add_child(gutter)
+	_rows = VBoxContainer.new()
+	_rows.add_theme_constant_override("separation", 4)
+	gutter.add_child(_rows)
 
 	_add_slider("Głośność", "volume", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Dźwięki otoczenia", "ambience", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
@@ -88,7 +108,7 @@ func _build() -> void:
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 12)
-	_rows.add_child(buttons)
+	layout.add_child(buttons)
 	var reset := UiStyle.button("Domyślne", UiStyle.TEAL)
 	reset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	reset.pressed.connect(Settings.reset_to_defaults)
@@ -106,6 +126,8 @@ func _add_slider(text: String, key: String, min_value: float, max_value: float, 
 	slider.min_value = min_value
 	slider.max_value = max_value
 	slider.step = step
+	# Kolko myszy ma przewijac liste, a nie zmieniac wartosc pod kursorem.
+	slider.scrollable = false
 	slider.custom_minimum_size = Vector2(190, 28)
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var track := StyleBoxFlat.new()
