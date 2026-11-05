@@ -5,6 +5,7 @@ extends Node3D
 
 const BODY_SIZE := Vector3(1.3, 0.95, 0.9)
 const DEBUG_DISTANCE := 2.2
+const OPEN_SHAKE := 0.4
 
 var _views := {}
 
@@ -61,7 +62,7 @@ func _on_opened(id: int, opener_id: int, tier: int) -> void:
 	(_views[id] as ChestView).open(tier)
 	var opener := GameState.player_node(opener_id)
 	if opener != null and opener.is_local():
-		opener.punch_camera(0.3)
+		opener.shake_camera(OPEN_SHAKE)
 
 
 func _on_reset() -> void:

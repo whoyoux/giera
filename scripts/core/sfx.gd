@@ -113,6 +113,53 @@ static func chest_open() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 0.0)
 
 
+## Miekkie klapniecie buta.
+static func footstep() -> AudioStreamWAV:
+	return _make("footstep", 0.1, func(t: float, _phase: float) -> float:
+		return (sin(TAU * 105.0 * t) * 0.8 + randf_range(-0.3, 0.3)) * exp(-t * 48.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Krotki dzwiek w gore przy wybiciu.
+static func jump() -> AudioStreamWAV:
+	return _make("jump", 0.14, func(t: float, phase: float) -> float:
+		return sin(TAU * phase) * (1.0 - t / 0.14) * 0.55
+	, func(t: float) -> float: return lerpf(210.0, 430.0, t / 0.14))
+
+
+## Gluche uderzenie o podloge.
+static func land() -> AudioStreamWAV:
+	return _make("land", 0.18, func(t: float, phase: float) -> float:
+		return (sin(TAU * phase) + randf_range(-0.25, 0.25)) * exp(-t * 26.0)
+	, func(t: float) -> float: return lerpf(130.0, 60.0, t / 0.18))
+
+
+## Opadajacy dzwiek przy smierci.
+static func death() -> AudioStreamWAV:
+	return _make("death", 0.55, func(t: float, phase: float) -> float:
+		return sin(TAU * phase) * (1.0 - t / 0.55) * 0.8
+	, func(t: float) -> float: return lerpf(520.0, 90.0, sqrt(t / 0.55)))
+
+
+## Wesoly akord po powrocie do gry.
+static func respawn() -> AudioStreamWAV:
+	return _make("respawn", 0.4, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for note: Array in [[0.0, 523.0], [0.07, 784.0], [0.14, 1047.0]]:
+			if t >= note[0]:
+				var since: float = t - note[0]
+				sample += sin(TAU * note[1] * since) * exp(-since * 9.0) * 0.35
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
+## Zadyszka: koniec speeda.
+static func exhausted() -> AudioStreamWAV:
+	return _make("exhausted", 0.26, func(t: float, phase: float) -> float:
+		return (sin(TAU * phase) * 0.5 + randf_range(-0.2, 0.2)) * sin(PI * t / 0.26)
+	, func(t: float) -> float: return lerpf(340.0, 240.0, t / 0.26))
+
+
 static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)
