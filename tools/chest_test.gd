@@ -163,7 +163,7 @@ func _check_map_spots() -> void:
 		shape.collision_mask = Hitscan.WORLD_MASK
 		shape.transform = Transform3D(marker.global_basis, at + Vector3.UP * (ChestField.BODY_SIZE.y * 0.5 + 0.15))
 		var bodies := space.intersect_shape(shape, 8)
-		var solid := bodies.filter(func(hit: Dictionary) -> bool: return not (hit.collider is StaticBody3D and hit.collider.get_parent() is ChestField))
+		var solid := bodies.filter(func(hit: Dictionary) -> bool: return not (hit.collider is ForestTerrain or hit.collider.get_parent() is ChestField))
 		_check("%s nie wchodzi w obiekty" % marker.name, solid.is_empty())
 		if not solid.is_empty():
 			print("[test] koliduje z ", solid.map(func(hit: Dictionary) -> String: return hit.collider.name))

@@ -1,13 +1,14 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/world/block.gd" id="block"]
-[ext_resource type="Script" path="res://scripts/world/prop.gd" id="prop"]
+[ext_resource type="Script" path="res://scripts/world/forest_prop.gd" id="forest_prop"]
+[ext_resource type="Script" path="res://scripts/world/forest_terrain.gd" id="terrain"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_material"]
 sky_top_color = Color(0.42, 0.68, 0.96, 1)
-sky_horizon_color = Color(0.86, 0.94, 1, 1)
-ground_bottom_color = Color(0.72, 0.62, 0.5, 1)
-ground_horizon_color = Color(0.86, 0.94, 1, 1)
+sky_horizon_color = Color(0.82, 0.92, 0.98, 1)
+ground_bottom_color = Color(0.4, 0.55, 0.32, 1)
+ground_horizon_color = Color(0.82, 0.92, 0.98, 1)
 sun_angle_max = 2.0
 
 [sub_resource type="Sky" id="sky"]
@@ -19,7 +20,7 @@ sky = SubResource("sky")
 ambient_light_source = 3
 ambient_light_color = Color(1, 0.97, 0.92, 1)
 ambient_light_sky_contribution = 0.6
-ambient_light_energy = 0.55
+ambient_light_energy = 0.5
 tonemap_mode = 2
 tonemap_white = 1.6
 ssao_enabled = true
@@ -28,6 +29,10 @@ ssao_intensity = 1.3
 ssao_sharpness = 0.9
 glow_enabled = true
 glow_intensity = 0.2
+fog_enabled = true
+fog_light_color = Color(0.78, 0.88, 0.92, 1)
+fog_density = 0.0025
+fog_sky_affect = 0.0
 
 [node name="World" type="Node3D"]
 
@@ -37,7 +42,7 @@ environment = SubResource("environment")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.77, -0.45, 0.45, 0, 0.71, 0.71, -0.64, -0.54, 0.54, 0, 30, 0)
 light_color = Color(1, 0.93, 0.8, 1)
-light_energy = 1.9
+light_energy = 1.45
 shadow_enabled = true
 shadow_bias = 0.04
 shadow_normal_bias = 1.2
@@ -46,805 +51,1392 @@ directional_shadow_mode = 2
 directional_shadow_fade_start = 0.9
 directional_shadow_max_distance = 85.0
 
-[node name="Room" type="Node3D" parent="."]
+[node name="Terrain" type="StaticBody3D" parent="."]
+script = ExtResource("terrain")
 
-[node name="Floor" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, -1, 0)
-script = ExtResource("block")
-size = Vector3(104, 2, 104)
-color = Color(0.7882, 0.5725, 0.3686, 1)
-bevel = 0
+[node name="Ruin" type="Node3D" parent="."]
 
-[node name="Plank1" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, -27)
+[node name="WallNorthA" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -4.5, 1.5, -7)
 script = ExtResource("block")
-size = Vector3(68, 0.03, 0.08)
-color = Color(0.6627, 0.4627, 0.2745, 1)
-bevel = 0
+size = Vector3(5, 3.0, 1)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="Plank2" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, -18)
+[node name="WallNorthB" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 4.5, 1, -7)
 script = ExtResource("block")
-size = Vector3(68, 0.03, 0.08)
-color = Color(0.6627, 0.4627, 0.2745, 1)
-bevel = 0
+size = Vector3(5, 2.0, 1)
+color = Color(0.4235, 0.4235, 0.4706, 1)
+bevel = 0.08
 
-[node name="Plank3" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, -9)
+[node name="WallSouthA" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -5, 1.1, 7)
 script = ExtResource("block")
-size = Vector3(68, 0.03, 0.08)
-color = Color(0.6627, 0.4627, 0.2745, 1)
-bevel = 0
+size = Vector3(4, 2.2, 1)
+color = Color(0.6039, 0.6039, 0.6353, 1)
+bevel = 0.08
 
-[node name="Plank4" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+[node name="WallSouthB" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 5, 1.6, 7)
 script = ExtResource("block")
-size = Vector3(68, 0.03, 0.08)
-color = Color(0.6627, 0.4627, 0.2745, 1)
-bevel = 0
+size = Vector3(4, 3.2, 1)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="Plank5" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 9)
+[node name="WallEastA" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 7, 1.3, -4.5)
 script = ExtResource("block")
-size = Vector3(68, 0.03, 0.08)
-color = Color(0.6627, 0.4627, 0.2745, 1)
-bevel = 0
+size = Vector3(1, 2.6, 5)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="Plank6" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 18)
+[node name="WallEastB" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 7, 0.75, 4.5)
 script = ExtResource("block")
-size = Vector3(68, 0.03, 0.08)
-color = Color(0.6627, 0.4627, 0.2745, 1)
-bevel = 0
+size = Vector3(1, 1.5, 5)
+color = Color(0.4235, 0.4235, 0.4706, 1)
+bevel = 0.08
 
-[node name="Plank7" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 27)
+[node name="WallWest" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -7, 1.5, 4.5)
 script = ExtResource("block")
-size = Vector3(68, 0.03, 0.08)
-color = Color(0.6627, 0.4627, 0.2745, 1)
-bevel = 0
+size = Vector3(1, 3.0, 5)
+color = Color(0.6039, 0.6039, 0.6353, 1)
+bevel = 0.08
 
-[node name="Mat" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+[node name="Tower" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -4.5, 1.75, -4.5)
 script = ExtResource("block")
-size = Vector3(46, 0.06, 46)
-color = Color(0.4980, 0.7686, 0.6588, 1)
-bevel = 0
+size = Vector3(5, 3.5, 5)
+color = Color(0.4235, 0.4235, 0.4706, 1)
+bevel = 0.08
 
-[node name="RoadNS" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+[node name="Battlement1" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -6.6, 3.95, -6.6)
 script = ExtResource("block")
-size = Vector3(6, 0.09, 46)
-color = Color(0.3725, 0.4196, 0.4784, 1)
-bevel = 0
+size = Vector3(0.8, 0.9, 0.8)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="RoadEW" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 0)
+[node name="Battlement2" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -2.4, 3.95, -6.6)
 script = ExtResource("block")
-size = Vector3(46, 0.11, 6)
-color = Color(0.3725, 0.4196, 0.4784, 1)
-bevel = 0
+size = Vector3(0.8, 0.9, 0.8)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="DashNS1" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, -19.5)
+[node name="Battlement3" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -6.6, 3.95, -2.4)
 script = ExtResource("block")
-size = Vector3(0.4, 0.13, 3)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
+size = Vector3(0.8, 0.9, 0.8)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="DashEW1" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -19.5, 0, 0)
+[node name="Battlement4" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -6.6, 3.95, -4.5)
 script = ExtResource("block")
-size = Vector3(3, 0.13, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
+size = Vector3(0.8, 0.9, 0.8)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="DashNS2" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, -13)
+[node name="Battlement5" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -4.5, 3.95, -6.6)
 script = ExtResource("block")
-size = Vector3(0.4, 0.13, 3)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
+size = Vector3(0.8, 0.9, 0.8)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="DashEW2" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -13, 0, 0)
+[node name="Ramp" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(0.84366, 0.53688, 0, -0.53688, 0.84366, -0, -0, 0, 1, 0.75, 1.6, -4.5)
 script = ExtResource("block")
-size = Vector3(3, 0.13, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="DashNS3" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, -6.5)
-script = ExtResource("block")
-size = Vector3(0.4, 0.13, 3)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="DashEW3" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -6.5, 0, 0)
-script = ExtResource("block")
-size = Vector3(3, 0.13, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="DashNS5" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 6.5)
-script = ExtResource("block")
-size = Vector3(0.4, 0.13, 3)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="DashEW5" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 6.5, 0, 0)
-script = ExtResource("block")
-size = Vector3(3, 0.13, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="DashNS6" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 13)
-script = ExtResource("block")
-size = Vector3(0.4, 0.13, 3)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="DashEW6" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 13, 0, 0)
-script = ExtResource("block")
-size = Vector3(3, 0.13, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="DashNS7" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0, 19.5)
-script = ExtResource("block")
-size = Vector3(0.4, 0.13, 3)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="DashEW7" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 19.5, 0, 0)
-script = ExtResource("block")
-size = Vector3(3, 0.13, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0
-
-[node name="WallN" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 11, -33)
-script = ExtResource("block")
-size = Vector3(68, 22, 2)
-color = Color(0.9569, 0.8745, 0.7529, 1)
-bevel = 0
-
-[node name="WallS" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 11, 33)
-script = ExtResource("block")
-size = Vector3(68, 22, 2)
-color = Color(0.9569, 0.8745, 0.7529, 1)
-bevel = 0
-
-[node name="WallE" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 33, 11, 0)
-script = ExtResource("block")
-size = Vector3(2, 22, 68)
-color = Color(0.9569, 0.8745, 0.7529, 1)
-bevel = 0
-
-[node name="WallW" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -33, 11, 0)
-script = ExtResource("block")
-size = Vector3(2, 22, 68)
-color = Color(0.9569, 0.8745, 0.7529, 1)
-bevel = 0
-
-[node name="TrimN" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.6, -31.9)
-script = ExtResource("block")
-size = Vector3(64, 1.2, 0.3)
-color = Color(1.0000, 0.9647, 0.8784, 1)
+size = Vector3(6.519202405202649, 0.4, 3.0)
+color = Color(0.5412, 0.3843, 0.2510, 1)
 bevel = 0.04
 
-[node name="TrimS" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.6, 31.9)
+[node name="Pillar1" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 4.5, 1.3, -1.5)
 script = ExtResource("block")
-size = Vector3(64, 1.2, 0.3)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.04
+size = Vector3(1.0, 2.6, 1.0)
+color = Color(0.6039, 0.6039, 0.6353, 1)
+bevel = 0.08
 
-[node name="TrimE" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 31.9, 0.6, 0)
+[node name="Pillar2" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -2.5, 1, 4.5)
 script = ExtResource("block")
-size = Vector3(0.3, 1.2, 64)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.04
+size = Vector3(1.0, 2.0, 1.0)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
 
-[node name="TrimW" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -31.9, 0.6, 0)
+[node name="Pillar3" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 2, 1.5, 5)
 script = ExtResource("block")
-size = Vector3(0.3, 1.2, 64)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.04
+size = Vector3(1.0, 3.0, 1.0)
+color = Color(0.3725, 0.5020, 0.2824, 1)
+bevel = 0.08
 
-[node name="Window1" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -16, 11, -31.95)
+[node name="FallenPillar" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(0.88295, 0, 0.46947, 0, 1, -0, -0.46947, 0, 0.88295, 4.2, 0.45, 3.2)
 script = ExtResource("block")
-size = Vector3(11, 11, 0.2)
-color = Color(0.7490, 0.9098, 1.0000, 1)
-bevel = 0
+size = Vector3(3.2, 0.9, 0.9)
+color = Color(0.3725, 0.5020, 0.2824, 1)
+bevel = 0.08
 
-[node name="FrameV1" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -16, 11, -31.85)
+[node name="Rubble1" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(0.93969, 0, 0.34202, 0, 1, -0, -0.34202, 0, 0.93969, -1.5, 0.35, 1.8)
 script = ExtResource("block")
-size = Vector3(0.5, 11.5, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.05
+size = Vector3(1.1, 0.7, 1.1)
+color = Color(0.4235, 0.4235, 0.4706, 1)
+bevel = 0.08
 
-[node name="FrameH1" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -16, 11, -31.85)
+[node name="Rubble2" type="StaticBody3D" parent="Ruin"]
+transform = Transform3D(0.57358, 0, 0.81915, 0, 1, -0, -0.81915, 0, 0.57358, -3.2, 0.22, 2.4)
 script = ExtResource("block")
-size = Vector3(11.5, 0.5, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.05
-
-[node name="FrameT1" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -16, 16.8, -31.8)
-script = ExtResource("block")
-size = Vector3(11.8, 0.6, 0.5)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.05
-
-[node name="FrameB1" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -16, 5.2, -31.8)
-script = ExtResource("block")
-size = Vector3(11.8, 0.6, 0.5)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.05
-
-[node name="Window2" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 16, 11, -31.95)
-script = ExtResource("block")
-size = Vector3(11, 11, 0.2)
-color = Color(0.7490, 0.9098, 1.0000, 1)
-bevel = 0
-
-[node name="FrameV2" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 16, 11, -31.85)
-script = ExtResource("block")
-size = Vector3(0.5, 11.5, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.05
-
-[node name="FrameH2" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 16, 11, -31.85)
-script = ExtResource("block")
-size = Vector3(11.5, 0.5, 0.4)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.05
-
-[node name="FrameT2" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 16, 16.8, -31.8)
-script = ExtResource("block")
-size = Vector3(11.8, 0.6, 0.5)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.05
-
-[node name="FrameB2" type="StaticBody3D" parent="Room"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 16, 5.2, -31.8)
-script = ExtResource("block")
-size = Vector3(11.8, 0.6, 0.5)
-color = Color(1.0000, 0.9647, 0.8784, 1)
-bevel = 0.05
-
-[node name="Center" type="Node3D" parent="."]
-
-[node name="BookA" type="StaticBody3D" parent="Center"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.5, 0)
-script = ExtResource("block")
-size = Vector3(11, 1.0, 10)
-color = Color(0.3569, 0.5529, 0.9373, 1)
-bevel = 0.12
-
-[node name="BookB" type="StaticBody3D" parent="Center"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0.15, 1.5, 0)
-script = ExtResource("block")
-size = Vector3(10.4, 1.0, 9.4)
-color = Color(0.9373, 0.4353, 0.4235, 1)
-bevel = 0.12
-
-[node name="BookC" type="StaticBody3D" parent="Center"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -0.1, 2.5, 0)
-script = ExtResource("block")
-size = Vector3(9.6, 1.0, 9)
-color = Color(0.9608, 0.8353, 0.2784, 1)
-bevel = 0.12
-
-[node name="RulerS" type="StaticBody3D" parent="Center"]
-transform = Transform3D(1, 0, 0, 0, 0.93565, -0.35294, 0, 0.35294, 0.93565, 0, 1.2661, 8.4765)
-script = ExtResource("block")
-size = Vector3(4.6, 0.5, 8.5)
-color = Color(0.9765, 0.6275, 0.2471, 1)
-bevel = 0.06
-
-[node name="RulerN" type="StaticBody3D" parent="Center"]
-transform = Transform3D(1, -0, 0, 0, 0.93565, 0.35294, -0, -0.35294, 0.93565, 0, 1.2661, -8.4765)
-script = ExtResource("block")
-size = Vector3(4.6, 0.5, 8.5)
-color = Color(0.9765, 0.6275, 0.2471, 1)
-bevel = 0.06
-
-[node name="TopW" type="StaticBody3D" parent="Center"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -3.3, 3.75, -2.8)
-script = ExtResource("block")
-size = Vector3(1.5, 1.5, 1.5)
-color = Color(0.6078, 0.4824, 1.0000, 1)
-letter = "A"
-
-[node name="TopE" type="StaticBody3D" parent="Center"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 3.3, 3.75, 2.8)
-script = ExtResource("block")
-size = Vector3(1.5, 1.5, 1.5)
-color = Color(0.4353, 0.8118, 0.5922, 1)
-letter = "B"
-
-[node name="TopMid" type="StaticBody3D" parent="Center"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 3.55, 0)
-script = ExtResource("block")
-size = Vector3(2.4, 1.1, 0.8)
-color = Color(0.9490, 0.6039, 0.7608, 1)
-
-[node name="FortEast" type="Node3D" parent="."]
-transform = Transform3D(6.1232e-17, -0, -1, 0, 1, -0, 1, 0, 6.1232e-17, 22, 0, -12)
-
-[node name="Back" type="StaticBody3D" parent="FortEast"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 1.7, -3.5)
-script = ExtResource("block")
-size = Vector3(9.0, 3.4, 0.7)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="Left" type="StaticBody3D" parent="FortEast"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -4.5, 1.7, 0)
-script = ExtResource("block")
-size = Vector3(0.7, 3.4, 7.0)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="Right" type="StaticBody3D" parent="FortEast"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 4.5, 1.7, 0)
-script = ExtResource("block")
-size = Vector3(0.7, 3.4, 7.0)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="FrontA" type="StaticBody3D" parent="FortEast"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -3, 1.7, 3.5)
-script = ExtResource("block")
-size = Vector3(3.0, 3.4, 0.7)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="FrontB" type="StaticBody3D" parent="FortEast"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 3, 1.7, 3.5)
-script = ExtResource("block")
-size = Vector3(3.0, 3.4, 0.7)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="Lintel" type="StaticBody3D" parent="FortEast"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 2.95, 3.5)
-script = ExtResource("block")
-size = Vector3(3.0, 0.9, 0.7)
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Roof" type="StaticBody3D" parent="FortEast"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 3.75, 0)
-script = ExtResource("block")
-size = Vector3(10.6, 0.7, 8.6)
-color = Color(0.9373, 0.4353, 0.4235, 1)
-bevel = 0.15
-
-[node name="RoofTop" type="StaticBody3D" parent="FortEast"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 4.8, 0)
-script = ExtResource("block")
-size = Vector3(7.0, 1.4, 2.2)
-color = Color(0.9373, 0.4353, 0.4235, 1)
-bevel = 0.15
-
-[node name="FortWest" type="Node3D" parent="."]
-transform = Transform3D(6.1232e-17, 0, 1, 0, 1, -0, -1, 0, 6.1232e-17, -22, 0, 12)
-
-[node name="Back" type="StaticBody3D" parent="FortWest"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 1.7, -3.5)
-script = ExtResource("block")
-size = Vector3(9.0, 3.4, 0.7)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="Left" type="StaticBody3D" parent="FortWest"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -4.5, 1.7, 0)
-script = ExtResource("block")
-size = Vector3(0.7, 3.4, 7.0)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="Right" type="StaticBody3D" parent="FortWest"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 4.5, 1.7, 0)
-script = ExtResource("block")
-size = Vector3(0.7, 3.4, 7.0)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="FrontA" type="StaticBody3D" parent="FortWest"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -3, 1.7, 3.5)
-script = ExtResource("block")
-size = Vector3(3.0, 3.4, 0.7)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="FrontB" type="StaticBody3D" parent="FortWest"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 3, 1.7, 3.5)
-script = ExtResource("block")
-size = Vector3(3.0, 3.4, 0.7)
-color = Color(0.9020, 0.7804, 0.6118, 1)
-
-[node name="Lintel" type="StaticBody3D" parent="FortWest"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 2.95, 3.5)
-script = ExtResource("block")
-size = Vector3(3.0, 0.9, 0.7)
-color = Color(0.3569, 0.5529, 0.9373, 1)
-
-[node name="Roof" type="StaticBody3D" parent="FortWest"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 3.75, 0)
-script = ExtResource("block")
-size = Vector3(10.6, 0.7, 8.6)
-color = Color(0.3569, 0.5529, 0.9373, 1)
-bevel = 0.15
-
-[node name="RoofTop" type="StaticBody3D" parent="FortWest"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 4.8, 0)
-script = ExtResource("block")
-size = Vector3(7.0, 1.4, 2.2)
-color = Color(0.3569, 0.5529, 0.9373, 1)
-bevel = 0.15
-
-[node name="Cover" type="Node3D" parent="."]
-
-[node name="Letter1" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 9, 1.2, 9)
-script = ExtResource("block")
-size = Vector3(2.4, 2.4, 2.4)
-color = Color(0.9373, 0.4353, 0.4235, 1)
-letter = "G"
-
-[node name="Letter2" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.9205, 0, 0.39073, 0, 1, -0, -0.39073, 0, 0.9205, 11.7, 0.8, 9.5)
-script = ExtResource("block")
-size = Vector3(1.6, 1.6, 1.6)
-color = Color(0.9765, 0.6275, 0.2471, 1)
-letter = "I"
-
-[node name="Letter3" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.99452, 0, 0.10453, 0, 1, -0, -0.10453, 0, 0.99452, 11.2, 0.8, 11.6)
-script = ExtResource("block")
-size = Vector3(1.6, 1.6, 1.6)
-color = Color(0.9608, 0.8353, 0.2784, 1)
-letter = "E"
-
-[node name="Letter4" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.87462, 0, 0.48481, 0, 1, -0, -0.48481, 0, 0.87462, -9, 1.2, -9)
-script = ExtResource("block")
-size = Vector3(2.4, 2.4, 2.4)
-color = Color(0.4353, 0.8118, 0.5922, 1)
-letter = "R"
-
-[node name="Letter5" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.97815, 0, 0.20791, 0, 1, -0, -0.20791, 0, 0.97815, -11.7, 0.8, -9.5)
-script = ExtResource("block")
-size = Vector3(1.6, 1.6, 1.6)
-color = Color(0.3569, 0.5529, 0.9373, 1)
-letter = "A"
-
-[node name="Letter6" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.81915, 0, 0.57358, 0, 1, -0, -0.57358, 0, 0.81915, -11.2, 0.8, -11.6)
-script = ExtResource("block")
-size = Vector3(1.6, 1.6, 1.6)
-color = Color(0.6078, 0.4824, 1.0000, 1)
-letter = "T"
-
-[node name="Letter7" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.95106, 0, 0.30902, 0, 1, -0, -0.30902, 0, 0.95106, 14, 1.2, 23)
-script = ExtResource("block")
-size = Vector3(2.4, 2.4, 2.4)
-color = Color(0.9490, 0.6039, 0.7608, 1)
-letter = "O"
-
-[node name="Letter8" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.99985, 0, 0.017452, 0, 1, -0, -0.017452, 0, 0.99985, -14, 1.2, -23)
-script = ExtResource("block")
-size = Vector3(2.4, 2.4, 2.4)
-color = Color(0.9373, 0.4353, 0.4235, 1)
-letter = "Y"
-
-[node name="Letter9" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.91355, 0, 0.40674, 0, 1, -0, -0.40674, 0, 0.91355, -23, 1, -20)
-script = ExtResource("block")
-size = Vector3(2.0, 2.0, 2.0)
-color = Color(0.9765, 0.6275, 0.2471, 1)
-letter = "S"
-
-[node name="Letter10" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.99255, 0, 0.12187, 0, 1, -0, -0.12187, 0, 0.99255, 23, 1, 20)
-script = ExtResource("block")
-size = Vector3(2.0, 2.0, 2.0)
-color = Color(0.9608, 0.8353, 0.2784, 1)
-letter = "B"
-
-[node name="Letter11" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.86603, 0, 0.5, 0, 1, -0, -0.5, 0, 0.86603, 9, 1, -23)
-script = ExtResource("block")
-size = Vector3(2.0, 2.0, 2.0)
-color = Color(0.4353, 0.8118, 0.5922, 1)
-letter = "O"
-
-[node name="Letter12" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(0.97437, 0, 0.22495, 0, 1, -0, -0.22495, 0, 0.97437, -9, 1, 23)
-script = ExtResource("block")
-size = Vector3(2.0, 2.0, 2.0)
-color = Color(0.3569, 0.5529, 0.9373, 1)
-letter = "X"
-
-[node name="Domino1" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -12, 0.85, 3.5)
-script = ExtResource("block")
-size = Vector3(8, 1.7, 0.9)
-color = Color(0.4353, 0.8118, 0.5922, 1)
-bevel = 0.14
-
-[node name="Domino2" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 12, 0.85, -3.5)
-script = ExtResource("block")
-size = Vector3(8, 1.7, 0.9)
-color = Color(0.6078, 0.4824, 1.0000, 1)
-bevel = 0.14
-
-[node name="Domino3" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(6.1232e-17, 0, 1, 0, 1, -0, -1, 0, 6.1232e-17, -25, 0.85, -5)
-script = ExtResource("block")
-size = Vector3(7, 1.7, 0.9)
-color = Color(0.9765, 0.6275, 0.2471, 1)
-bevel = 0.14
-
-[node name="Domino4" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(6.1232e-17, 0, 1, 0, 1, -0, -1, 0, 6.1232e-17, 25, 0.85, 5)
-script = ExtResource("block")
-size = Vector3(7, 1.7, 0.9)
-color = Color(0.9490, 0.6039, 0.7608, 1)
-bevel = 0.14
-
-[node name="Domino5" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(6.1232e-17, 0, 1, 0, 1, -0, -1, 0, 6.1232e-17, 3.8, 0.85, 18)
-script = ExtResource("block")
-size = Vector3(7, 1.7, 0.9)
-color = Color(0.3569, 0.5529, 0.9373, 1)
-bevel = 0.14
-
-[node name="Domino6" type="StaticBody3D" parent="Cover"]
-transform = Transform3D(6.1232e-17, 0, 1, 0, 1, -0, -1, 0, 6.1232e-17, -3.8, 0.85, -18)
-script = ExtResource("block")
-size = Vector3(7, 1.7, 0.9)
-color = Color(0.9373, 0.4353, 0.4235, 1)
-bevel = 0.14
-
-[node name="Toys" type="Node3D" parent="."]
-
-[node name="Ball1" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -7, 0, 14)
-script = ExtResource("prop")
-kind = 0
-size = 1.0
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Ball2" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.48481, 0, 0.87462, 0, 1, -0, -0.87462, 0, 0.48481, 7, 0, -14)
-script = ExtResource("prop")
-kind = 0
-size = 1.0
-color = Color(0.3569, 0.5529, 0.9373, 1)
-
-[node name="Ball3" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(-0.52992, 0, 0.84805, 0, 1, -0, -0.84805, 0, -0.52992, 15, 0, 4)
-script = ExtResource("prop")
-kind = 0
-size = 0.85
-color = Color(0.9608, 0.8353, 0.2784, 1)
-
-[node name="Ball4" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(-0.99863, 0, -0.052336, 0, 1, -0, 0.052336, -0, -0.99863, -15, 0, -4)
-script = ExtResource("prop")
-kind = 0
-size = 0.85
-color = Color(0.9490, 0.6039, 0.7608, 1)
-
-[node name="Ball5" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(-0.43837, 0, -0.89879, 0, 1, -0, 0.89879, -0, -0.43837, -28, 0, 18)
-script = ExtResource("prop")
-kind = 0
-size = 1.5
-color = Color(0.4353, 0.8118, 0.5922, 1)
-
-[node name="Ball6" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.57358, -0, -0.81915, 0, 1, -0, 0.81915, 0, 0.57358, 28, 0, -18)
-script = ExtResource("prop")
-kind = 0
-size = 1.5
-color = Color(0.6078, 0.4824, 1.0000, 1)
-
-[node name="Rings1" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -27, 0, -27)
-script = ExtResource("prop")
-kind = 1
-size = 1.5
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Rings2" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.682, 0, 0.73135, 0, 1, -0, -0.73135, 0, 0.682, 27, 0, 27)
-script = ExtResource("prop")
-kind = 1
-size = 1.5
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Rings3" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(-0.069756, 0, 0.99756, 0, 1, -0, -0.99756, 0, -0.069756, -17, 0, -15)
-script = ExtResource("prop")
-kind = 1
-size = 1.1
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Rings4" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(-0.77715, 0, 0.62932, 0, 1, -0, -0.62932, 0, -0.77715, 17, 0, 15)
-script = ExtResource("prop")
-kind = 1
-size = 1.1
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Pencil1" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -28, 0, 7)
-script = ExtResource("prop")
-kind = 2
-size = 1.0
-color = Color(0.3569, 0.5529, 0.9373, 1)
-
-[node name="Pencil2" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.83867, 0, 0.54464, 0, 1, -0, -0.54464, 0, 0.83867, 28, 0, -7)
-script = ExtResource("prop")
-kind = 2
-size = 1.0
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Pencil3" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.40674, 0, 0.91355, 0, 1, -0, -0.91355, 0, 0.40674, -6, 0, 28)
-script = ExtResource("prop")
-kind = 2
-size = 1.0
-color = Color(0.4353, 0.8118, 0.5922, 1)
-
-[node name="Pencil4" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(-0.15643, 0, 0.98769, 0, 1, -0, -0.98769, 0, -0.15643, 6, 0, -28)
-script = ExtResource("prop")
-kind = 2
-size = 1.0
-color = Color(0.9608, 0.8353, 0.2784, 1)
-
-[node name="Cone1" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 5, 0, 5.5)
-script = ExtResource("prop")
-kind = 3
-size = 0.7
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Cone2" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.93969, 0, 0.34202, 0, 1, -0, -0.34202, 0, 0.93969, -5, 0, -5.5)
-script = ExtResource("prop")
-kind = 3
-size = 0.7
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Cone3" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.76604, 0, 0.64279, 0, 1, -0, -0.64279, 0, 0.76604, -5, 0, 16)
-script = ExtResource("prop")
-kind = 3
-size = 0.7
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Cone4" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.5, 0, 0.86603, 0, 1, -0, -0.86603, 0, 0.5, 5, 0, -16)
-script = ExtResource("prop")
-kind = 3
-size = 0.7
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Cone5" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(0.17365, 0, 0.98481, 0, 1, -0, -0.98481, 0, 0.17365, 18, 0, -3)
-script = ExtResource("prop")
-kind = 3
-size = 0.7
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="Cone6" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(-0.17365, 0, 0.98481, 0, 1, -0, -0.98481, 0, -0.17365, -18, 0, 3)
-script = ExtResource("prop")
-kind = 3
-size = 0.7
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="CrateA" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 18, 0, 27)
-script = ExtResource("prop")
-kind = 4
-size = 1.0
-color = Color(0.9373, 0.4353, 0.4235, 1)
-
-[node name="CrateB" type="StaticBody3D" parent="Toys"]
-transform = Transform3D(-1, 0, 1.2246e-16, 0, 1, -0, -1.2246e-16, 0, -1, -18, 0, -27)
-script = ExtResource("prop")
-kind = 4
-size = 1.0
-color = Color(0.9373, 0.4353, 0.4235, 1)
+size = Vector3(0.7, 0.45, 0.8)
+color = Color(0.5216, 0.5216, 0.5608, 1)
+bevel = 0.08
+
+[node name="Forest" type="Node3D" parent="."]
+
+[node name="Tree1" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.47657, 0, 0.87913, 0, 1, -0, -0.87913, 0, -0.47657, -10.32, -0.17555, 16.371)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.391
+trunk_height = 6.25
+scale_factor = 1.953
+
+[node name="Tree2" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.93163, -0, -0.36341, 0, 1, -0, 0.36341, 0, 0.93163, -16.962, -0.05, 7.0339)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.423
+trunk_height = 6.77
+scale_factor = 2.116
+
+[node name="Tree3" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.29637, -0, -0.95507, 0, 1, -0, 0.95507, 0, 0.29637, -1.8584, -0.05, 16.847)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_1_A_Color1"
+trunk_radius = 0.308
+trunk_height = 4.93
+scale_factor = 1.542
+
+[node name="Tree4" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.91929, 0, 0.39357, 0, 1, -0, -0.39357, 0, 0.91929, -2.4852, -0.049826, -17.365)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.341
+trunk_height = 5.45
+scale_factor = 1.704
+
+[node name="Tree5" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.97264, 0, 0.23232, 0, 1, -0, -0.23232, 0, 0.97264, 9.937, -0.050181, 16.369)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.392
+trunk_height = 6.26
+scale_factor = 1.958
+
+[node name="Tree6" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.72972, 0, 0.68375, 0, 1, -0, -0.68375, 0, 0.72972, 17.146, -0.041217, -1.7691)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.364
+trunk_height = 5.82
+scale_factor = 1.819
+
+[node name="Tree7" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.12356, 0, 0.99234, 0, 1, -0, -0.99234, 0, -0.12356, 20.246, -0.042287, 9.6406)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.381
+trunk_height = 6.10
+scale_factor = 1.905
+
+[node name="Tree8" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.82234, 0, 0.569, 0, 1, -0, -0.569, 0, -0.82234, -13.461, 0.093019, -17.923)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.425
+trunk_height = 6.80
+scale_factor = 2.126
+
+[node name="Tree9" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.83854, 0, 0.54483, 0, 1, -0, -0.54483, 0, 0.83854, 8.9213, 0.063942, -9.5575)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.367
+trunk_height = 5.87
+scale_factor = 1.833
+
+[node name="Tree10" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.95592, 0, -0.29363, 0, 1, -0, 0.29363, -0, -0.95592, -14.237, -0.05, -9.8613)
+script = ExtResource("forest_prop")
+model = "Tree_2_B_Color1"
+trunk_radius = 0.300
+trunk_height = 4.80
+scale_factor = 1.501
+
+[node name="Tree11" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.94884, 0, 0.31576, 0, 1, -0, -0.31576, 0, 0.94884, 13.626, -0.049992, 5.1093)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.311
+trunk_height = 4.98
+scale_factor = 1.555
+
+[node name="Tree12" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.37128, -0, -0.92852, 0, 1, -0, 0.92852, 0, 0.37128, 14.291, 2.4974, -17.215)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.383
+trunk_height = 6.13
+scale_factor = 1.917
+
+[node name="Tree13" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.12824, 0, 0.99174, 0, 1, -0, -0.99174, 0, 0.12824, 5.338, -0.30047, 23.043)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_1_A_Color1"
+trunk_radius = 0.340
+trunk_height = 5.45
+scale_factor = 1.702
+
+[node name="Tree14" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.61861, 0, 0.78569, 0, 1, -0, -0.78569, 0, 0.61861, 19.615, 0.98793, -10.683)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.354
+trunk_height = 5.66
+scale_factor = 1.769
+
+[node name="Tree15" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.8164, 0, 0.57748, 0, 1, -0, -0.57748, 0, -0.8164, 24.854, 0.22972, -3.9941)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.450
+trunk_height = 7.19
+scale_factor = 2.248
+
+[node name="Tree16" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.96655, 0, 0.25646, 0, 1, -0, -0.25646, 0, 0.96655, -22.475, 2.7837, 28.83)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.326
+trunk_height = 5.22
+scale_factor = 1.631
+
+[node name="Tree17" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.36757, 0, -0.93, 0, 1, -0, 0.93, -0, -0.36757, 36.987, 3.4399, -7.9704)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.387
+trunk_height = 6.19
+scale_factor = 1.933
+
+[node name="Tree18" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.36451, -0, -0.9312, 0, 1, -0, 0.9312, 0, 0.36451, 20.892, 2.3283, -30.881)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.357
+trunk_height = 5.71
+scale_factor = 1.783
+
+[node name="Tree19" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.1225, 0, -0.99247, 0, 1, -0, 0.99247, -0, -0.1225, -29.08, 0.1805, 12.995)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.333
+trunk_height = 5.32
+scale_factor = 1.663
+
+[node name="Tree20" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.87091, 0, 0.49144, 0, 1, -0, -0.49144, 0, 0.87091, 31.289, 0.61851, -16.888)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.429
+trunk_height = 6.86
+scale_factor = 2.143
+
+[node name="Tree21" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.85499, 0, 0.51864, 0, 1, -0, -0.51864, 0, -0.85499, -12.285, -0.082187, -30.109)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.364
+trunk_height = 5.82
+scale_factor = 1.820
+
+[node name="Tree22" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.98509, 0, -0.17204, 0, 1, -0, 0.17204, -0, -0.98509, -16.298, 1.7903, 31.066)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.404
+trunk_height = 6.46
+scale_factor = 2.019
+
+[node name="Tree23" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.98772, 0, -0.15625, 0, 1, -0, 0.15625, -0, -0.98772, -6.9632, 3.426, -37.251)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.439
+trunk_height = 7.02
+scale_factor = 2.193
+
+[node name="Tree24" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.084792, 0, 0.9964, 0, 1, -0, -0.9964, 0, 0.084792, -23.343, 3.3237, -28.537)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.415
+trunk_height = 6.64
+scale_factor = 2.076
+
+[node name="Tree25" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.99084, 0, 0.13501, 0, 1, -0, -0.13501, 0, 0.99084, 2.6151, 0.39647, 33.011)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.302
+trunk_height = 4.83
+scale_factor = 1.509
+
+[node name="Tree26" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.88035, -0, -0.47432, 0, 1, -0, 0.47432, 0, 0.88035, 31.092, 0.99381, 3.5653)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.457
+trunk_height = 7.31
+scale_factor = 2.284
+
+[node name="Tree27" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.80717, 0, 0.59032, 0, 1, -0, -0.59032, 0, -0.80717, 14.937, 1.9554, -34.096)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.392
+trunk_height = 6.28
+scale_factor = 1.962
+
+[node name="Tree28" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.99068, 0, 0.13617, 0, 1, -0, -0.13617, 0, -0.99068, -9.7032, 0.48372, 29.106)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.396
+trunk_height = 6.33
+scale_factor = 1.979
+
+[node name="Tree29" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.67161, 0, -0.7409, 0, 1, -0, 0.7409, -0, -0.67161, 8.3021, -0.38159, -29.734)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.419
+trunk_height = 6.70
+scale_factor = 2.094
+
+[node name="Tree30" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.97845, 0, 0.20646, 0, 1, -0, -0.20646, 0, -0.97845, 34.729, 1.1006, -2.9797)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.381
+trunk_height = 6.09
+scale_factor = 1.903
+
+[node name="Tree31" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.76024, 0, 0.64964, 0, 1, -0, -0.64964, 0, 0.76024, 6.4703, -0.014537, -25.407)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.397
+trunk_height = 6.35
+scale_factor = 1.984
+
+[node name="Tree32" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.92104, 0, -0.38946, 0, 1, -0, 0.38946, -0, -0.92104, 37.026, 3.724, 4.3078)
+script = ExtResource("forest_prop")
+model = "Tree_2_B_Color1"
+trunk_radius = 0.401
+trunk_height = 6.41
+scale_factor = 2.004
+
+[node name="Tree33" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.84923, 0, 0.52802, 0, 1, -0, -0.52802, 0, -0.84923, -0.69559, 0.26276, -27.444)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.355
+trunk_height = 5.68
+scale_factor = 1.775
+
+[node name="Tree34" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.16614, 0, 0.9861, 0, 1, -0, -0.9861, 0, 0.16614, 2.5527, 2.0491, -36.344)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.341
+trunk_height = 5.45
+scale_factor = 1.703
+
+[node name="Tree35" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.78562, 0, 0.61871, 0, 1, -0, -0.61871, 0, -0.78562, 26.91, 0.1684, 13.64)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.378
+trunk_height = 6.04
+scale_factor = 1.888
+
+[node name="Tree36" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.9673, -0, -0.25365, 0, 1, -0, 0.25365, 0, 0.9673, 6.4034, 1.2103, 34.558)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.453
+trunk_height = 7.25
+scale_factor = 2.266
+
+[node name="Tree37" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.63383, 0, 0.77347, 0, 1, -0, -0.77347, 0, -0.63383, 26.371, 0.18155, -20.198)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_1_A_Color1"
+trunk_radius = 0.430
+trunk_height = 6.88
+scale_factor = 2.149
+
+[node name="Tree38" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.58766, -0, -0.80911, 0, 1, -0, 0.80911, 0, 0.58766, 26.189, 0.14373, -16.606)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.375
+trunk_height = 6.00
+scale_factor = 1.874
+
+[node name="Tree39" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.20492, 0, -0.97878, 0, 1, -0, 0.97878, -0, -0.20492, -24.376, -0.4137, -13.989)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.301
+trunk_height = 4.82
+scale_factor = 1.506
+
+[node name="Tree40" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.14504, 0, -0.98943, 0, 1, -0, 0.98943, -0, -0.14504, -31.77, 3.3063, -20.263)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.338
+trunk_height = 5.41
+scale_factor = 1.692
+
+[node name="Tree41" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.28047, -0, -0.95986, 0, 1, -0, 0.95986, 0, 0.28047, -3.3725, 2.5096, 35.93)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.315
+trunk_height = 5.04
+scale_factor = 1.573
+
+[node name="Tree42" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.51164, 0, -0.8592, 0, 1, -0, 0.8592, -0, -0.51164, 30.809, 0.71315, 16.197)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.408
+trunk_height = 6.52
+scale_factor = 2.038
+
+[node name="Tree43" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.30298, 0, -0.953, 0, 1, -0, 0.953, -0, -0.30298, 37.723, 3.8665, -0.24421)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.451
+trunk_height = 7.22
+scale_factor = 2.257
+
+[node name="Tree44" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.9964, 0, 0.084831, 0, 1, -0, -0.084831, 0, -0.9964, 34.899, 2.0572, -12.535)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.399
+trunk_height = 6.39
+scale_factor = 1.997
+
+[node name="Tree45" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.98408, 0, 0.17773, 0, 1, -0, -0.17773, 0, 0.98408, 23.713, 2.818, 29.203)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.402
+trunk_height = 6.44
+scale_factor = 2.012
+
+[node name="Tree46" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.7815, -0, -0.6239, 0, 1, -0, 0.6239, 0, 0.7815, 2.826, 0.15088, -28.145)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.358
+trunk_height = 5.72
+scale_factor = 1.788
+
+[node name="Tree47" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.7695, 0, 0.63865, 0, 1, -0, -0.63865, 0, 0.7695, -19.776, 0.50101, -22.413)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.319
+trunk_height = 5.10
+scale_factor = 1.595
+
+[node name="Tree48" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.37882, -0, -0.92547, 0, 1, -0, 0.92547, 0, 0.37882, -30.621, -0.71453, -12.658)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.404
+trunk_height = 6.47
+scale_factor = 2.021
+
+[node name="Tree49" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.94168, 0, 0.33652, 0, 1, -0, -0.33652, 0, -0.94168, -3.5587, -0.24816, 27.236)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.321
+trunk_height = 5.14
+scale_factor = 1.607
+
+[node name="Tree50" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.85796, 0, 0.51372, 0, 1, -0, -0.51372, 0, 0.85796, 12.826, 0.21253, -24.931)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.397
+trunk_height = 6.35
+scale_factor = 1.985
+
+[node name="Tree51" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.80096, 0, 0.59871, 0, 1, -0, -0.59871, 0, 0.80096, 18.881, -0.27458, 24.018)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.360
+trunk_height = 5.77
+scale_factor = 1.802
+
+[node name="Tree52" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.99702, -0, -0.077138, 0, 1, -0, 0.077138, 0, 0.99702, 21.757, -0.29993, 21.5)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.307
+trunk_height = 4.92
+scale_factor = 1.537
+
+[node name="Tree53" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.86037, 0, 0.50967, 0, 1, -0, -0.50967, 0, 0.86037, -26.36, -0.41155, -17.066)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.439
+trunk_height = 7.03
+scale_factor = 2.196
+
+[node name="Tree54" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.7827, -0, -0.6224, 0, 1, -0, 0.6224, 0, 0.7827, -12.384, 0.62666, 26.151)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.355
+trunk_height = 5.69
+scale_factor = 1.777
+
+[node name="Tree55" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.26684, 0, 0.96374, 0, 1, -0, -0.96374, 0, 0.26684, -36.952, 3.1095, -8.0542)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.428
+trunk_height = 6.85
+scale_factor = 2.139
+
+[node name="Tree56" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.45877, -0, -0.88856, 0, 1, -0, 0.88856, 0, 0.45877, 2.4287, 3.4275, 36.844)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.432
+trunk_height = 6.91
+scale_factor = 2.160
+
+[node name="Tree57" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.81955, -0, -0.57301, 0, 1, -0, 0.57301, 0, 0.81955, 29.971, 0.0088256, -6.7023)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.301
+trunk_height = 4.81
+scale_factor = 1.503
+
+[node name="Tree58" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.4823, -0, -0.87601, 0, 1, -0, 0.87601, 0, 0.4823, 20.626, 0.12762, -26.957)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.358
+trunk_height = 5.72
+scale_factor = 1.788
+
+[node name="Tree59" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.60459, 0, 0.79654, 0, 1, -0, -0.79654, 0, -0.60459, 35.721, 4.2186, 12.407)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.375
+trunk_height = 6.00
+scale_factor = 1.876
+
+[node name="Tree60" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.87266, 0, 0.48833, 0, 1, -0, -0.48833, 0, 0.87266, -23.963, 0.039473, 17.583)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_1_A_Color1"
+trunk_radius = 0.311
+trunk_height = 4.97
+scale_factor = 1.553
+
+[node name="Tree61" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.99129, 0, -0.13173, 0, 1, -0, 0.13173, -0, -0.99129, -25.356, -0.0022348, 11.47)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.302
+trunk_height = 4.83
+scale_factor = 1.508
+
+[node name="Tree62" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.9978, 0, -0.066279, 0, 1, -0, 0.066279, -0, -0.9978, 29.166, 0.79526, 0.45547)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.441
+trunk_height = 7.05
+scale_factor = 2.203
+
+[node name="Tree63" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.94688, 0, -0.32158, 0, 1, -0, 0.32158, -0, -0.94688, -19.608, 0.69528, 26.608)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.452
+trunk_height = 7.24
+scale_factor = 2.262
+
+[node name="Tree64" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.36208, 0, 0.93215, 0, 1, -0, -0.93215, 0, -0.36208, -7.2266, 3.8583, 36.83)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.401
+trunk_height = 6.41
+scale_factor = 2.003
+
+[node name="Tree65" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.68646, 0, 0.72716, 0, 1, -0, -0.72716, 0, 0.68646, -18.17, 0.059573, 17.559)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.450
+trunk_height = 7.21
+scale_factor = 2.252
+
+[node name="Tree66" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.93622, 0, 0.35142, 0, 1, -0, -0.35142, 0, 0.93622, -37.655, 3.1757, 1.8665)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.389
+trunk_height = 6.22
+scale_factor = 1.944
+
+[node name="Tree67" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.98568, 0, 0.16864, 0, 1, -0, -0.16864, 0, 0.98568, 26.312, 2.3708, -25.813)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.412
+trunk_height = 6.60
+scale_factor = 2.062
+
+[node name="Tree68" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.93808, -0, -0.34642, 0, 1, -0, 0.34642, 0, 0.93808, -2.2892, 0.12977, 30.877)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.432
+trunk_height = 6.91
+scale_factor = 2.159
+
+[node name="Tree69" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.43873, 0, -0.89862, 0, 1, -0, 0.89862, -0, -0.43873, 16.933, -0.10071, 20.335)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.373
+trunk_height = 5.96
+scale_factor = 1.863
+
+[node name="Tree70" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.54525, -0, -0.83827, 0, 1, -0, 0.83827, 0, 0.54525, -26.558, 0.93949, 22.683)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.411
+trunk_height = 6.58
+scale_factor = 2.057
+
+[node name="Tree71" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.82089, 0, 0.57109, 0, 1, -0, -0.57109, 0, -0.82089, -1.1796, 0.68985, -34.566)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_2_A_Color1"
+trunk_radius = 0.314
+trunk_height = 5.02
+scale_factor = 1.569
+
+[node name="Tree72" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.28034, 0, -0.9599, 0, 1, -0, 0.9599, -0, -0.28034, 25.915, 0.45128, 9.0219)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.326
+trunk_height = 5.21
+scale_factor = 1.628
+
+[node name="Tree73" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.99997, -0, -0.0077209, 0, 1, -0, 0.0077209, 0, 0.99997, -34.664, 1.5638, -11.586)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.326
+trunk_height = 5.22
+scale_factor = 1.632
+
+[node name="Tree74" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.99598, -0, -0.089559, 0, 1, -0, 0.089559, 0, 0.99598, 32.619, -0.1773, -8.8959)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.398
+trunk_height = 6.37
+scale_factor = 1.991
+
+[node name="Tree75" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.54334, 0, -0.83951, 0, 1, -0, 0.83951, -0, -0.54334, -30.146, -0.82577, -7.9356)
+script = ExtResource("forest_prop")
+model = "Tree_2_B_Color1"
+trunk_radius = 0.445
+trunk_height = 7.11
+scale_factor = 2.223
+
+[node name="Tree76" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.83064, 0, 0.55682, 0, 1, -0, -0.55682, 0, -0.83064, 22.646, 0.028023, 12.308)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.390
+trunk_height = 6.25
+scale_factor = 1.952
+
+[node name="Tree77" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.3495, 0, 0.93694, 0, 1, -0, -0.93694, 0, 0.3495, -12.497, 0.29895, -25.727)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.314
+trunk_height = 5.02
+scale_factor = 1.570
+
+[node name="Tree78" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.34132, 0, 0.93995, 0, 1, -0, -0.93995, 0, 0.34132, -24.389, -0.080627, 7.2767)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.346
+trunk_height = 5.53
+scale_factor = 1.729
+
+[node name="Tree79" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.25916, 0, -0.96583, 0, 1, -0, 0.96583, -0, -0.25916, 22.821, 1.8152, -17.728)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_1_A_Color1"
+trunk_radius = 0.454
+trunk_height = 7.26
+scale_factor = 2.268
+
+[node name="Tree80" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.99933, 0, 0.036464, 0, 1, -0, -0.036464, 0, 0.99933, -28.207, -0.11349, 1.3788)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.459
+trunk_height = 7.34
+scale_factor = 2.293
+
+[node name="Tree81" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.33378, 0, 0.94265, 0, 1, -0, -0.94265, 0, 0.33378, -18.353, 0.38521, -26.635)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.361
+trunk_height = 5.78
+scale_factor = 1.807
+
+[node name="Tree82" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.51795, 0, -0.85541, 0, 1, -0, 0.85541, -0, -0.51795, -26.951, -0.53644, -5.3841)
+script = ExtResource("forest_prop")
+model = "Tree_2_B_Color1"
+trunk_radius = 0.447
+trunk_height = 7.16
+scale_factor = 2.237
+
+[node name="Tree83" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.63688, 0, -0.77097, 0, 1, -0, 0.77097, -0, -0.63688, 23.397, 0.84308, -12.351)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.345
+trunk_height = 5.52
+scale_factor = 1.725
+
+[node name="Tree84" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.85561, -0, -0.51763, 0, 1, -0, 0.51763, 0, 0.85561, -19.776, 2.5456, -30.647)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.432
+trunk_height = 6.92
+scale_factor = 2.162
+
+[node name="Tree85" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.44322, 0, 0.89641, 0, 1, -0, -0.89641, 0, 0.44322, 34.677, 2.1508, 7.9797)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.413
+trunk_height = 6.61
+scale_factor = 2.066
+
+[node name="Tree86" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.83702, 0, -0.54717, 0, 1, -0, 0.54717, -0, -0.83702, -6.7829, 0.047091, 25.44)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.338
+trunk_height = 5.40
+scale_factor = 1.689
+
+[node name="Tree87" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.24241, 0, -0.97018, 0, 1, -0, 0.97018, -0, -0.24241, -32.894, 2.0743, 14.766)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.368
+trunk_height = 5.88
+scale_factor = 1.839
+
+[node name="Tree88" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.59601, 0, 0.80298, 0, 1, -0, -0.80298, 0, 0.59601, -26.396, -0.029499, 4.4108)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.457
+trunk_height = 7.31
+scale_factor = 2.285
+
+[node name="Tree89" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.8576, 0, 0.51432, 0, 1, -0, -0.51432, 0, -0.8576, -23.112, 0.17786, -20.15)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.438
+trunk_height = 7.01
+scale_factor = 2.191
+
+[node name="Tree90" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.85321, 0, 0.52157, 0, 1, -0, -0.52157, 0, 0.85321, 15.678, -0.55169, -28.792)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.419
+trunk_height = 6.70
+scale_factor = 2.095
+
+[node name="Tree91" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.078916, 0, 0.99688, 0, 1, -0, -0.99688, 0, 0.078916, -27.67, 0.13696, 8.8622)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_1_A_Color1"
+trunk_radius = 0.326
+trunk_height = 5.21
+scale_factor = 1.628
+
+[node name="Tree92" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.43904, 0, 0.89847, 0, 1, -0, -0.89847, 0, 0.43904, 27.014, -0.026668, -8.8992)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.312
+trunk_height = 4.99
+scale_factor = 1.560
+
+[node name="Tree93" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.63043, -0, -0.77624, 0, 1, -0, 0.77624, 0, 0.63043, -11.722, 3.0048, -35.702)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.392
+trunk_height = 6.28
+scale_factor = 1.961
+
+[node name="Tree94" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.98894, 0, 0.14829, 0, 1, -0, -0.14829, 0, 0.98894, -31.95, -0.028085, 2.737)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.324
+trunk_height = 5.19
+scale_factor = 1.622
+
+[node name="Tree95" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.9572, 0, 0.28944, 0, 1, -0, -0.28944, 0, 0.9572, 27.039, 0.68613, 3.4334)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.308
+trunk_height = 4.92
+scale_factor = 1.538
+
+[node name="Tree96" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.58303, 0, -0.81245, 0, 1, -0, 0.81245, -0, -0.58303, 8.2517, 3.1199, -36.88)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.325
+trunk_height = 5.19
+scale_factor = 1.623
+
+[node name="Tree97" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.39826, 0, -0.91727, 0, 1, -0, 0.91727, -0, -0.39826, -35.94, 3.1406, 9.2899)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.416
+trunk_height = 6.66
+scale_factor = 2.080
+
+[node name="Tree98" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.06343, -0, -0.99799, 0, 1, -0, 0.99799, 0, 0.06343, -32.994, 1.4886, -15.471)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.342
+trunk_height = 5.47
+scale_factor = 1.709
+
+[node name="Tree99" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.42439, 0, -0.90548, 0, 1, -0, 0.90548, -0, -0.42439, 10.856, 3.2102, 35.895)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.410
+trunk_height = 6.56
+scale_factor = 2.050
+
+[node name="Tree100" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.86197, -0, -0.50696, 0, 1, -0, 0.50696, 0, 0.86197, 30.26, 3.2063, -22.933)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_1_A_Color1"
+trunk_radius = 0.440
+trunk_height = 7.05
+scale_factor = 2.202
+
+[node name="Tree101" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.69065, -0, -0.72319, 0, 1, -0, 0.72319, 0, 0.69065, -12.908, 0.33997, -21.654)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.439
+trunk_height = 7.03
+scale_factor = 2.197
+
+[node name="Tree102" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.0019711, 0, -1, 0, 1, -0, 1, -0, -0.0019711, 12.163, -0.43905, 25.879)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.434
+trunk_height = 6.95
+scale_factor = 2.172
+
+[node name="Tree103" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.4102, 0, -0.91199, 0, 1, -0, 0.91199, -0, -0.4102, -26.381, -0.28424, -1.7414)
+script = ExtResource("forest_prop")
+model = "Tree_2_B_Color1"
+trunk_radius = 0.455
+trunk_height = 7.28
+scale_factor = 2.276
+
+[node name="Tree104" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.66961, 0, 0.74272, 0, 1, -0, -0.74272, 0, 0.66961, 21.097, 1.0543, -23.22)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.369
+trunk_height = 5.90
+scale_factor = 1.844
+
+[node name="Tree105" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.27557, 0, 0.96128, 0, 1, -0, -0.96128, 0, -0.27557, 25.281, 0.32611, -0.16564)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.362
+trunk_height = 5.80
+scale_factor = 1.812
+
+[node name="Tree106" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.95139, 0, 0.308, 0, 1, -0, -0.308, 0, 0.95139, -27.321, -0.8136, -10.784)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.408
+trunk_height = 6.53
+scale_factor = 2.039
+
+[node name="Tree107" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.11024, 0, 0.99391, 0, 1, -0, -0.99391, 0, -0.11024, 24.855, -0.34762, 19.026)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.441
+trunk_height = 7.06
+scale_factor = 2.206
+
+[node name="Tree108" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.96231, -0, -0.27197, 0, 1, -0, 0.27197, 0, 0.96231, -32.592, -0.41327, -2.3897)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_2_A_Color1"
+trunk_radius = 0.437
+trunk_height = 6.99
+scale_factor = 2.184
+
+[node name="Tree109" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.060946, 0, 0.99814, 0, 1, -0, -0.99814, 0, 0.060946, -31.658, 0.39821, 9.2682)
+script = ExtResource("forest_prop")
+model = "Tree_1_C_Color1"
+trunk_radius = 0.360
+trunk_height = 5.76
+scale_factor = 1.801
+
+[node name="Tree110" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.89308, 0, -0.44991, 0, 1, -0, 0.44991, -0, -0.89308, -15.849, 0.74295, 27.415)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.396
+trunk_height = 6.33
+scale_factor = 1.980
+
+[node name="Tree111" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.90744, 0, 0.42018, 0, 1, -0, -0.42018, 0, -0.90744, 16.183, 0.94582, -23.934)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.301
+trunk_height = 4.81
+scale_factor = 1.504
+
+[node name="Tree112" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.99952, 0, -0.030825, 0, 1, -0, 0.030825, -0, -0.99952, -37.074, 3.1948, 5.3817)
+script = ExtResource("forest_prop")
+model = "Tree_Bare_2_A_Color1"
+trunk_radius = 0.386
+trunk_height = 6.18
+scale_factor = 1.932
+
+[node name="Tree113" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.5302, 0, 0.84787, 0, 1, -0, -0.84787, 0, 0.5302, 12.237, -0.7786, -29.799)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.453
+trunk_height = 7.25
+scale_factor = 2.265
+
+[node name="Tree114" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.081086, 0, -0.99671, 0, 1, -0, 0.99671, -0, -0.081086, 4.9449, -0.045488, -32.681)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.456
+trunk_height = 7.29
+scale_factor = 2.278
+
+[node name="Tree115" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.93737, 0, 0.34832, 0, 1, -0, -0.34832, 0, 0.93737, 31.664, 0.82214, 11.317)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.412
+trunk_height = 6.59
+scale_factor = 2.060
+
+[node name="Tree116" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.87622, 0, -0.48191, 0, 1, -0, 0.48191, -0, -0.87622, -12.536, 3.2562, 35.044)
+script = ExtResource("forest_prop")
+model = "Tree_2_B_Color1"
+trunk_radius = 0.433
+trunk_height = 6.92
+scale_factor = 2.164
+
+[node name="Tree117" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.83453, -0, -0.55097, 0, 1, -0, 0.55097, 0, 0.83453, -31.213, 3.6641, 21.012)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.435
+trunk_height = 6.96
+scale_factor = 2.176
+
+[node name="Tree118" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.87527, 0, -0.48364, 0, 1, -0, 0.48364, -0, -0.87527, 30.776, -0.45101, -12.645)
+script = ExtResource("forest_prop")
+model = "Tree_1_B_Color1"
+trunk_radius = 0.335
+trunk_height = 5.35
+scale_factor = 1.673
+
+[node name="Tree119" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.1937, 0, 0.98106, 0, 1, -0, -0.98106, 0, 0.1937, -20.788, 0.143, -16.955)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.411
+trunk_height = 6.58
+scale_factor = 2.057
+
+[node name="Tree120" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.96323, 0, 0.26867, 0, 1, -0, -0.26867, 0, 0.96323, -30.248, 0.95871, 17.575)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.345
+trunk_height = 5.51
+scale_factor = 1.723
+
+[node name="Tree121" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.97551, -0, -0.21995, 0, 1, -0, 0.21995, 0, 0.97551, -4.759, 0.25993, -27.649)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.309
+trunk_height = 4.95
+scale_factor = 1.547
+
+[node name="Tree122" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.53791, 0, 0.843, 0, 1, -0, -0.843, 0, 0.53791, 17.602, 3.0067, 33.34)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.334
+trunk_height = 5.34
+scale_factor = 1.668
+
+[node name="Tree123" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(1, 0, 0.00026391, 0, 1, -0, -0.00026391, 0, 1, 12.956, -0.17976, 21.923)
+script = ExtResource("forest_prop")
+model = "Tree_4_B_Color1"
+trunk_radius = 0.370
+trunk_height = 5.92
+scale_factor = 1.851
+
+[node name="Tree124" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.023121, 0, 0.99973, 0, 1, -0, -0.99973, 0, 0.023121, -16.801, 0.45103, -20.404)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.419
+trunk_height = 6.71
+scale_factor = 2.096
+
+[node name="Tree125" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.95041, 0, 0.31101, 0, 1, -0, -0.31101, 0, 0.95041, 10.818, 1.0721, -34.412)
+script = ExtResource("forest_prop")
+model = "Tree_2_C_Color1"
+trunk_radius = 0.365
+trunk_height = 5.84
+scale_factor = 1.824
+
+[node name="Tree126" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.44405, 0, -0.896, 0, 1, -0, 0.896, -0, -0.44405, 22.187, -0.1059, 16.299)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.391
+trunk_height = 6.26
+scale_factor = 1.957
+
+[node name="Tree127" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.94209, 0, 0.33535, 0, 1, -0, -0.33535, 0, 0.94209, -4.1574, 0.075333, -32.324)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.377
+trunk_height = 6.03
+scale_factor = 1.885
+
+[node name="Tree128" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.93924, 0, -0.34326, 0, 1, -0, 0.34326, -0, -0.93924, -15.895, 0.21524, -29.472)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.370
+trunk_height = 5.92
+scale_factor = 1.851
+
+[node name="Tree129" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.74512, 0, -0.66693, 0, 1, -0, 0.66693, -0, -0.74512, 33.816, 1.1926, 1.2798)
+script = ExtResource("forest_prop")
+model = "Tree_3_A_Color1"
+trunk_radius = 0.409
+trunk_height = 6.55
+scale_factor = 2.047
+
+[node name="Tree130" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.93948, -0, -0.34261, 0, 1, -0, 0.34261, 0, 0.93948, 0.78599, 0.18484, -31.681)
+script = ExtResource("forest_prop")
+model = "Tree_3_B_Color1"
+trunk_radius = 0.345
+trunk_height = 5.53
+scale_factor = 1.727
+
+[node name="Tree131" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.16101, 0, 0.98695, 0, 1, -0, -0.98695, 0, 0.16101, -9.2904, 1.227, 33.393)
+script = ExtResource("forest_prop")
+model = "Tree_4_A_Color1"
+trunk_radius = 0.456
+trunk_height = 7.29
+scale_factor = 2.278
+
+[node name="Tree132" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.66158, 0, 0.74987, 0, 1, -0, -0.74987, 0, -0.66158, -8.3559, 0.24774, -26.031)
+script = ExtResource("forest_prop")
+model = "Tree_4_C_Color1"
+trunk_radius = 0.434
+trunk_height = 6.95
+scale_factor = 2.171
+
+[node name="Tree133" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.71538, 0, 0.69874, 0, 1, -0, -0.69874, 0, -0.71538, -36.972, 2.4752, -4.3418)
+script = ExtResource("forest_prop")
+model = "Tree_2_A_Color1"
+trunk_radius = 0.380
+trunk_height = 6.09
+scale_factor = 1.902
+
+[node name="Tree134" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.99941, 0, -0.034438, 0, 1, -0, 0.034438, -0, -0.99941, 29.614, 0.88546, 7.7219)
+script = ExtResource("forest_prop")
+model = "Tree_1_A_Color1"
+trunk_radius = 0.328
+trunk_height = 5.24
+scale_factor = 1.639
+
+[node name="Rock1" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.51384, 0, -0.85789, 0, 1, -0, 0.85789, -0, -0.51384, 3.8185, -0.08, 13.739)
+script = ExtResource("forest_prop")
+model = "Rock_1_D_Color1"
+box_size = Vector3(1.809, 2.205, 2.257)
+box_center = Vector3(0.166, 1.225, -0.101)
+scale_factor = 2.168
+
+[node name="Rock2" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.98914, 0, 0.14697, 0, 1, -0, -0.14697, 0, -0.98914, -6.8445, -0.08, 10.668)
+script = ExtResource("forest_prop")
+model = "Rock_1_D_Color1"
+box_size = Vector3(1.125, 1.371, 1.403)
+box_center = Vector3(0.103, 0.762, -0.063)
+scale_factor = 1.348
+
+[node name="Rock3" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.64999, -0, -0.75994, 0, 1, -0, 0.75994, 0, 0.64999, 11.306, -0.05835, -4.6847)
+script = ExtResource("forest_prop")
+model = "Rock_1_B_Color1"
+box_size = Vector3(0.974, 0.955, 1.021)
+box_center = Vector3(-0.213, 0.531, -0.035)
+scale_factor = 1.964
+
+[node name="Rock4" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.34927, 0, 0.93702, 0, 1, -0, -0.93702, 0, -0.34927, -5.3098, -0.079998, -9.9408)
+script = ExtResource("forest_prop")
+model = "Rock_1_E_Color1"
+box_size = Vector3(1.209, 1.366, 1.312)
+box_center = Vector3(0.000, 0.759, -0.147)
+scale_factor = 1.343
+
+[node name="Rock5" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.0096723, 0, -0.99995, 0, 1, -0, 0.99995, -0, -0.0096723, -9.833, -0.08, -6.2135)
+script = ExtResource("forest_prop")
+model = "Rock_1_G_Color1"
+box_size = Vector3(2.860, 3.061, 2.705)
+box_center = Vector3(-0.496, 1.701, 0.180)
+scale_factor = 1.821
+
+[node name="Rock6" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.56922, 0, 0.82219, 0, 1, -0, -0.82219, 0, 0.56922, 8.5134, -0.08, 11.073)
+script = ExtResource("forest_prop")
+model = "Rock_1_G_Color1"
+box_size = Vector3(2.738, 2.930, 2.589)
+box_center = Vector3(-0.475, 1.628, 0.172)
+scale_factor = 1.743
+
+[node name="Rock7" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.89202, 0, -0.45199, 0, 1, -0, 0.45199, -0, -0.89202, -20.962, -0.12647, -4.9824)
+script = ExtResource("forest_prop")
+model = "Rock_1_G_Color1"
+box_size = Vector3(3.692, 3.952, 3.492)
+box_center = Vector3(-0.640, 2.196, 0.232)
+scale_factor = 2.351
+
+[node name="Rock8" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.47781, 0, 0.87846, 0, 1, -0, -0.87846, 0, 0.47781, 0.84275, -0.077768, -11.061)
+script = ExtResource("forest_prop")
+model = "Rock_1_A_Color1"
+box_size = Vector3(1.079, 1.009, 1.135)
+box_center = Vector3(-0.063, 0.560, 0.000)
+scale_factor = 2.075
+
+[node name="Rock9" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.77965, 0, 0.62621, 0, 1, -0, -0.62621, 0, -0.77965, -1.8484, -0.08, 10.883)
+script = ExtResource("forest_prop")
+model = "Rock_1_E_Color1"
+box_size = Vector3(1.772, 2.003, 1.923)
+box_center = Vector3(0.000, 1.113, -0.216)
+scale_factor = 1.969
+
+[node name="Rock10" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.94366, 0, 0.33091, 0, 1, -0, -0.33091, 0, -0.94366, -9.9317, -0.08, 4.9858)
+script = ExtResource("forest_prop")
+model = "Rock_1_B_Color1"
+box_size = Vector3(0.948, 0.929, 0.994)
+box_center = Vector3(-0.207, 0.516, -0.034)
+scale_factor = 1.911
+
+[node name="Rock11" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.26492, 0, 0.96427, 0, 1, -0, -0.96427, 0, -0.26492, 14.014, 0.73403, -10.95)
+script = ExtResource("forest_prop")
+model = "Rock_1_F_Color1"
+box_size = Vector3(1.379, 1.559, 1.194)
+box_center = Vector3(0.000, 0.866, -0.000)
+scale_factor = 1.533
+
+[node name="Rock12" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(-0.61306, 0, 0.79003, 0, 1, -0, -0.79003, 0, -0.61306, -28.795, 4.3253, -24.794)
+script = ExtResource("forest_prop")
+model = "Rock_1_A_Color1"
+box_size = Vector3(0.933, 0.872, 0.981)
+box_center = Vector3(-0.055, 0.484, 0.000)
+scale_factor = 1.793
+
+[node name="Rock13" type="StaticBody3D" parent="Forest"]
+transform = Transform3D(0.75629, -0, -0.65424, 0, 1, -0, 0.65424, 0, 0.75629, -21.501, -0.095927, 14.258)
+script = ExtResource("forest_prop")
+model = "Rock_1_C_Color1"
+box_size = Vector3(0.984, 1.025, 1.148)
+box_center = Vector3(0.072, 0.569, -0.077)
+scale_factor = 2.108
 
 [node name="SpawnPoints" type="Node3D" parent="."]
 
 [node name="Spawn1" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -30, 0.2, -22)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 23, 0.33199, 2)
 
 [node name="Spawn2" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 22, 0.2, -30)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -23, 0.097316, -2)
 
 [node name="Spawn3" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 30, 0.2, 22)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 2, 0.25928, -23)
 
 [node name="Spawn4" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -22, 0.2, 30)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -16, 0.33697, -16)
 
 [node name="Spawn5" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.2, -29)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 16, 0.19442, 13)
 
 [node name="Spawn6" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 0, 0.2, 29)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -17, 0.18239, 12)
 
 [node name="Spawn7" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -29, 0.2, 0)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 22, 0.56152, -8)
 
 [node name="Spawn8" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 29, 0.2, 0)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -22, 0.072668, -9)
 
 [node name="Spawn9" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -13, 0.2, -29)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 9, 0.57107, -22)
 
 [node name="Spawn10" type="Marker3D" parent="SpawnPoints" groups=["spawn_points"]]
-transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, 13, 0.2, 29)
+transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -9, 0.4114, -22)
 
 [node name="ChestSpots" type="Node3D" parent="."]
 
 [node name="Chest1" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.0, 0, -1.0, 0, 1, 0, 1.0, 0, 0.0, 22, 0.03, -12)
+transform = Transform3D(0.70711, 0, 0.70711, 0, 1, -0, -0.70711, 0, 0.70711, -4.5, 3.5, -4.5)
 
 [node name="Chest2" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.0, 0, 1.0, 0, 1, 0, -1.0, 0, 0.0, -22, 0.03, 12)
+transform = Transform3D(-0.70711, 0, -0.70711, 0, 1, -0, 0.70711, -0, -0.70711, 1.5, 0, 1.5)
 
 [node name="Chest3" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.93969, 0, 0.34202, 0, 1, 0, -0.34202, 0, 0.93969, -2.5, 3.0, 2.5)
+transform = Transform3D(0.70711, -0, -0.70711, 0, 1, -0, 0.70711, 0, 0.70711, 18, 3.4867, -18)
 
 [node name="Chest4" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(-0.93969, 0, -0.34202, 0, 1, 0, 0.34202, 0, -0.93969, -8, 0.03, -12)
+transform = Transform3D(-0.19612, 0, 0.98058, 0, 1, -0, -0.98058, 0, -0.19612, -30, 0.2239, 6)
 
 [node name="Chest5" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.93969, 0, 0.34202, 0, 1, 0, -0.34202, 0, 0.93969, 8, 0.03, 12)
+transform = Transform3D(0.096324, -0, -0.99535, 0, 1, -0, 0.99535, 0, 0.096324, 31, 0.5231, -3)
 
 [node name="Chest6" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.70711, 0, -0.70711, 0, 1, 0, 0.70711, 0, 0.70711, 28.5, 0.0, -28.5)
+transform = Transform3D(-0.98178, 0, 0.19002, 0, 1, -0, -0.19002, 0, -0.98178, -6, 0.3537, 31)
 
 [node name="Chest7" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(-0.70711, 0, 0.70711, 0, 1, 0, -0.70711, 0, -0.70711, -28.5, 0.0, 28.5)
+transform = Transform3D(-0.98951, 0, -0.14445, 0, 1, -0, 0.14445, -0, -0.98951, 4, -1.5944, 27.4)
 
 [node name="Chest8" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.0, 0, 1.0, 0, 1, 0, -1.0, 0, 0.0, -6, 0.03, -18)
+transform = Transform3D(0.96828, 0, 0.24988, 0, 1, -0, -0.24988, 0, 0.96828, -8, 0.015, -31)
 
 [node name="Chest9" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.0, 0, -1.0, 0, 1, 0, 1.0, 0, 0.0, 6, 0.03, 18)
+transform = Transform3D(0.67706, 0, 0.73593, 0, 1, -0, -0.73593, 0, 0.67706, -25, 0.6637, -23)
 
 [node name="Chest10" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.0, 0, -1.0, 0, 1, 0, 1.0, 0, 0.0, 27, 0.0, 6)
+transform = Transform3D(-0.66257, 0, -0.749, 0, 1, -0, 0.749, -0, -0.66257, 26, -0.8228, 23)
 
 [node name="Chest11" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]
-transform = Transform3D(0.0, 0, 1.0, 0, 1, 0, -1.0, 0, 0.0, -27, 0.0, -6)
+transform = Transform3D(-0.29409, 0, 0.95578, 0, 1, -0, -0.95578, 0, -0.29409, -13, 0, 4)

@@ -2,6 +2,8 @@ extends Node3D
 ## Glowna scena: laczy swiat, graczy, menu i interfejs.
 
 const MENU_ORBIT_SPEED := 0.08
+const MENU_ORBIT_RADIUS := 30.0
+const MENU_ORBIT_HEIGHT := 22.0
 
 @onready var players := $Players as Players
 @onready var menu_camera := $MenuCamera as Camera3D
@@ -39,7 +41,8 @@ func _process(delta: float) -> void:
 	if not menu_camera.current:
 		return
 	_orbit += delta * MENU_ORBIT_SPEED
-	menu_camera.position = Vector3(sin(_orbit) * 30.0, 13.0, cos(_orbit) * 30.0)
+	# Kamera krazy nad koronami drzew, skad widac ruiny na polanie.
+	menu_camera.position = Vector3(sin(_orbit) * MENU_ORBIT_RADIUS, MENU_ORBIT_HEIGHT, cos(_orbit) * MENU_ORBIT_RADIUS)
 	menu_camera.look_at(Vector3(0, 2, 0))
 
 
