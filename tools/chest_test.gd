@@ -80,6 +80,14 @@ func _ready() -> void:
 	await _wait(1.3)
 	_check("daleka skrzynka sie nie otwiera", not far.open and not Chests._openings.has(1))
 
+	# Dwoch graczy przy jednej skrzynce: wygrywa pierwszy, a drugi przestaje otwierac.
+	_chest.open = false
+	Chests._openings[1] = { "chest": _chest.id, "end_tick": NetworkTime.tick }
+	Chests._openings[777] = { "chest": _chest.id, "end_tick": NetworkTime.tick + 90 }
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check("wspolne otwieranie konczy sie raz", _chest.open and Chests._openings.is_empty())
+
 	# Smierc przerywa, a skrzynka wraca po czasie.
 	var second := _second_nearest()
 	Chests._openings[1] = { "chest": second.id, "end_tick": NetworkTime.tick + 90 }

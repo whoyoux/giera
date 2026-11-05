@@ -37,6 +37,10 @@ for name in server a b late; do
 	fi
 	grep -E 'SCRIPT ERROR|^ERROR' "$LOGS/chest_$name.log" | grep -vE 'Unreferenced|leaked' | cut -c1-150 | sort | uniq -c | head -5
 done
+if grep -q 'SCRIPT ERROR' "$LOGS"/chest_*.log; then
+	echo "blad skryptu w logach"
+	FAILED=1
+fi
 OPENED="$(grep -c 'otworzyl skrzynke' "$LOGS/chest_server.log")"
 echo "otwarcia: $OPENED"
 [ "$OPENED" -gt 0 ] || FAILED=1
