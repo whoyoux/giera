@@ -6,7 +6,7 @@
 powershell -ExecutionPolicy Bypass -File tools\run_local.ps1 -Bots 2 -Shooters 1 -DebugItems
 ```
 
-`-Bots` to biegające cele, `-Shooters` to boty strzelające do gracza, a `-DebugItems` daje każdemu dodatkowe bronie.
+`-Bots` to biegające cele, `-Shooters` to boty strzelające do gracza, `-DebugItems` daje każdemu dodatkowe bronie, a `-DebugWeapons` strzelby i nóż.
 
 Serwer dedykowany: `godot --path . --headless -- --server --port=7777`, z otwartym portem 7777/UDP. Gotowy obraz buduje `Dockerfile`. Restart serwera rozłącza graczy i zeruje wyniki.
 
@@ -34,7 +34,7 @@ Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
 
 ## Testy
 
-Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `feel_test`, `flow_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie). `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
+Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `weapons_test`, `feel_test`, `flow_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie). `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh`, `tools/weapons_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
 
 ## Zasoby wizualne
 
@@ -46,10 +46,12 @@ Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA
 
 - **Serwer decyduje o wszystkim.** Klient wysyła klawisze, kąt patrzenia i przycisk strzału.
 - **Ruch i broń w ręku** działają w pętli rollbacku netfox: klient przewiduje je od razu, a serwer ewentualnie koryguje.
-- **Strzały** rozlicza serwer. Klient widzi innych graczy z opóźnieniem, więc serwer cofa ich do chwili widocznej na ekranie strzelca, najwyżej o 0,3 s.
+- **Strzały i ciosy** rozlicza serwer. Klient widzi innych graczy z opóźnieniem, więc serwer cofa ich do chwili widocznej na ekranie atakującego, najwyżej o 0,3 s.
+- **Strzelba** to zwykła `WeaponDefinition` z `pellets` i `spread_degrees` w `WeaponStats`. Układ śrucin wynika z numeru ticku strzału (`Hitscan.pellet_directions`), więc serwer i klienci liczą to samo bez przesyłania losowania. Śruciny jednego strzału dają jedno trafienie z sumą obrażeń.
+- **Nóż** to `MeleeDefinition` i `MeleeBehavior`. `Hitscan.melee` szuka celu w zasięgu i w stożku przed graczem, a `speed_scale` przyspiesza bieg.
 - **Zdrowie, wyniki i zawartość slotów** nie są stanem rollbacku. Serwer rozsyła je niezawodnym RPC z `game_state.gd`.
 - **Przedmioty na ziemi** są w `world_items.gd`. Klient tylko prosi o podniesienie lub wyrzucenie, a serwer sprawdza zasięg i egzemplarz. Wygląd jest w `pickup_field.gd` i `pickup_view.gd`.
 - **Skrzynki** są w `chests.gd`. Klient trzyma klawisz i pokazuje pasek, a serwer sam odlicza czas i losuje z `data/loot/chest.tres`. Miejsca to węzły `Marker3D` w grupie `chest_spots` w `world.tscn`. Kolizja skrzynek powstaje też na serwerze, bo ruch jest przewidywany.
 - **Postacie** są w liście `ROSTER` w `character_assets.gd`. Szkielety to sam model, więc biorą animacje z `Knight.glb`, bo ich kości mają te same nazwy.
-- **Przedmioty:** `ItemDefinition` opisuje rodzaj, `ItemVisual` wygląd, `ItemStack` egzemplarz, a `ItemBehavior` działanie. Nowy rodzaj przedmiotu nie wymaga zmian w kodzie sieciowym: apteczka to własna definicja i zachowanie.
+- **Przedmioty:** `ItemDefinition` opisuje rodzaj, `ItemVisual` wygląd, `ItemStack` egzemplarz, a `ItemBehavior` działanie. Nowy rodzaj przedmiotu nie wymaga zmian w kodzie sieciowym: apteczka to własna definicja i zachowanie. Efekty użycia, np. smugi, są w `ItemBehavior.show_fired`.
 - **Animacje** nie idą przez sieć. Każdy klient wylicza je z ruchu gracza.

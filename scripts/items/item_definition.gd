@@ -5,6 +5,8 @@ extends Resource
 ## Trwaly identyfikator wysylany przez siec. Nie zmieniaj go po wydaniu gry.
 @export var id: StringName
 @export var display_name := ""
+## Nazwa rodzaju zenskiego, wiec klasa ma inna odmiane.
+@export var feminine_name := false
 @export_range(1, 99) var max_stack := 1
 
 
@@ -26,3 +28,13 @@ func has_tiers() -> bool:
 ## Ile "ladunkow" ma nowy egzemplarz, np. naboje w magazynku.
 func full_charges(_tier: int) -> int:
 	return 0
+
+
+## Czas wyciagania, zanim przedmiotu mozna uzyc.
+func draw_seconds(_tier: int) -> float:
+	return 0.0
+
+
+## Szybkosc biegu z tym przedmiotem w reku.
+func move_speed_scale() -> float:
+	return 1.0

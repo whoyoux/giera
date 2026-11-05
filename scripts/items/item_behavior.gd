@@ -14,6 +14,11 @@ func on_timed_action_finished(_equipment: Equipment, _stack: Dictionary, _tick: 
 	pass
 
 
+## Efekty uzycia widoczne u kazdego gracza: dzwiek, smugi i animacja. Nie wplywaja na rozgrywke.
+func show_fired(_player: Player, _stack: Dictionary) -> void:
+	pass
+
+
 ## Czy zakonczone dzialanie sie udalo. Inaczej gra uznaje je za przerwane i ucisza jego dzwiek.
 func was_action_completed(_equipment: Equipment, _stack: Dictionary, _slot: int, _action_end: int) -> bool:
 	return false

@@ -11,6 +11,9 @@ var hidden_for_sprint := false
 ## Przy celowaniu celownik sie zaciska.
 var aiming := false
 var _aim := 0.0
+## Promien rozrzutu broni na ekranie, w pikselach. Zero oznacza zwykly celownik.
+var spread_radius := 0.0
+var _shown_radius := 0.0
 
 
 func flash_hit(killed: bool) -> void:
@@ -27,13 +30,14 @@ func _process(delta: float) -> void:
 	_hit = maxf(0.0, _hit - delta * 4.0)
 	_spread = maxf(0.0, _spread - delta * 6.0)
 	_aim = move_toward(_aim, 1.0 if aiming else 0.0, delta * 8.0)
+	_shown_radius = lerpf(_shown_radius, spread_radius, minf(delta * 14.0, 1.0))
 	queue_redraw()
 
 
 func _draw() -> void:
 	var center := (size * 0.5).round()
 	if not hidden_for_sprint:
-		var gap := lerpf(7.0, 3.5, _aim) + _spread * lerpf(7.0, 3.0, _aim)
+		var gap := maxf(lerpf(7.0, 3.5, _aim), _shown_radius) + _spread * lerpf(7.0, 3.0, _aim)
 		var length := lerpf(8.0, 5.0, _aim)
 		for dir: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 			draw_line(center + dir * gap, center + dir * (gap + length), OUTLINE, 5.0, true)

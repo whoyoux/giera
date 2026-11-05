@@ -113,11 +113,21 @@ func _process(delta: float) -> void:
 
 	_crosshair.hidden_for_sprint = _player.sprinting
 	_crosshair.aiming = _player.aiming
+	_crosshair.spread_radius = _spread_on_screen(_player)
 	_death_panel.visible = not info.alive
 	if not info.alive:
 		var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
 		_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
 	_score_center.visible = Input.is_action_pressed("scoreboard")
+
+
+## Celownik strzelby pokazuje, gdzie naprawde poleci srut.
+func _spread_on_screen(player: Player) -> float:
+	var stats := player.equipment.active_stats()
+	if stats == null or stats.pellets <= 1:
+		return 0.0
+	var half_height := _crosshair.size.y * 0.5
+	return half_height * tan(deg_to_rad(stats.current_spread(player.aiming))) / tan(deg_to_rad(player.camera.fov * 0.5))
 
 
 ## Podpowiedz i pasek uzycia dla przedmiotow, ktore nie sa bronia.

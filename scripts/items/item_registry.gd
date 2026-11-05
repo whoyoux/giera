@@ -7,6 +7,8 @@ const DEFINITIONS: Array[ItemDefinition] = [
 	preload("res://data/items/blaster.tres"),
 	preload("res://data/items/medkit.tres"),
 	preload("res://data/items/grenade.tres"),
+	preload("res://data/items/shotgun.tres"),
+	preload("res://data/items/knife.tres"),
 ]
 
 var _by_id := {}
