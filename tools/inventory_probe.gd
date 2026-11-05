@@ -66,7 +66,11 @@ func _loot_summary() -> String:
 	for i in range(1, uids.size()):
 		if uids[i] == uids[i - 1]:
 			duplicates += 1
-	return "lezy=%s uid=%s duplikaty=%d" % [ids, uids, duplicates]
+	var open := []
+	for id: int in Chests.chests:
+		if Chests.chests[id].open:
+			open.append(id)
+	return "lezy=%s uid=%s duplikaty=%d otwarte=%s" % [ids, uids, duplicates, open]
 
 
 func _local_player() -> Player:

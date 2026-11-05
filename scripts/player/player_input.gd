@@ -6,6 +6,7 @@ extends Node
 const MOUSE_SENSITIVITY := 0.0025
 const MAX_PITCH := 1.5
 const LOOTER_STEP_SECONDS := 0.9
+const OPENER_REACH := 2.2
 
 # Wysylane do serwera (input_properties w RollbackSynchronizer).
 var move := Vector2.ZERO
@@ -17,6 +18,8 @@ var sprint := false
 var reload := false
 var yaw := 0.0
 var pitch := 0.0
+## Bot trzyma klawisz otwierania. Gracz ma go w Input.
+var bot_interact := false
 ## Tick stanu innych graczy widoczny teraz na ekranie. -1 oznacza stan biezacy.
 var view_tick := -1
 
@@ -67,7 +70,7 @@ func _handle_slot_input(event: InputEvent) -> void:
 			return
 	var me := get_parent() as Player
 	if event.is_action_pressed("interact"):
-		me.try_pickup()
+		me.try_interact()
 		return
 	if event.is_action_pressed("drop_item"):
 		me.try_drop()
@@ -176,6 +179,21 @@ func _gather_bot() -> void:
 					me.try_drop()
 				else:
 					me.try_pickup()
+		"opener":
+			# Test sieci: idzie do najblizszej zamknietej skrzynki i otwiera ja.
+			var opening_time := _bot_time < float(Net.args.get("bot-seconds", 18.0))
+			var chest := _nearest_closed_chest(me)
+			move = Vector2.ZERO
+			bot_interact = false
+			if opening_time and not chest.is_empty():
+				var to_chest: Vector3 = chest.position + Vector3.UP * Chests.AIM_HEIGHT - me.eye_position()
+				look_yaw = atan2(-to_chest.x, -to_chest.z)
+				look_pitch = asin(clampf(to_chest.normalized().y, -1.0, 1.0))
+				if me.position.distance_to(chest.position) > OPENER_REACH:
+					move = Vector2(0.0, -1.0)
+				else:
+					Chests.arm()
+					bot_interact = true
 		"headhunter":
 			# Strzela tylko, gdy na ekranie ma dokladnie glowe celu w celowniku.
 			var target := _nearest_enemy(me)
@@ -187,6 +205,18 @@ func _gather_bot() -> void:
 				look_pitch = asin(clampf(to_head.normalized().y, -1.0, 1.0))
 				var seen := Hitscan.trace(me.get_world_3d(), me.eye_position(), to_head.normalized(), me.peer_id, get_tree())
 				use_primary = seen.player == target and to_head.length() > 2.0
+
+
+func _nearest_closed_chest(me: Player) -> Dictionary:
+	var best := {}
+	var best_distance := INF
+	for id: int in Chests.chests:
+		var chest: Dictionary = Chests.chests[id]
+		var distance := me.position.distance_squared_to(chest.position)
+		if not chest.open and distance < best_distance:
+			best_distance = distance
+			best = chest
+	return best
 
 
 func _nearest_enemy(me: Player) -> Player:

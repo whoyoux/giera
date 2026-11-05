@@ -102,6 +102,14 @@ func punch_camera(strength: float) -> void:
 	view_model.add_look(Vector2(14.0 * side, -18.0) * strength)
 
 
+## Klawisz E: przedmiot podnosi od razu, a skrzynke trzeba chwile przytrzymac.
+func try_interact() -> void:
+	if WorldItems.focused_id != 0:
+		try_pickup()
+	else:
+		Chests.arm()
+
+
 ## Dzwiek gra od razu, a o samym podniesieniu decyduje serwer.
 func try_pickup() -> void:
 	if WorldItems.focused_id == 0 or not info.alive:
@@ -261,9 +269,16 @@ func _process(delta: float) -> void:
 
 func _update_focus() -> void:
 	WorldItems.focused_id = WorldItems.find_target(get_world_3d(), position, eye_position(), Hitscan.direction(input.look_yaw, input.look_pitch)) if info.alive else 0
+	Chests.update_local(self, get_process_delta_time(), _is_interact_held())
 	# Wyrzucony egzemplarz moze wrocic do tego samego gracza i znow da sie go wyrzucic.
 	if _drop_requested_uid != 0 and ItemStack.uid_of(info.slots[input.selected_slot()]) != _drop_requested_uid:
 		_drop_requested_uid = 0
+
+
+func _is_interact_held() -> bool:
+	if not Net.bot_mode.is_empty():
+		return input.bot_interact
+	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Input.is_action_pressed("interact")
 
 
 func _play_item_sound(stream: AudioStreamWAV) -> void:

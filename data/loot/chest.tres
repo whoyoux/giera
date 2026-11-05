@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/loot_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+item_ids = Array[StringName]([&"blaster"])
+item_weights = Array[int]([1])
+tier_weights = Array[int]([70, 25, 5])

@@ -144,12 +144,18 @@ func server_give_item(id: int, item_id: StringName, tier: int) -> int:
 	var slot := Inventory.first_free(info.slots)
 	if slot < 0:
 		return -1
-	info.slots[slot] = ItemStack.create(_next_item_uid, item_id, tier)
-	_next_item_uid += 1
+	info.slots[slot] = server_new_stack(item_id, tier)
 	info.inventory_tick = NetworkTime.tick
 	if not _adding_player:
 		_broadcast(id)
 	return slot
+
+
+## Nowy egzemplarz, ktory nie lezy jeszcze w niczyim ekwipunku.
+func server_new_stack(item_id: StringName, tier: int) -> Dictionary:
+	var stack := ItemStack.create(_next_item_uid, item_id, tier)
+	_next_item_uid += 1
+	return stack
 
 
 ## Wklada podniesiony przedmiot do ekwipunku. Zwraca to, co trzeba bylo wyjac, albo pusty slownik.

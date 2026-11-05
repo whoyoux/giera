@@ -77,6 +77,42 @@ static func item_land() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 0.0)
 
 
+## Cichy dzwoneczek: tu jest cos do otwarcia.
+static func chest_twinkle() -> AudioStreamWAV:
+	return _make("chest_twinkle", 0.5, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for note: Array in [[0.0, 1320.0], [0.09, 1760.0], [0.18, 2093.0]]:
+			if t >= note[0]:
+				var since: float = t - note[0]
+				sample += sin(TAU * note[1] * since) * exp(-since * 11.0) * 0.4
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
+## Plastikowe stukanie wieka, powtarzane przez czas otwierania.
+static func chest_rattle() -> AudioStreamWAV:
+	return _make("chest_rattle", 0.24, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for start: float in [0.0, 0.08, 0.16]:
+			if t >= start:
+				var since: float = t - start
+				sample += (sin(TAU * 410.0 * since) * 0.7 + randf_range(-0.2, 0.2)) * exp(-since * 55.0)
+		return sample * 0.7
+	, func(_t: float) -> float: return 0.0)
+
+
+## Trzask wieka i rosnace akordy. Lepszy lup gra wyzej.
+static func chest_open() -> AudioStreamWAV:
+	return _make("chest_open", 0.8, func(t: float, _phase: float) -> float:
+		var sample := (sin(TAU * 170.0 * t) + randf_range(-0.5, 0.5)) * exp(-t * 26.0) * 0.8
+		for note: Array in [[0.05, 523.0], [0.13, 659.0], [0.21, 784.0], [0.29, 1047.0]]:
+			if t >= note[0]:
+				var since: float = t - note[0]
+				sample += sin(TAU * note[1] * since) * exp(-since * 5.5) * 0.3
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
 static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)

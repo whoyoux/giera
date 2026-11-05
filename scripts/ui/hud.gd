@@ -29,6 +29,7 @@ var _prompt_panel: PanelContainer
 var _prompt_style: StyleBoxFlat
 var _prompt_action: Label
 var _prompt_name: Label
+var _prompt_bar: ProgressBar
 var _shown_prompt_id := -1
 var _ammo_label: Label
 var _ammo_hint: Label
@@ -109,6 +110,10 @@ func _process(delta: float) -> void:
 
 ## Podpowiedz nad paskiem przedmiotow, gdy gracz patrzy na cos do podniesienia.
 func _update_prompt() -> void:
+	if Chests.focused_id != 0:
+		_show_chest_prompt()
+		return
+	_prompt_bar.visible = false
 	var id := WorldItems.focused_id
 	_prompt_panel.visible = id != 0 and WorldItems.items.has(id)
 	if not _prompt_panel.visible:
@@ -125,6 +130,23 @@ func _update_prompt() -> void:
 	var color := Rarity.color(ItemStack.tier_of(stack))
 	_prompt_style.border_color = color
 	_prompt_name.add_theme_color_override("font_color", color.darkened(0.25))
+	_bump(_prompt_panel)
+
+
+## Skrzynke trzeba przytrzymac, wiec podpowiedz ma pasek postepu.
+func _show_chest_prompt() -> void:
+	_prompt_panel.visible = true
+	var progress := Chests.local_progress()
+	_prompt_bar.visible = progress > 0.0
+	_prompt_bar.value = progress
+	var id := -Chests.focused_id
+	if id == _shown_prompt_id:
+		return
+	_shown_prompt_id = id
+	_prompt_action.text = "Przytrzymaj, aby otworzyć"
+	_prompt_name.text = "skrzynkę"
+	_prompt_style.border_color = ChestView.TRIM_COLOR
+	_prompt_name.add_theme_color_override("font_color", ChestView.BODY_COLOR)
 	_bump(_prompt_panel)
 
 
@@ -445,9 +467,17 @@ func _build_prompt() -> void:
 	_prompt_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_prompt_panel.visible = false
 	center.add_child(_prompt_panel)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 6)
+	_prompt_panel.add_child(rows)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	_prompt_panel.add_child(row)
+	rows.add_child(row)
+	_prompt_bar = UiStyle.bar(UiStyle.SUN, 12)
+	_prompt_bar.max_value = 1.0
+	_prompt_bar.step = 0.0
+	_prompt_bar.visible = false
+	rows.add_child(_prompt_bar)
 	var key := PanelContainer.new()
 	key.custom_minimum_size = Vector2(36, 36)
 	var key_style := StyleBoxFlat.new()
