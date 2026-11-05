@@ -86,7 +86,8 @@ func _update_visual(delta: float) -> void:
 	var remaining := maxf(fuse - _time, 0.0)
 	_next_beep -= delta
 	if _next_beep <= 0.0:
-		_next_beep = lerpf(WARNING_MIN_GAP, WARNING_MAX_GAP, clampf(remaining / fuse, 0.0, 1.0))
+		# Liczymy wzgledem pelnego zapalnika, bo trzymany dlugo granat leci juz z krotszym.
+		_next_beep = lerpf(WARNING_MIN_GAP, WARNING_MAX_GAP, clampf(remaining / definition.fuse_seconds, 0.0, 1.0))
 		_flash = 1.0
 		_beep_audio.play()
 	_flash = move_toward(_flash, 0.0, delta * 9.0)
@@ -94,7 +95,7 @@ func _update_visual(delta: float) -> void:
 	_bulb.scale = Vector3.ONE * (0.7 + _flash * 0.8)
 	# Pierscien na ziemi pokazuje niebezpieczne miejsce, gdy granat juz lezy.
 	_ring.visible = _resting
-	var pulse := 1.0 + (1.0 - remaining / fuse) * 0.8 + _flash * 0.2
+	var pulse := 1.0 + (1.0 - remaining / definition.fuse_seconds) * 0.8 + _flash * 0.2
 	_ring.scale = Vector3(pulse, 0.25, pulse)
 
 

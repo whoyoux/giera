@@ -9,6 +9,8 @@ const SIGHT_ORIGIN_HEIGHT := 0.35
 const THROW_START_DISTANCE := 0.6
 ## Czesc predkosci gracza przechodzi na granat, zeby rzut w biegu wygladal naturalnie.
 const INHERITED_SPEED := 0.4
+const DROP_HEIGHT := 1.0
+const DROP_SPEED := 1.5
 
 var _next_id := 1
 var _flying := {}
@@ -21,6 +23,7 @@ func _ready() -> void:
 		# Dzwieki powstaja teraz, zeby pierwszy wybuch w grze nie przycial obrazu.
 		Sfx.explosion()
 		Sfx.grenade_throw()
+		Sfx.grenade_pin()
 		Sfx.grenade_bounce()
 		Sfx.grenade_beep()
 
@@ -37,15 +40,16 @@ func flying_count() -> int:
 
 # --- Serwer -----------------------------------------------------------------
 
-## Zabiera granat z reki gracza i wypuszcza go w strone, w ktora patrzy.
-func server_throw(player: Player, stack: Dictionary) -> void:
+## Zabiera granat z reki i wypuszcza go. "fuse" to czas, ktory zostal na zapalniku,
+## a "drop" oznacza upuszczenie pod nogi, np. przy zmianie przedmiotu.
+func server_throw(player: Player, stack: Dictionary, fuse: float, drop := false) -> void:
 	var definition := ItemStack.definition_of(stack) as GrenadeDefinition
-	var slots: Array = player.info.slots
-	var uid := ItemStack.uid_of(stack)
-	for slot in slots.size():
-		if ItemStack.uid_of(slots[slot]) == uid:
-			GameState.server_take_stack(player.peer_id, slot, uid)
-			break
+	_take_from_hand(player, stack)
+	if drop:
+		var look_flat := Hitscan.direction(player.yaw, 0.0)
+		_thrown.rpc(_next_id, String(definition.id), player.position + Vector3.UP * DROP_HEIGHT, look_flat * DROP_SPEED, fuse, player.peer_id)
+		_next_id += 1
+		return
 	var look := Hitscan.direction(player.yaw, player.pitch)
 	var eye := player.eye_position()
 	var from := eye + look * THROW_START_DISTANCE
@@ -53,8 +57,27 @@ func server_throw(player: Player, stack: Dictionary) -> void:
 	if not wall.is_empty():
 		from = eye
 	var speed := look * definition.throw_speed + Vector3.UP * definition.throw_lift + player.velocity * INHERITED_SPEED
-	_thrown.rpc(_next_id, String(definition.id), from, speed, definition.fuse_seconds, player.peer_id)
+	_thrown.rpc(_next_id, String(definition.id), from, speed, fuse, player.peer_id)
 	_next_id += 1
+
+
+## Kto trzymal za dlugo, wybucha razem z granatem.
+func server_cook_off(player: Player, stack: Dictionary) -> void:
+	var definition := ItemStack.definition_of(stack) as GrenadeDefinition
+	_take_from_hand(player, stack)
+	var at := player.position + Vector3.UP * CHEST_HEIGHT
+	print("[serwer] granat wybuchl w rece: %s" % player.info.name)
+	_apply_damage(definition, at, player.peer_id)
+	_exploded.rpc(0, at, player.peer_id)
+
+
+func _take_from_hand(player: Player, stack: Dictionary) -> void:
+	var uid := ItemStack.uid_of(stack)
+	var slots: Array = player.info.slots
+	for slot in slots.size():
+		if ItemStack.uid_of(slots[slot]) == uid:
+			GameState.server_take_stack(player.peer_id, slot, uid)
+			return
 
 
 ## Wolane przez pocisk na serwerze, gdy skonczy sie zapalnik.

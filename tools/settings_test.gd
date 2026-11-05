@@ -21,6 +21,7 @@ func _ready() -> void:
 		return
 
 	_check("domyslna glosnosc", is_equal_approx(Settings.value("volume"), Settings.DEFAULTS.volume))
+	await _check_window_stays()
 	await _test_panel()
 	await _test_reload_sound()
 	Settings.set_value("volume", 0.0)
@@ -164,3 +165,18 @@ func _check(label: String, passed: bool) -> void:
 	print("[test] %s: %s" % ["OK " if passed else "BLAD", label])
 	if not passed:
 		_failures += 1
+
+
+## Suwak dzwieku nie moze zmieniac okna: to byl zgloszony blad.
+func _check_window_stays() -> void:
+	var window := get_window()
+	window.mode = Window.MODE_MAXIMIZED
+	await get_tree().create_timer(0.3).timeout
+	var before := window.mode
+	Settings.set_value("ambience", 0.5)
+	Settings.set_value("volume", Settings.value("volume"))
+	await get_tree().create_timer(0.3).timeout
+	_check("suwak nie zmienia trybu okna", window.mode == before)
+	Settings.reset_to_defaults()
+	window.mode = Window.MODE_WINDOWED
+	await get_tree().create_timer(0.3).timeout

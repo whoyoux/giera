@@ -75,6 +75,8 @@ var _seen_alive := true
 var _seen_exhausted := false
 var _seen_aiming := false
 var _view_zoom := 1.0
+var _prime_audio: AudioStreamPlayer3D
+var _next_prime_beep := 0.0
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -96,6 +98,7 @@ func _ready() -> void:
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
 	equipment.fired.connect(_on_item_fired)
 	equipment.thrown.connect(_on_item_thrown)
+	equipment.priming_changed.connect(_on_priming_changed)
 	equipment.action_started.connect(_on_action_started)
 	equipment.action_cancelled.connect(_on_action_cancelled)
 	equipment.active_item_changed.connect(_on_active_item_changed)
@@ -117,6 +120,10 @@ func _ready() -> void:
 		add_child(_item_audio)
 		_body_audio = AudioStreamPlayer.new()
 		add_child(_body_audio)
+		_prime_audio = AudioStreamPlayer3D.new()
+		_prime_audio.stream = Sfx.grenade_beep()
+		_prime_audio.max_distance = 26.0
+		add_child(_prime_audio)
 		_body_audio_3d = AudioStreamPlayer3D.new()
 		_body_audio_3d.max_distance = 28.0
 		add_child(_body_audio_3d)
@@ -310,6 +317,7 @@ func _process(delta: float) -> void:
 		model.play_hit()
 	_seen_health = health
 	_update_body_feedback(delta, grounded)
+	_update_prime_beep(delta)
 	if is_local():
 		# Predkosc z symulacji jest rowna, a ta liczona z pozycji miedzy klatkami drzy.
 		_view_speed = lerpf(_view_speed, Vector2(velocity.x, velocity.z).length() / SPEED, minf(delta * 10.0, 1.0))
@@ -449,6 +457,31 @@ func _on_item_fired() -> void:
 	else:
 		model.play_shot()
 		_show_shot(model.muzzle_position(), hit, effect_color, stats.tracer_width)
+
+
+func _on_priming_changed(primed: bool) -> void:
+	if Net.is_headless:
+		return
+	if primed:
+		_next_prime_beep = 0.0
+		_play_item_sound(Sfx.grenade_pin())
+	if is_local():
+		view_model.set_priming(primed)
+
+
+## Odbezpieczony granat pika coraz szybciej, takze w cudzej rece.
+func _update_prime_beep(delta: float) -> void:
+	if equipment.prime_tick < 0:
+		return
+	var stack := equipment.active_stack()
+	var definition := ItemStack.definition_of(stack) as GrenadeDefinition
+	if definition == null:
+		return
+	_next_prime_beep -= delta
+	if _next_prime_beep <= 0.0:
+		var left := definition.fuse_seconds - (NetworkTime.tick - equipment.prime_tick) * NetworkTime.ticktime
+		_next_prime_beep = lerpf(GrenadeProjectile.WARNING_MIN_GAP, GrenadeProjectile.WARNING_MAX_GAP, clampf(left / definition.fuse_seconds, 0.0, 1.0))
+		_prime_audio.play()
 
 
 func _on_item_thrown() -> void:

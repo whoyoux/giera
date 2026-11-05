@@ -33,21 +33,28 @@ func _ready() -> void:
 	await _wait(0.4)
 	_check("granat w rece", player.view_model.has_item() and player.view_model.shown_visual() == definition.item_visual)
 	_check("granat nie celuje", not player.equipment.can_aim())
-	_check("podpowiedz rzutu", hud._use_panel.visible and hud._use_label.text.contains("rzuć"))
+	_check("podpowiedz rzutu", hud._use_panel.visible and hud._use_label.text.contains("puść"))
 
 	# Rzut: przedmiot znika, a granat leci i odbija sie.
 	var particles_before := get_node("/root/Main").find_children("*", "CPUParticles3D", true, false).size()
 	var start := player.position
 	Input.action_press("fire")
-	await _wait(0.2)
-	_check("rzut zabiera przedmiot", ItemStack.is_empty(info.slots[slot]))
-	_check("granat leci", Grenades.flying_count() == 1)
-	_check("wybor wraca na bron", player.input.selected_slot() == 0)
-	var charges := player.equipment.charges(0)
-	await _wait(0.6)
-	_check("trzymany przycisk nie strzela po rzucie", player.equipment.charges(0) == charges)
+	await _wait(0.5)
+	_check("trzymanie odbezpiecza", player.equipment.prime_tick >= 0)
+	_check("trzymanie jeszcze nie rzuca", not ItemStack.is_empty(info.slots[slot]) and Grenades.flying_count() == 0)
+	_check("pasek pokazuje zapalnik", hud._use_bar.visible and hud._use_bar.value < 1.0 and hud._use_label.text.contains("Puść"))
 	Input.action_release("fire")
-	await _wait(definition.fuse_seconds)
+	var released := Time.get_ticks_msec()
+	await _wait(0.2)
+	_check("puszczenie rzuca", ItemStack.is_empty(info.slots[slot]) and Grenades.flying_count() == 1)
+	_check("nie jest juz odbezpieczony", player.equipment.prime_tick < 0)
+	_check("wybor wraca na bron", player.input.selected_slot() == 0)
+	# Zapalnik liczy sie od odbezpieczenia, wiec po rzucie zostaje mniej czasu.
+	while Grenades.flying_count() > 0 and Time.get_ticks_msec() - released < 4000:
+		await get_tree().process_frame
+	var flight := (Time.get_ticks_msec() - released) / 1000.0
+	print("[test] od puszczenia do wybuchu: %.2f s" % flight)
+	_check("trzymanie skraca lot", flight < definition.fuse_seconds - 0.2)
 	_check("granat wybucha raz", _explosions == 1 and Grenades.flying_count() == 0)
 	var distance := start.distance_to(_last_at)
 	print("[test] rzut na %.1f m" % distance)
@@ -60,6 +67,38 @@ func _ready() -> void:
 	await _wait(GrenadeFx.LIFETIME_SECONDS + 0.2)
 	_check("wybuch sie konczy", ExplosionPool.instance.active_count() == 0)
 	_check("wybuchy nie tworza nowych czasteczek", field.find_children("*", "CPUParticles3D", true, false).size() == particles_before)
+
+	# Zmiana przedmiotu upuszcza odbezpieczony granat pod nogi.
+	var second := GameState.server_give_item(1, GRENADE, Rarity.Tier.COMMON)
+	await _wait(0.1)
+	player.input.select_slot(second)
+	await _wait(0.4)
+	Input.action_press("fire")
+	await _wait(0.3)
+	player.input.select_slot(0)
+	await _wait(0.2)
+	Input.action_release("fire")
+	_check("zmiana przedmiotu upuszcza granat", ItemStack.is_empty(info.slots[second]) and Grenades.flying_count() == 1)
+	var dropped_flight: Vector3 = Grenades._flying.values()[0].position
+	_check("upuszczony lezy blisko gracza", dropped_flight.distance_to(player.position) < 4.0)
+	var player_health: int = info.health
+	await _wait(definition.fuse_seconds)
+	_check("upuszczony rani gracza", info.health < player_health or not info.alive)
+	await _wait(GameState.RESPAWN_SECONDS + 0.5)
+	info.health = GameState.MAX_HEALTH
+
+	# Zbyt dlugie trzymanie konczy sie wybuchem w rece.
+	var third := GameState.server_give_item(1, GRENADE, Rarity.Tier.COMMON)
+	await _wait(0.1)
+	player.input.select_slot(third)
+	await _wait(0.4)
+	var deaths: int = info.deaths
+	Input.action_press("fire")
+	await _wait(definition.fuse_seconds + 0.4)
+	Input.action_release("fire")
+	_check("wybuch w rece zabija", info.deaths == deaths + 1)
+	_check("wybuch w rece zabiera granat", ItemStack.is_empty(info.slots[third]))
+	await _wait(GameState.RESPAWN_SECONDS + 0.5)
 
 	# Obrazenia z odleglosci, liczone wprost na serwerze.
 	GameState.server_add_player(2, "Cel")

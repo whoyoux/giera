@@ -317,12 +317,19 @@ static func aim() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 0.0)
 
 
-## Wyciagniecie zawleczki i swist rzutu.
+## Wyciagniecie zawleczki przy odbezpieczeniu.
+static func grenade_pin() -> AudioStreamWAV:
+	return _make("grenade_pin", 0.16, func(t: float, _phase: float) -> float:
+		var pull := sin(TAU * 2300.0 * t) * exp(-t * 70.0) * 0.55
+		var spring := sin(TAU * 3400.0 * maxf(t - 0.07, 0.0)) * exp(-maxf(t - 0.07, 0.0) * 60.0) * 0.4 if t >= 0.07 else 0.0
+		return pull + spring
+	, func(_t: float) -> float: return 0.0)
+
+
+## Swist rzutu.
 static func grenade_throw() -> AudioStreamWAV:
-	return _make("grenade_throw", 0.26, func(t: float, _phase: float) -> float:
-		var pin := sin(TAU * 2100.0 * t) * exp(-t * 80.0) * 0.5
-		var swish := randf_range(-0.5, 0.5) * sin(PI * clampf((t - 0.05) / 0.21, 0.0, 1.0))
-		return pin + swish
+	return _make("grenade_throw", 0.22, func(t: float, _phase: float) -> float:
+		return randf_range(-0.55, 0.55) * sin(PI * t / 0.22)
 	, func(_t: float) -> float: return 0.0)
 
 
