@@ -21,8 +21,9 @@ func _ready() -> void:
 		for spot in get_tree().get_nodes_in_group(&"spawn_points"):
 			var at := (spot as Node3D).global_position
 			at.y = 0.0
-			var center := at.direction_to(Vector3.ZERO)
-			_add_chest(id, at + center * DEBUG_DISTANCE, atan2(-center.x, -center.z))
+			at = at + at.direction_to(Vector3(0.0, at.y, 0.0)) * DEBUG_DISTANCE
+			at.y = ForestTerrain.surface(at.x, at.z)
+			_add_chest(id, at, atan2(at.x, at.z))
 			id += 1
 	if Net.is_headless:
 		return

@@ -27,18 +27,19 @@ Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
 | `scripts/player/` | Postać, broń w ręku, trafienia, animacje |
 | `scripts/core/` | Sieć, stan gry, ustawienia, dźwięki |
 | `scripts/ui/` | Menu, HUD i styl naklejek |
-| `scripts/world/` | Klocki mapy, zabawki, efekty |
+| `scripts/world/` | Teren, drzewa, ruiny i efekty |
 | `scenes/world.tscn` | Mapa, edytowalna w Godocie |
 
-`tools/generate_world.py` nadpisuje `world.tscn`, więc po ręcznej edycji mapy nie uruchamiaj go ponownie.
+`tools/generate_forest.py` nadpisuje `world.tscn`, więc po ręcznej edycji mapy nie uruchamiaj go ponownie. Wzór wysokości terenu jest w tym skrypcie i w `forest_terrain.gd`, a obie wersje muszą się zgadzać.
 
 ## Testy
 
-Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `character_test`, `aim_test`, `medkit_test`, `feel_test`, `flow_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie). `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
+Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `feel_test`, `flow_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie). `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
 
 ## Zasoby wizualne
 
 - Ikony: `tools/render_icons.gd`, a potem `godot --headless --path . --import`.
+- Ikona aplikacji: `tools/render_app_icon.gd` zapisuje `assets/app_icon.png` i `assets/app_icon.ico`.
 - Zrzuty do README: `tools/readme_shots.gd` z `--dir=<ścieżka do docs/screenshots>`. Odśwież je po każdej zmianie wyglądu.
 
 ## Architektura

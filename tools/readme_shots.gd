@@ -95,6 +95,7 @@ func _loot_shot(me: Player, forward: Vector3, right: Vector3) -> void:
 	var spots := [feet + forward * 2.2, feet + forward * 3.6 - right * 1.6, feet + forward * 4.4 + right * 1.5]
 	var tiers := [Rarity.Tier.LEGENDARY, Rarity.Tier.EPIC, Rarity.Tier.COMMON]
 	for i in spots.size():
+		spots[i].y = ForestTerrain.surface(spots[i].x, spots[i].z)
 		WorldItems._server_spawn(ItemStack.create(9000 + i, ItemRegistry.DEFAULT_WEAPON, tiers[i]), spots[i], spots[i])
 	me.input.look_pitch = -0.28
 	await _wait(1.0)
@@ -110,7 +111,7 @@ func _chest_shots(me: Player, forward: Vector3) -> void:
 	var field := get_node("/root/Main").find_children("*", "ChestField", false, false)[0] as ChestField
 	var id := 900
 	var spot := me.position + forward * 2.4
-	spot.y = 0.0
+	spot.y = ForestTerrain.surface(spot.x, spot.z)
 	field._add_chest(id, spot, atan2(forward.x, forward.z) + PI + 0.5)
 	me.input.look_pitch = -0.42
 	GameState.kill_announced.emit(1, 3)
@@ -135,6 +136,7 @@ func _process(delta: float) -> void:
 	for bot in _bots:
 		var player: Player = bot.player
 		player.position = bot.home + bot.axis * sin(_time * 0.9 + bot.phase) * 1.6
+		player.position.y = ForestTerrain.surface(player.position.x, player.position.z)
 		player.yaw = atan2(-bot.axis.x, -bot.axis.z)
 		if cos(_time * 0.9 + bot.phase) < 0.0:
 			player.yaw += PI
@@ -144,6 +146,7 @@ func _process(delta: float) -> void:
 func _add_bot(id: int, home: Vector3, axis: Vector3) -> void:
 	var node := get_node("/root/Main/Players").get_node(str(id)) as Player
 	node.interpolator.enabled = false
+	home.y = ForestTerrain.surface(home.x, home.z)
 	_bots.append({ "player": node, "home": home, "axis": axis, "phase": float(id) })
 
 
