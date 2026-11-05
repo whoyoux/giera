@@ -27,6 +27,15 @@ static func first_occupied(slots: Array) -> int:
 	return -1
 
 
+## Gdzie trafia podniesiony przedmiot: do pustej reki, potem do wolnego miejsca,
+## a przy pelnym ekwipunku zamienia sie z tym, co gracz trzyma.
+static func slot_for_pickup(slots: Array, active: int) -> int:
+	if ItemStack.is_empty(slots[active]):
+		return active
+	var free := first_free(slots)
+	return free if free >= 0 else active
+
+
 ## Nastepny zajety slot w danym kierunku. Scroll pomija puste miejsca i zawija sie.
 ## Bez zadnego innego przedmiotu zwraca obecny slot.
 static func next_occupied(slots: Array, from: int, direction: int) -> int:

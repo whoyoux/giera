@@ -43,6 +43,8 @@ var _seen_health := 0
 var _punch := Vector3.ZERO
 var _view_speed := 0.0
 var _switch_audio: AudioStreamPlayer
+var _item_audio: AudioStreamPlayer
+var _drop_requested_uid := 0
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -80,6 +82,8 @@ func _ready() -> void:
 		_switch_audio = AudioStreamPlayer.new()
 		_switch_audio.stream = Sfx.switch_item()
 		add_child(_switch_audio)
+		_item_audio = AudioStreamPlayer.new()
+		add_child(_item_audio)
 	if not Net.is_headless:
 		if local:
 			view_model.setup(peer_id)
@@ -96,6 +100,24 @@ func punch_camera(strength: float) -> void:
 	var side := -1.0 if randf() < 0.5 else 1.0
 	_punch = Vector3(0.05 * strength, 0.0, 0.09 * strength * side)
 	view_model.add_look(Vector2(14.0 * side, -18.0) * strength)
+
+
+## Dzwiek gra od razu, a o samym podniesieniu decyduje serwer.
+func try_pickup() -> void:
+	if WorldItems.focused_id == 0 or not info.alive:
+		return
+	WorldItems.request_pickup(WorldItems.focused_id)
+	_play_item_sound(Sfx.item_pickup())
+
+
+func try_drop() -> void:
+	var slot := input.selected_slot()
+	var uid := ItemStack.uid_of(info.slots[slot])
+	if uid == 0 or uid == _drop_requested_uid or not info.alive:
+		return
+	_drop_requested_uid = uid
+	WorldItems.request_drop(slot, uid)
+	_play_item_sound(Sfx.item_drop())
 
 
 func is_local() -> bool:
@@ -195,6 +217,8 @@ func _after_tick_loop() -> void:
 	if applied_respawn != _seen_respawn:
 		_seen_respawn = applied_respawn
 		interpolator.teleport()
+		if is_local():
+			input.on_respawn()
 	if multiplayer.is_server() and not info.alive and applied_respawn == info.respawn_id:
 		GameState.server_finish_respawn(peer_id)
 
@@ -209,6 +233,8 @@ func _process(delta: float) -> void:
 		rotation.y = yaw
 		head.rotation.x = pitch
 
+	if is_local():
+		_update_focus()
 	if delta <= 0.0 or Net.is_headless:
 		return
 	var moved := (position - _last_position) / delta
@@ -231,6 +257,20 @@ func _process(delta: float) -> void:
 	else:
 		var local_velocity := _velocity_smoothed.rotated(Vector3.UP, -rotation.y)
 		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
+
+
+func _update_focus() -> void:
+	WorldItems.focused_id = WorldItems.find_target(get_world_3d(), position, eye_position(), Hitscan.direction(input.look_yaw, input.look_pitch)) if info.alive else 0
+	# Wyrzucony egzemplarz moze wrocic do tego samego gracza i znow da sie go wyrzucic.
+	if _drop_requested_uid != 0 and ItemStack.uid_of(info.slots[input.selected_slot()]) != _drop_requested_uid:
+		_drop_requested_uid = 0
+
+
+func _play_item_sound(stream: AudioStreamWAV) -> void:
+	if Net.is_headless:
+		return
+	_item_audio.stream = stream
+	_item_audio.play()
 
 
 func _on_item_fired() -> void:

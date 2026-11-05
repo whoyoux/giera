@@ -5,6 +5,7 @@ extends Node
 
 const MOUSE_SENSITIVITY := 0.0025
 const MAX_PITCH := 1.5
+const LOOTER_STEP_SECONDS := 0.9
 
 # Wysylane do serwera (input_properties w RollbackSynchronizer).
 var move := Vector2.ZERO
@@ -25,6 +26,7 @@ var look_yaw := 0.0
 var look_pitch := 0.0
 
 var _bot_time := 0.0
+var _bot_step := 0
 # Wybor gracza zmienia sie miedzy tickami, a rollback nadpisuje "slot" historia.
 var _wanted_slot := 0
 var _wanted_uid := 0
@@ -63,7 +65,14 @@ func _handle_slot_input(event: InputEvent) -> void:
 		if event.is_action_pressed("slot_%d" % (index + 1)):
 			select_slot(index)
 			return
-	var slots: Array = (get_parent() as Player).info.slots
+	var me := get_parent() as Player
+	if event.is_action_pressed("interact"):
+		me.try_pickup()
+		return
+	if event.is_action_pressed("drop_item"):
+		me.try_drop()
+		return
+	var slots: Array = me.info.slots
 	if event.is_action_pressed("next_slot"):
 		select_slot(Inventory.next_occupied(slots, _wanted_slot, 1))
 	elif event.is_action_pressed("prev_slot"):
@@ -79,6 +88,13 @@ func _keep_selection_valid() -> void:
 		select_slot(maxi(Inventory.first_occupied(slots), 0))
 	else:
 		_wanted_uid = uid if _wanted_uid != 0 else _wanted_uid
+
+
+## Po odrodzeniu nikt nie powinien zaczynac z pustymi rekami.
+func on_respawn() -> void:
+	var slots: Array = (get_parent() as Player).info.slots
+	if ItemStack.is_empty(slots[_wanted_slot]):
+		select_slot(maxi(Inventory.first_occupied(slots), 0))
 
 
 func _gather() -> void:
@@ -149,6 +165,17 @@ func _gather_bot() -> void:
 			move = Vector2(sin(_bot_time * 0.8), cos(_bot_time * 0.6)) if active else Vector2.ZERO
 			if active and fmod(_bot_time, 1.5) < NetworkTime.ticktime:
 				select_slot(Inventory.next_occupied(me.info.slots, _wanted_slot, 1))
+		"looter":
+			# Test sieci: na zmiane wyrzuca i podnosi przedmiot, strzelajac miedzy tym.
+			var step := int(_bot_time / LOOTER_STEP_SECONDS)
+			var looting := _bot_time < float(Net.args.get("bot-seconds", 18.0))
+			use_primary = looting and fmod(_bot_time, 3.0) < 0.4
+			if looting and step != _bot_step:
+				_bot_step = step
+				if step % 2 == 0:
+					me.try_drop()
+				else:
+					me.try_pickup()
 		"headhunter":
 			# Strzela tylko, gdy na ekranie ma dokladnie glowe celu w celowniku.
 			var target := _nearest_enemy(me)

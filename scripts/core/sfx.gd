@@ -54,6 +54,29 @@ static func switch_item() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 0.0)
 
 
+## Dwa rosnace dzwieki: cos wpadlo do kieszeni.
+static func item_pickup() -> AudioStreamWAV:
+	return _make("item_pickup", 0.2, func(t: float, phase: float) -> float:
+		return sin(TAU * phase) * pow(1.0 - t / 0.2, 1.2) * 0.8
+	, func(t: float) -> float: return 620.0 if t < 0.07 else 930.0)
+
+
+## Krotki swist w dol przy rzucie.
+static func item_drop() -> AudioStreamWAV:
+	return _make("item_drop", 0.16, func(t: float, phase: float) -> float:
+		return (sin(TAU * phase) * 0.6 + randf_range(-0.25, 0.25)) * (1.0 - t / 0.16)
+	, func(t: float) -> float: return lerpf(520.0, 190.0, t / 0.16))
+
+
+## Plastikowe stukniecie o ziemie.
+static func item_land() -> AudioStreamWAV:
+	return _make("item_land", 0.14, func(t: float, _phase: float) -> float:
+		var knock := sin(TAU * 240.0 * t) * exp(-t * 32.0)
+		var click := sin(TAU * 1050.0 * t) * exp(-t * 90.0) * 0.5
+		return (knock + click) * 0.9
+	, func(_t: float) -> float: return 0.0)
+
+
 static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)

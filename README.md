@@ -4,6 +4,8 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 ![Rozgrywka](docs/screenshots/gameplay.png)
 
+![Bronie na ziemi](docs/screenshots/loot.png)
+
 | Menu | Wyniki | Obrażenia |
 |---|---|---|
 | ![Menu](docs/screenshots/menu.png) | ![Wyniki](docs/screenshots/scoreboard.png) | ![Obrażenia](docs/screenshots/damage.png) |
@@ -17,7 +19,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Pokój zabawek:** mapa z książek, klocków, ołówków i piłek, animowane postacie i interfejs w stylu naklejek.
 - **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
 
-W budowie: skrzynki z losowym łupem i podnoszenie broni z ziemi.
+W budowie: skrzynki z losowym łupem.
 
 ## Jak zagrać
 
@@ -39,6 +41,8 @@ W menu wpisz adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym k
 | **Shift** | Sprint |
 | **Spacja** | Skok |
 | **1–4 / scroll** | Zmiana broni |
+| **E** | Podniesienie przedmiotu |
+| **G** | Wyrzucenie przedmiotu |
 | **Tab** | Wyniki |
 | **Esc** | Pauza i ustawienia |
 

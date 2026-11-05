@@ -45,8 +45,28 @@ func _process(delta: float) -> void:
 		var equipment := player.equipment
 		print("[inv] gracz=%s aktywny=%d naboje=%d,%d,%d,%d" % [player.info.name, equipment.active_slot,
 				equipment.charges(0), equipment.charges(1), equipment.charges(2), equipment.charges(3)])
+	print("[loot] %s" % _loot_summary())
 	if _local_player() != null:
 		print("[inv] rozjazd_slotu=%d/%d dodatkowe_zmiany=%d" % [_wrong_ticks, _total_ticks, _flips])
+
+
+## Lista przedmiotow na ziemi i wszystkich egzemplarzy. Zaden uid nie moze wystapic dwa razy.
+func _loot_summary() -> String:
+	var ids := WorldItems.items.keys()
+	ids.sort()
+	var uids := []
+	for id: int in WorldItems.items:
+		uids.append(ItemStack.uid_of(WorldItems.items[id].stack))
+	for player_id: int in GameState.players:
+		for stack: Dictionary in GameState.players[player_id].slots:
+			if not ItemStack.is_empty(stack):
+				uids.append(ItemStack.uid_of(stack))
+	uids.sort()
+	var duplicates := 0
+	for i in range(1, uids.size()):
+		if uids[i] == uids[i - 1]:
+			duplicates += 1
+	return "lezy=%s uid=%s duplikaty=%d" % [ids, uids, duplicates]
 
 
 func _local_player() -> Player:
