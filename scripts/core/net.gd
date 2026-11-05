@@ -8,6 +8,7 @@ extends Node
 ##   --name=Nick           nazwa gracza
 ##   --bot=runner|shooter|headhunter  sterowanie automatyczne, np. cel do cwiczen
 ##   --tool=res://sciezka  dodatkowy skrypt testowy
+##   --debug-items         serwer daje kazdemu dodatkowe bronie do testow
 
 signal session_started
 signal session_ended(reason: String)
@@ -16,6 +17,10 @@ const DEFAULT_PORT := 7777
 const MAX_CLIENTS := 32
 const CONNECT_TIMEOUT_SECONDS := 8.0
 const DEDICATED_MAX_FPS := 60
+## Podnies przy kazdej zmianie, po ktorej stary build nie dogada sie z serwerem.
+const PROTOCOL_VERSION := 6
+const JOIN_ANSWER_SECONDS := 6.0
+const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Pobierz najnowszy build."
 
 var args := {}
 var is_headless := false
@@ -99,7 +104,10 @@ func _on_connected() -> void:
 	var peer := multiplayer.multiplayer_peer
 	await NetworkTime.after_sync
 	if multiplayer.multiplayer_peer == peer:
-		GameState.request_join.rpc_id(1, player_name)
+		var version := int(args.get("protocol", PROTOCOL_VERSION))
+		GameState.request_join.rpc_id(1, player_name, version)
+		# Starszy serwer nie zrozumie zgloszenia i nie odpowie.
+		get_tree().create_timer(JOIN_ANSWER_SECONDS).timeout.connect(_on_join_answer_timeout.bind(peer))
 
 
 ## Wezly graczy moga powstac dopiero po starcie zegara netfox. Przy ponownej sesji
@@ -108,6 +116,11 @@ func _add_host_player(peer: MultiplayerPeer) -> void:
 	await NetworkTime.after_sync
 	if multiplayer.multiplayer_peer == peer:
 		GameState.server_add_player(1, player_name)
+
+
+func _on_join_answer_timeout(peer: MultiplayerPeer) -> void:
+	if multiplayer.multiplayer_peer == peer and not GameState.players.has(multiplayer.get_unique_id()):
+		leave(OUTDATED_MESSAGE)
 
 
 func _on_connect_timeout(peer: ENetMultiplayerPeer) -> void:

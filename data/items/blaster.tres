@@ -1,0 +1,88 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/weapon_definition.gd" id="1_definition"]
+[ext_resource type="Script" path="res://scripts/items/weapon_stats.gd" id="2_stats"]
+[ext_resource type="Script" path="res://scripts/items/item_visual.gd" id="3_visual"]
+
+[sub_resource type="Resource" id="common_visual"]
+script = ExtResource("3_visual")
+model_path = "res://assets/weapons/blaster-r.glb"
+icon_path = "res://assets/icons/blaster_common.png"
+grip = Vector3(0, 0, 0.13)
+fore_grip = Vector3(-0.015, -0.02, -0.2)
+muzzle = Vector3(0, 0.09, -0.44)
+
+[sub_resource type="Resource" id="epic_visual"]
+script = ExtResource("3_visual")
+model_path = "res://assets/weapons/blaster-a.glb"
+icon_path = "res://assets/icons/blaster_epic.png"
+grip = Vector3(0, -0.17, 0.11)
+fore_grip = Vector3(-0.015, -0.1, -0.2)
+muzzle = Vector3(0, 0.04, -0.39)
+
+[sub_resource type="Resource" id="legendary_visual"]
+script = ExtResource("3_visual")
+model_path = "res://assets/weapons/blaster-g.glb"
+icon_path = "res://assets/icons/blaster_legendary.png"
+grip = Vector3(0, -0.1, 0.19)
+fore_grip = Vector3(-0.015, -0.07, -0.12)
+muzzle = Vector3(0, 0.11, -0.37)
+
+[sub_resource type="Resource" id="common"]
+script = ExtResource("2_stats")
+visual = SubResource("common_visual")
+damage = 20
+headshot_damage = 40
+fire_interval_ticks = 6
+magazine = 12
+reload_seconds = 1.6
+draw_seconds = 0.25
+recoil = 1.0
+camera_kick = 0.006
+tracer_width = 0.05
+shot_start_hz = 880.0
+shot_end_hz = 130.0
+shot_seconds = 0.2
+shot_noise = 0.35
+
+[sub_resource type="Resource" id="epic"]
+script = ExtResource("2_stats")
+visual = SubResource("epic_visual")
+damage = 24
+headshot_damage = 48
+fire_interval_ticks = 5
+magazine = 16
+reload_seconds = 1.4
+draw_seconds = 0.25
+recoil = 1.2
+camera_kick = 0.008
+tracer_width = 0.065
+shot_start_hz = 640.0
+shot_end_hz = 95.0
+shot_seconds = 0.24
+shot_noise = 0.4
+
+[sub_resource type="Resource" id="legendary"]
+script = ExtResource("2_stats")
+visual = SubResource("legendary_visual")
+damage = 26
+headshot_damage = 52
+fire_interval_ticks = 5
+magazine = 20
+reload_seconds = 1.2
+draw_seconds = 0.2
+recoil = 1.45
+camera_kick = 0.011
+tracer_width = 0.085
+shot_start_hz = 1150.0
+shot_end_hz = 70.0
+shot_seconds = 0.3
+shot_noise = 0.5
+
+[resource]
+script = ExtResource("1_definition")
+id = &"blaster"
+display_name = "Blaster"
+common = SubResource("common")
+epic = SubResource("epic")
+legendary = SubResource("legendary")

@@ -19,6 +19,9 @@ var _move := Vector2.ZERO
 var _air := 0.0
 var _aim_blend := 1.0
 var _dead := false
+var _armed := true
+var _gun_holder: Node3D
+var _visual: ItemVisual
 
 
 func setup(peer_id: int) -> void:
@@ -26,11 +29,25 @@ func setup(peer_id: int) -> void:
 	character.scale = Vector3.ONE * CharacterAssets.MODEL_SCALE
 	character.rotation.y = PI
 	add_child(character)
-	_muzzle = CharacterAssets.equip_gun(character)
+	_gun_holder = CharacterAssets.prepare_hands(character)
+	_muzzle = _gun_holder.get_node("Muzzle") as Node3D
 	var skeleton := CharacterAssets.skeleton_of(character)
 	_aim = AimModifier.new()
 	skeleton.add_child(_aim)
 	_build_tree(character)
+
+
+## Pokazuje w dloni przedmiot albo puste rece.
+func set_item(stack: Dictionary) -> void:
+	if _gun_holder == null:
+		return
+	_armed = not ItemStack.is_empty(stack)
+	_gun_holder.visible = _armed
+	if _armed:
+		var visual := ItemStack.visual_of(stack)
+		if visual != _visual:
+			_visual = visual
+			CharacterAssets.set_gun_model(_gun_holder, visual)
 
 
 func play_shot() -> void:
@@ -63,7 +80,7 @@ func update_pose(delta: float, local_velocity: Vector2, on_floor: bool, pitch: f
 	_tree.set("parameters/loco/blend_position", _move)
 	_air = move_toward(_air, 0.0 if on_floor else 1.0, delta * 8.0)
 	_tree.set("parameters/air/blend_amount", _air)
-	_aim_blend = move_toward(_aim_blend, 0.0 if sprinting else 1.0, delta * 8.0)
+	_aim_blend = move_toward(_aim_blend, 0.0 if sprinting or not _armed else 1.0, delta * 8.0)
 	_tree.set("parameters/aim/blend_amount", _aim_blend)
 	_aim.pitch = pitch * _aim_blend
 	_aim.aim_amount = _aim_blend

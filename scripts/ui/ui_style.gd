@@ -12,6 +12,7 @@ const BLUE := Color("5b8def")
 const SHADOW := Color(0.18, 0.13, 0.25, 0.28)
 
 const FONT_PATH := "res://assets/fonts/Fredoka.ttf"
+const AMMO_ICON_PATH := "res://assets/icons/ammo.png"
 
 static var _bold: FontVariation
 static var _regular: FontVariation
@@ -98,6 +99,18 @@ static func field(text: String, placeholder: String) -> LineEdit:
 	node.add_theme_stylebox_override("normal", normal)
 	node.add_theme_stylebox_override("focus", focus)
 	return node
+
+
+## Ikona naboju, wyrenderowana z modelu 3D jak ikony broni.
+static func ammo_icon(icon_size: Vector2) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = load(AMMO_ICON_PATH) as Texture2D
+	icon.custom_minimum_size = icon_size
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon
 
 
 static func bar(fill: Color, height := 18) -> ProgressBar:

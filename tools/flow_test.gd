@@ -44,11 +44,11 @@ func _ready() -> void:
 	print("[test] przesuniecie po sekundzie: %.2f m" % moved.length())
 	_check("W prowadzi do przodu", moved.normalized().dot(forward) > 0.9 and moved.length() > 3.0)
 
-	var shot_before := player.weapon.last_fire
+	var shot_before := player.equipment.last_fire
 	Input.action_press("fire")
 	await _wait(0.5)
 	Input.action_release("fire")
-	_check("LPM strzela", player.weapon.last_fire > shot_before)
+	_check("LPM strzela", player.equipment.last_fire > shot_before)
 
 	var jump_start := player.position.y
 	Input.action_press("jump")
@@ -58,13 +58,13 @@ func _ready() -> void:
 	await _wait(1.0)
 
 	# Bron: strzal zuzywa amunicje, R przeladowuje.
-	_check("strzaly zuzyly amunicje", player.weapon.ammo < Weapon.MAGAZINE)
+	_check("strzaly zuzyly amunicje", player.equipment.active_charges() < player.equipment.active_stats().magazine)
 	Input.action_press("reload")
 	await _wait(0.2)
 	Input.action_release("reload")
-	_check("R zaczyna przeladowanie", player.weapon.is_reloading())
-	await _wait(Weapon.RELOAD_SECONDS + 0.2)
-	_check("przeladowanie uzupelnia magazynek", player.weapon.ammo == Weapon.MAGAZINE and not player.weapon.is_reloading())
+	_check("R zaczyna przeladowanie", player.equipment.is_reloading())
+	await _wait(player.equipment.active_stats().reload_seconds + 0.2)
+	_check("przeladowanie uzupelnia magazynek", player.equipment.active_charges() == player.equipment.active_stats().magazine and not player.equipment.is_reloading())
 
 	# Sprint: limit, blokada po wyczerpaniu i odnawianie.
 	await _wait(1.0)
@@ -76,10 +76,10 @@ func _ready() -> void:
 	print("[test] pasek po 1 s sprintu: %.0f" % player.stamina)
 	_check("sprint zuzywa pasek w tempie 4 s", player.stamina > 65.0 and player.stamina < 85.0)
 	Input.action_press("fire")
-	var ammo_before := player.weapon.ammo
+	var ammo_before := player.equipment.active_charges()
 	await _wait(0.5)
 	Input.action_release("fire")
-	_check("w sprincie nie mozna strzelac", player.weapon.ammo == ammo_before)
+	_check("w sprincie nie mozna strzelac", player.equipment.active_charges() == ammo_before)
 	await _wait(3.0)
 	print("[test] pasek po 4,5 s sprintu: %.0f" % player.stamina)
 	_check("pasek konczy sie po okolo 4 s", player.stamina < 5.0 and player.exhausted)
