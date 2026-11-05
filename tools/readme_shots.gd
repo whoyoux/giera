@@ -77,10 +77,20 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await _wait(0.4)
 
+	# Wybuch granatu z tego samego miejsca.
+	var blast := me.position + forward * 9.0 + right * 3.0
+	blast.y = ForestTerrain.surface(blast.x, blast.z)
+	me.input.look_pitch = -0.03
+	await _wait(0.2)
+	Grenades._exploded.rpc(9001, blast, 1)
+	await _wait(0.14)
+	await _shot("grenade.png")
+	await _wait(GrenadeFx.LIFETIME_SECONDS)
+
 	await _loot_shot(me, forward, right)
 
 	GameState.players[1].health = 25
-	GameState.damaged.emit(40, 3)
+	GameState.damaged.emit(40, 3, Vector3.INF)
 	await _wait(0.1)
 	await _shot("damage.png")
 	GameState.players[1].health = GameState.MAX_HEALTH

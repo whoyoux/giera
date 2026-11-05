@@ -4,9 +4,9 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 ![Rozgrywka](docs/screenshots/gameplay.png)
 
-| Skrzynka | Bronie na ziemi | Celowanie |
-|---|---|---|
-| ![Otwieranie skrzynki](docs/screenshots/chest_open.png) | ![Bronie na ziemi](docs/screenshots/loot.png) | ![Celowanie](docs/screenshots/aim.png) |
+| Skrzynka | Bronie na ziemi | Celowanie | Granat |
+|---|---|---|---|
+| ![Otwieranie skrzynki](docs/screenshots/chest_open.png) | ![Bronie na ziemi](docs/screenshots/loot.png) | ![Celowanie](docs/screenshots/aim.png) | ![Wybuch granatu](docs/screenshots/grenade.png) |
 
 | Menu | Wyniki | Obrażenia |
 |---|---|---|
@@ -17,9 +17,10 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Multiplayer na żywo:** serwer dedykowany albo hostowanie z menu. Ruch reaguje od razu, a strzały liczą się tam, gdzie gracz widział cel na ekranie.
 - **Trzy klasy broni:** zwykła, epicka i legendarna, każda z własnym modelem, parametrami, smugą i dźwiękiem.
 - **Ekwipunek na 4 sloty:** szybka zmiana broni klawiszami lub scrollem, osobna amunicja w każdej broni.
-- **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Losują broń z szansą 70% na zwykłą, 25% na epicką i 5% na legendarną, a po minucie wracają.
+- **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Każda daje jeden przedmiot: broń, apteczkę albo granat, a po minucie wraca. Wśród broni 70% to zwykłe, 25% epickie i 5% legendarne.
 - **Podnoszenie i wyrzucanie:** bronie leżą na ziemi, a po śmierci wypadają dla innych.
-- **Apteczki:** wypadają ze skrzynek obok broni, a przytrzymanie strzału przez 2,5 s leczy o 50 punktów.
+- **Apteczki:** przytrzymanie strzału przez 2,5 s leczy o 50 punktów.
+- **Granaty:** odbijają się od ziemi i wybuchają po chwili. Im bliżej wybuchu, tym większe obrażenia, a tuż obok giniesz od razu.
 - **Celowanie:** prawy przycisk przybliża widok i zmniejsza odrzut, ale spowalnia ruch. Lepsza broń ma mocniejsze przybliżenie.
 - **Wybór postaci:** 9 modeli do wyboru strzałkami w menu, w tym rycerze i szkielety. Gra zapamiętuje wybór.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
@@ -41,7 +42,7 @@ W menu wpisz adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym k
 |---|---|
 | **WASD** | Ruch |
 | **Mysz** | Celowanie |
-| **LPM** | Strzał, przytrzymanie używa apteczki |
+| **LPM** | Strzał, rzut granatem, przytrzymanie używa apteczki |
 | **PPM** | Celowanie (przytrzymaj) |
 | **R** | Przeładowanie |
 | **Shift** | Sprint |

@@ -4,8 +4,6 @@
 
 [resource]
 script = ExtResource("1")
-item_ids = Array[StringName]([&"blaster"])
-item_weights = Array[int]([1])
+item_ids = Array[StringName]([&"blaster", &"medkit", &"grenade"])
+item_weights = Array[int]([6, 2, 2])
 tier_weights = Array[int]([70, 25, 5])
-bonus_item = &"medkit"
-bonus_chance = 0.3

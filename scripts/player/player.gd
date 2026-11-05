@@ -95,6 +95,7 @@ func _ready() -> void:
 	_last_position = position
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
 	equipment.fired.connect(_on_item_fired)
+	equipment.thrown.connect(_on_item_thrown)
 	equipment.action_started.connect(_on_action_started)
 	equipment.action_cancelled.connect(_on_action_cancelled)
 	equipment.active_item_changed.connect(_on_active_item_changed)
@@ -415,8 +416,14 @@ func _is_interact_held() -> bool:
 func _play_item_sound(stream: AudioStreamWAV) -> void:
 	if Net.is_headless:
 		return
-	_item_audio.stream = stream
-	_item_audio.play()
+	if is_local():
+		_item_audio.stream = stream
+		_item_audio.play()
+	else:
+		_body_audio_3d.stream = stream
+		_body_audio_3d.volume_db = 0.0
+		_body_audio_3d.pitch_scale = 1.0
+		_body_audio_3d.play()
 
 
 func _on_item_fired() -> void:
@@ -442,6 +449,16 @@ func _on_item_fired() -> void:
 	else:
 		model.play_shot()
 		_show_shot(model.muzzle_position(), hit, effect_color, stats.tracer_width)
+
+
+func _on_item_thrown() -> void:
+	if Net.is_headless:
+		return
+	_play_item_sound(Sfx.grenade_throw())
+	if is_local():
+		view_model.play_throw()
+	else:
+		model.play_shot()
 
 
 func _show_shot(muzzle: Vector3, hit: Dictionary, color: Color, width: float) -> void:

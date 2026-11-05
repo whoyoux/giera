@@ -126,7 +126,8 @@ func _build_model() -> void:
 	if visual == null or not ResourceLoader.exists(visual.model_path):
 		return
 	var model := (load(visual.model_path) as PackedScene).instantiate() as Node3D
-	model.position = -(visual.grip + visual.muzzle) * 0.5
+	model.scale = Vector3.ONE * visual.model_scale
+	model.position = -(visual.grip + visual.muzzle) * 0.5 * visual.model_scale
 	_pivot.add_child(model)
 
 

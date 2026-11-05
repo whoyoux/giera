@@ -34,7 +34,7 @@ Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
 
 ## Testy
 
-Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `feel_test`, `flow_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie). `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
+Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `feel_test`, `flow_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie). `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
 
 ## Zasoby wizualne
 

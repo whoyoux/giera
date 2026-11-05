@@ -116,6 +116,7 @@ static func set_gun_model(holder: Node3D, visual: ItemVisual) -> void:
 		old.queue_free()
 	var gun := (load(visual.model_path) as PackedScene).instantiate() as Node3D
 	gun.name = "Gun"
-	gun.position = HAND_POINT - visual.grip
+	gun.scale = Vector3.ONE * visual.model_scale
+	gun.position = HAND_POINT - visual.grip * visual.model_scale
 	holder.add_child(gun)
-	(holder.get_node("Muzzle") as Node3D).position = HAND_POINT - visual.grip + visual.muzzle
+	(holder.get_node("Muzzle") as Node3D).position = HAND_POINT + (visual.muzzle - visual.grip) * visual.model_scale

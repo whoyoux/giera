@@ -65,7 +65,7 @@ func _ready() -> void:
 	print("[test] otwieranie trwalo %.2f s" % elapsed)
 	_check("otwarcie trwa okolo sekundy", elapsed > 0.8 and elapsed < 1.5)
 	var dropped := WorldItems.items.size()
-	_check("wypada bron i czasem apteczka", dropped == 1 or dropped == 2)
+	_check("ze skrzynki wypada jeden przedmiot", dropped == 1)
 	var entry: Dictionary = WorldItems.items.values()[0]
 	_check("lup wypada blisko gracza", _player.position.distance_to(entry.position) < 4.0)
 	await _wait(0.1)
@@ -134,8 +134,12 @@ func _check_loot_table() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1234
 	var counts := [0, 0, 0]
-	for i in 10000:
-		counts[Chests.LOOT_TABLE.roll(rng).tier] += 1
+	var weapons := 0
+	for i in 20000:
+		var rolled: Dictionary = Chests.LOOT_TABLE.roll(rng)
+		if rolled.item == ItemRegistry.DEFAULT_WEAPON and weapons < 10000:
+			counts[rolled.tier] += 1
+			weapons += 1
 	print("[test] losowanie: %s" % [counts])
 	_check("zwykle okolo 70%", absi(counts[Rarity.Tier.COMMON] - 7000) < 300)
 	_check("epickie okolo 25%", absi(counts[Rarity.Tier.EPIC] - 2500) < 300)

@@ -201,10 +201,11 @@ func _load_model(visual: ItemVisual) -> void:
 		_model.get_parent().remove_child(_model)
 		_model.queue_free()
 	_model = (load(visual.model_path) as PackedScene).instantiate() as Node3D
-	_model.position = RIGHT_HAND - visual.grip
+	_model.scale = Vector3.ONE * visual.model_scale
+	_model.position = RIGHT_HAND - visual.grip * visual.model_scale
 	_gun.add_child(_model)
-	_muzzle.position = RIGHT_HAND - visual.grip + visual.muzzle
-	_left_home = RIGHT_HAND - visual.grip + visual.fore_grip
+	_muzzle.position = RIGHT_HAND + (visual.muzzle - visual.grip) * visual.model_scale
+	_left_home = RIGHT_HAND + (visual.fore_grip - visual.grip) * visual.model_scale
 	for node in _model.find_children("*", "MeshInstance3D", true, false):
 		(node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_magazine = _model.find_child("magazine", true, false) as Node3D
@@ -226,6 +227,15 @@ func kick(strength := 1.0) -> void:
 ## Krotkie przysiadniecie broni, np. przy podniesieniu czegos.
 func nudge(amount := 0.45) -> void:
 	_landing = maxf(_landing, amount)
+
+
+## Reka wyrzuca przedmiot do przodu i opada, zanim serwer zabierze go ze slotu.
+func play_throw() -> void:
+	if _gun == null:
+		return
+	_gun.visible = false
+	_has_item = false
+	_hide = 1.0
 
 
 func set_aiming(aiming: bool) -> void:

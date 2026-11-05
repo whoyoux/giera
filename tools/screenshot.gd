@@ -51,5 +51,5 @@ func _fake_damage() -> void:
 		var player := node as Player
 		if not player.is_local():
 			GameState.players[me].health = int(Net.args.get("shot-health", 80))
-			GameState.damaged.emit(40, player.peer_id)
+			GameState.damaged.emit(40, player.peer_id, Vector3.INF)
 			return

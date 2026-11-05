@@ -70,7 +70,7 @@ func _loot_summary() -> String:
 	for id: int in Chests.chests:
 		if Chests.chests[id].open:
 			open.append(id)
-	return "lezy=%s uid=%s duplikaty=%d otwarte=%s" % [ids, uids, duplicates, open]
+	return "lezy=%s uid=%s duplikaty=%d otwarte=%s granaty=%d" % [ids, uids, duplicates, open, Grenades.flying_count()]
 
 
 func _local_player() -> Player:

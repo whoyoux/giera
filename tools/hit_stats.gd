@@ -10,7 +10,7 @@ var _player: Player
 
 func _ready() -> void:
 	GameState.hit_confirmed.connect(func(_killed: bool) -> void: _hits += 1)
-	GameState.damaged.connect(func(_amount: int, _attacker: int) -> void: _damaged += 1)
+	GameState.damaged.connect(func(_amount: int, _attacker: int, _source: Vector3) -> void: _damaged += 1)
 	get_tree().create_timer(5.0).timeout.connect(_report)
 	get_tree().node_added.connect(_on_node_added)
 

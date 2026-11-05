@@ -317,6 +317,39 @@ static func aim() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 0.0)
 
 
+## Wyciagniecie zawleczki i swist rzutu.
+static func grenade_throw() -> AudioStreamWAV:
+	return _make("grenade_throw", 0.26, func(t: float, _phase: float) -> float:
+		var pin := sin(TAU * 2100.0 * t) * exp(-t * 80.0) * 0.5
+		var swish := randf_range(-0.5, 0.5) * sin(PI * clampf((t - 0.05) / 0.21, 0.0, 1.0))
+		return pin + swish
+	, func(_t: float) -> float: return 0.0)
+
+
+## Metaliczne stukniecie o ziemie.
+static func grenade_bounce() -> AudioStreamWAV:
+	return _make("grenade_bounce", 0.12, func(t: float, _phase: float) -> float:
+		return (sin(TAU * 720.0 * t) * 0.6 + sin(TAU * 1730.0 * t) * 0.35) * exp(-t * 42.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Krotki sygnal ostrzegawczy.
+static func grenade_beep() -> AudioStreamWAV:
+	return _make("grenade_beep", 0.06, func(t: float, _phase: float) -> float:
+		return sin(TAU * 1680.0 * t) * sin(PI * t / 0.06) * 0.6
+	, func(_t: float) -> float: return 0.0)
+
+
+## Trzask na poczatku i dlugie, niskie dudnienie.
+static func explosion() -> AudioStreamWAV:
+	return _make("explosion", 1.5, func(t: float, phase: float) -> float:
+		var crack := randf_range(-1.0, 1.0) * exp(-t * 16.0)
+		var rumble := sin(TAU * phase) * exp(-t * 3.0) * 0.9
+		var dirt := randf_range(-0.28, 0.28) * exp(-t * 2.6)
+		return crack + rumble + dirt
+	, func(t: float) -> float: return lerpf(92.0, 32.0, minf(t / 0.8, 1.0)))
+
+
 static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)
