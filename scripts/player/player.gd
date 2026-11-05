@@ -20,6 +20,9 @@ const STAMINA_UNLOCK := 20.0
 ## O tyle kamera poszerza widok w sprincie.
 const SPRINT_FOV_BONUS := 10.0
 const POSITION_HISTORY_TICKS := 30
+const AIM_ZOOM_SPEED := 12.0
+## Odrzut w rekach i szarpniecie kamery sa mniejsze przy celowaniu.
+const AIM_RECOIL_SCALE := 0.55
 const STEP_DISTANCE := 2.3
 const SPRINT_STEP_DISTANCE := 3.0
 const MIN_STEP_SPEED := 1.2
@@ -44,6 +47,7 @@ var pitch := 0.0
 var applied_respawn := 0
 var stamina := STAMINA_MAX
 var sprinting := false
+var aiming := false
 var exhausted := false
 var sprint_stop_tick := -1000
 
@@ -69,6 +73,8 @@ var _was_grounded := true
 var _fall_speed := 0.0
 var _seen_alive := true
 var _seen_exhausted := false
+var _seen_aiming := false
+var _view_zoom := 1.0
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -130,6 +136,13 @@ func punch_camera(strength: float) -> void:
 	_punch = Vector3(0.05 * strength, 0.0, 0.09 * strength * side)
 	view_model.add_look(Vector2(14.0 * side, -18.0) * strength)
 	shake_camera(SHAKE_HIT_BASE + SHAKE_HIT_STRENGTH * strength)
+
+
+## Przy przyblizeniu ten sam ruch myszy obraca widok wolniej, zeby celowanie bylo rownie wygodne.
+func aim_sensitivity_scale() -> float:
+	if not aiming:
+		return _view_zoom
+	return _view_zoom * float(Settings.value("aim_sensitivity"))
 
 
 func shake_camera(amount: float) -> void:
@@ -205,10 +218,13 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	else:
 		velocity.y -= GRAVITY * delta
 
+	aiming = input.aim and not dead and equipment.can_aim()
 	_update_sprint(tick, delta, dead)
 	var wish := Vector3.ZERO
 	if not dead:
 		var top_speed := SPEED * SPRINT_MULTIPLIER if sprinting else SPEED
+		if aiming:
+			top_speed *= equipment.active_stats().aim_move_scale
 		wish = Vector3(input.move.x, 0.0, input.move.y).limit_length(1.0).rotated(Vector3.UP, yaw) * top_speed
 	var accel := (GROUND_ACCEL if on_floor else AIR_ACCEL) * delta
 	velocity.x = move_toward(velocity.x, wish.x, accel)
@@ -226,7 +242,7 @@ func _update_sprint(tick: int, delta: float, dead: bool) -> void:
 	if exhausted and stamina >= STAMINA_UNLOCK:
 		exhausted = false
 	# Sprint dziala tylko przy biegu do przodu.
-	var wants_sprint := input.sprint and input.move.y < -0.1 and not dead
+	var wants_sprint := input.sprint and input.move.y < -0.1 and not dead and not aiming
 	sprinting = wants_sprint and not exhausted and stamina > 0.0
 	# Odnawianie rusza dopiero po puszczeniu klawisza i krotkiej przerwie.
 	if wants_sprint:
@@ -297,13 +313,28 @@ func _process(delta: float) -> void:
 		# Predkosc z symulacji jest rowna, a ta liczona z pozycji miedzy klatkami drzy.
 		_view_speed = lerpf(_view_speed, Vector2(velocity.x, velocity.z).length() / SPEED, minf(delta * 10.0, 1.0))
 		view_model.update_pose(delta, _view_speed, grounded, velocity.y, sprinting, equipment.is_reloading(), not info.alive)
+		_update_aim_view(delta)
 		var base_fov: float = Settings.value("fov")
-		camera.fov = lerpf(camera.fov, base_fov + SPRINT_FOV_BONUS if sprinting else base_fov, minf(delta * 8.0, 1.0))
+		var sprint_fov := lerpf(camera.fov / maxf(_view_zoom, 0.01), base_fov + SPRINT_FOV_BONUS if sprinting else base_fov, minf(delta * 8.0, 1.0))
+		camera.fov = sprint_fov * _view_zoom
 		_punch = _punch.lerp(Vector3.ZERO, minf(delta * 9.0, 1.0))
 		camera.rotation = (_punch + _shake.update(delta)) * float(Settings.value("camera_shake"))
 	else:
 		var local_velocity := _velocity_smoothed.rotated(Vector3.UP, -rotation.y)
 		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
+
+
+func _update_aim_view(delta: float) -> void:
+	var stats := equipment.active_stats()
+	var zoom := stats.aim_fov_scale if aiming and stats != null else 1.0
+	var previous := _view_zoom
+	_view_zoom = lerpf(_view_zoom, zoom, minf(delta * AIM_ZOOM_SPEED, 1.0))
+	# Pole widzenia z poprzedniej klatki jest juz przyblizone, wiec przeliczamy je na nowe.
+	camera.fov *= _view_zoom / maxf(previous, 0.01)
+	view_model.set_aiming(aiming)
+	if aiming != _seen_aiming:
+		_seen_aiming = aiming
+		_play_item_sound(Sfx.aim())
 
 
 ## Kroki, skok i ladowanie slychac u kazdego gracza, a reszta dotyczy tylko wlasnej postaci.
@@ -404,8 +435,9 @@ func _on_item_fired() -> void:
 	var hit := Hitscan.trace(get_world_3d(), eye_position(), Hitscan.direction(aim_yaw, aim_pitch), peer_id, get_tree())
 	var effect_color := Rarity.effect_color(tier)
 	if is_local():
-		view_model.kick(stats.recoil)
-		_punch.x += stats.camera_kick
+		var steady := AIM_RECOIL_SCALE if aiming else 1.0
+		view_model.kick(stats.recoil * steady)
+		_punch.x += stats.camera_kick * steady
 		view_model.on_next_pose(_show_shot.bind(hit, effect_color, stats.tracer_width))
 	else:
 		model.play_shot()

@@ -4,9 +4,9 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 ![Rozgrywka](docs/screenshots/gameplay.png)
 
-| Skrzynka | Bronie na ziemi |
-|---|---|
-| ![Otwieranie skrzynki](docs/screenshots/chest_open.png) | ![Bronie na ziemi](docs/screenshots/loot.png) |
+| Skrzynka | Bronie na ziemi | Celowanie |
+|---|---|---|
+| ![Otwieranie skrzynki](docs/screenshots/chest_open.png) | ![Bronie na ziemi](docs/screenshots/loot.png) | ![Celowanie](docs/screenshots/aim.png) |
 
 | Menu | Wyniki | Obrażenia |
 |---|---|---|
@@ -20,6 +20,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Losują broń z szansą 70% na zwykłą, 25% na epicką i 5% na legendarną, a po minucie wracają.
 - **Podnoszenie i wyrzucanie:** bronie leżą na ziemi, a po śmierci wypadają dla innych.
 - **Apteczki:** wypadają ze skrzynek obok broni, a przytrzymanie strzału przez 2,5 s leczy o 50 punktów.
+- **Celowanie:** prawy przycisk przybliża widok i zmniejsza odrzut, ale spowalnia ruch. Lepsza broń ma mocniejsze przybliżenie.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
 - **Pokój zabawek:** mapa z książek, klocków, ołówków i piłek, animowane postacie i interfejs w stylu naklejek.
 - **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
@@ -40,6 +41,7 @@ W menu wpisz adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym k
 | **WASD** | Ruch |
 | **Mysz** | Celowanie |
 | **LPM** | Strzał, przytrzymanie używa apteczki |
+| **PPM** | Celowanie (przytrzymaj) |
 | **R** | Przeładowanie |
 | **Shift** | Sprint |
 | **Spacja** | Skok |

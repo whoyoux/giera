@@ -5,6 +5,9 @@ extends Node3D
 
 const BASE_POSITION := Vector3(0.24, -0.2, -0.56)
 const GUN_SCALE := 0.62
+## Gdzie ma wypasc wylot lufy przy celowaniu: na srodku, tuz pod celownikiem.
+const AIM_MUZZLE_POSITION := Vector3(0.0, -0.075, -0.62)
+const AIM_SPEED := 8.0
 const RIGHT_HAND := CharacterAssets.HAND_POINT
 const GLOVE := Color("fffaf0")
 ## Warstwa widziana tylko przez kamere nakladki, nigdy przez kamere swiata.
@@ -39,6 +42,8 @@ var _was_on_floor := true
 var _bob_amount := 0.0
 var _lift := 0.0
 var _landing_shown := 0.0
+var _aim := 0.0
+var _aim_target := false
 var _pose_callbacks: Array[Callable] = []
 
 
@@ -223,6 +228,15 @@ func nudge(amount := 0.45) -> void:
 	_landing = maxf(_landing, amount)
 
 
+func set_aiming(aiming: bool) -> void:
+	_aim_target = aiming
+
+
+## Jak bardzo bron jest uniesiona do oka, od 0 do 1.
+func aim_amount() -> float:
+	return _aim
+
+
 func add_look(delta_look: Vector2) -> void:
 	_sway += delta_look
 
@@ -238,6 +252,10 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 	_recoil = move_toward(_recoil, 0.0, delta * 8.0)
 	_hide = move_toward(_hide, 1.0 if dead else 0.0, delta * 3.5)
 	_sprint = move_toward(_sprint, 1.0 if sprinting else 0.0, delta * 7.0)
+	_aim = move_toward(_aim, 1.0 if _aim_target and not dead else 0.0, delta * AIM_SPEED)
+	var aim_blend := smoothstep(0.0, 1.0, _aim)
+	# Przy celowaniu bron prawie sie nie kolysze, zeby nie przeszkadzala w trafianiu.
+	var steadiness := 1.0 - aim_blend * 0.85
 	_sway = _sway.lerp(Vector2.ZERO, minf(delta * 10.0, 1.0))
 	if _flash_time > 0.0:
 		_flash_time -= delta
@@ -258,18 +276,24 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 	_lift = lerpf(_lift, clampf(vertical_speed * 0.006, -0.05, 0.05), minf(delta * 10.0, 1.0))
 	var recoil_curve := _recoil * _recoil * _recoil_strength
 	# Pelna fala cosinusa zamiast wartosci bezwzglednej: bez ostrego odbicia przy kazdym kroku.
-	var position_offset := Vector3(sin(_time) * 0.012 * _bob_amount, -(1.0 - cos(_time * 2.0)) * 0.007 * _bob_amount, recoil_curve * 0.07)
+	var position_offset := Vector3(sin(_time) * 0.012 * _bob_amount * steadiness, -(1.0 - cos(_time * 2.0)) * 0.007 * _bob_amount * steadiness, recoil_curve * 0.07)
 	_landing_shown = lerpf(_landing_shown, _landing, minf(delta * 22.0, 1.0))
 	position_offset.y += _lift - _landing_shown * 0.08
 	position_offset += Vector3(-0.1, -0.13, 0.06) * _sprint
 	position_offset += Vector3.DOWN * _hide * 0.6
-	position_offset += Vector3(_sway.x * -0.01, _sway.y * 0.01, 0.0)
+	position_offset += Vector3(_sway.x * -0.01, _sway.y * 0.01, 0.0) * steadiness
 	position_offset += Vector3(-0.05, 0.02, 0.03) * reload_tilt
-	_gun.position = BASE_POSITION + position_offset
+	_gun.position = BASE_POSITION.lerp(_aim_position(), aim_blend) + position_offset
 	_gun.rotation = Vector3(
 		recoil_curve * 0.16 - _sprint * 0.35 + reload_tilt * 0.5,
 		_sprint * 0.9 + reload_tilt * 0.45,
-		_sway.x * 0.012 + _sprint * 0.25 + reload_tilt * 0.35)
+		_sway.x * 0.012 * steadiness + _sprint * 0.25 + reload_tilt * 0.35)
+
+
+## Pozycja broni, przy ktorej lufa kazdego modelu lezy w tym samym miejscu ekranu.
+func _aim_position() -> Vector3:
+	var offset := _visual.aim_offset if _visual != null else Vector3.ZERO
+	return AIM_MUZZLE_POSITION + offset - _muzzle.position * GUN_SCALE
 
 
 ## Przeladowanie: bron sie unosi, magazynek wypada, lewa reka wklada nowy.

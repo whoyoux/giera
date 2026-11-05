@@ -8,6 +8,9 @@ var _hit := 0.0
 var _hit_color := Color.WHITE
 var _spread := 0.0
 var hidden_for_sprint := false
+## Przy celowaniu celownik sie zaciska.
+var aiming := false
+var _aim := 0.0
 
 
 func flash_hit(killed: bool) -> void:
@@ -23,16 +26,18 @@ func kick() -> void:
 func _process(delta: float) -> void:
 	_hit = maxf(0.0, _hit - delta * 4.0)
 	_spread = maxf(0.0, _spread - delta * 6.0)
+	_aim = move_toward(_aim, 1.0 if aiming else 0.0, delta * 8.0)
 	queue_redraw()
 
 
 func _draw() -> void:
 	var center := (size * 0.5).round()
 	if not hidden_for_sprint:
-		var gap := 7.0 + _spread * 7.0
+		var gap := lerpf(7.0, 3.5, _aim) + _spread * lerpf(7.0, 3.0, _aim)
+		var length := lerpf(8.0, 5.0, _aim)
 		for dir: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-			draw_line(center + dir * gap, center + dir * (gap + 8.0), OUTLINE, 5.0, true)
-			draw_line(center + dir * gap, center + dir * (gap + 8.0), Color.WHITE, 2.5, true)
+			draw_line(center + dir * gap, center + dir * (gap + length), OUTLINE, 5.0, true)
+			draw_line(center + dir * gap, center + dir * (gap + length), Color.WHITE, 2.5, true)
 		draw_circle(center, 2.6, OUTLINE, true, -1.0, true)
 		draw_circle(center, 1.5, Color.WHITE, true, -1.0, true)
 	if _hit <= 0.0:
