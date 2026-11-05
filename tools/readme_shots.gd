@@ -31,9 +31,9 @@ func _ready() -> void:
 	var forward := center.normalized()
 	var right := forward.cross(Vector3.UP)
 	GameState.server_give_item(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC)
-	GameState.server_give_item(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
-	GameState.server_give_item(1, &"medkit", Rarity.Tier.COMMON)
-	me.input.select_slot(2)
+	GameState.server_give_item(1, &"shotgun", Rarity.Tier.LEGENDARY)
+	GameState.server_give_item(1, &"knife", Rarity.Tier.COMMON)
+	me.input.select_slot(1)
 	GameState.server_add_player(2, "Ziutek", "skeleton_warrior")
 	GameState.server_add_player(3, "Basia", "mage")
 	GameState.server_add_player(4, "Mietek", "skeleton_rogue")
@@ -87,6 +87,7 @@ func _ready() -> void:
 	await _shot("grenade.png")
 	await _wait(GrenadeFx.LIFETIME_SECONDS)
 
+	await _weapon_shots(me)
 	await _loot_shot(me, forward, right)
 
 	GameState.players[1].health = 25
@@ -99,14 +100,32 @@ func _ready() -> void:
 	get_tree().quit()
 
 
-## Trzy klasy na ziemi i podpowiedz przy tej, na ktora patrzy gracz.
+## Strzal ze strzelby i ciecie nozem, z bronia w rekach.
+func _weapon_shots(me: Player) -> void:
+	me.input.select_slot(2)
+	await _wait(0.9)
+	me.equipment.fired.emit()
+	await _wait(0.03)
+	await _shot("shotgun.png")
+	await _wait(0.5)
+	me.input.select_slot(3)
+	await _wait(0.9)
+	me.equipment.fired.emit()
+	await _wait(0.08)
+	await _shot("knife.png")
+	await _wait(0.4)
+	me.input.select_slot(1)
+	await _wait(0.6)
+
+
+## Rozne bronie na ziemi i podpowiedz przy tej, na ktora patrzy gracz.
 func _loot_shot(me: Player, forward: Vector3, right: Vector3) -> void:
 	var feet := me.position
 	var spots := [feet + forward * 2.2, feet + forward * 3.6 - right * 1.6, feet + forward * 4.4 + right * 1.5]
-	var tiers := [Rarity.Tier.LEGENDARY, Rarity.Tier.EPIC, Rarity.Tier.COMMON]
+	var loot := [[&"shotgun", Rarity.Tier.LEGENDARY], [ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC], [&"knife", Rarity.Tier.COMMON]]
 	for i in spots.size():
 		spots[i].y = ForestTerrain.surface(spots[i].x, spots[i].z)
-		WorldItems._server_spawn(ItemStack.create(9000 + i, ItemRegistry.DEFAULT_WEAPON, tiers[i]), spots[i], spots[i])
+		WorldItems._server_spawn(ItemStack.create(9000 + i, loot[i][0], loot[i][1]), spots[i], spots[i])
 	me.input.look_pitch = -0.28
 	await _wait(1.0)
 	await _shot("loot.png")

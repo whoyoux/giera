@@ -27,6 +27,23 @@ static func shot(stats: WeaponStats) -> AudioStreamWAV:
 	, func(t: float) -> float: return lerpf(stats.shot_start_hz, stats.shot_end_hz, sqrt(t / seconds)))
 
 
+## Swist noza w powietrzu.
+static func knife_swing() -> AudioStreamWAV:
+	return _make("knife_swing", 0.2, func(t: float, phase: float) -> float:
+		return (sin(TAU * phase) * 0.35 + randf_range(-0.5, 0.5)) * sin(PI * t / 0.2)
+	, func(t: float) -> float: return lerpf(380.0, 1100.0, t / 0.2))
+
+
+## Swist zakonczony tepym uderzeniem, gdy ostrze w cos trafi.
+static func knife_hit() -> AudioStreamWAV:
+	return _make("knife_hit", 0.24, func(t: float, phase: float) -> float:
+		var swing := (sin(TAU * phase) * 0.3 + randf_range(-0.35, 0.35)) * maxf(1.0 - t / 0.08, 0.0)
+		var since := maxf(t - 0.05, 0.0)
+		var thud := (sin(TAU * 190.0 * since) * 0.9 + randf_range(-0.2, 0.2)) * exp(-since * 24.0) if t >= 0.05 else 0.0
+		return swing + thud
+	, func(t: float) -> float: return lerpf(380.0, 1100.0, minf(t / 0.08, 1.0)))
+
+
 static func hit() -> AudioStreamWAV:
 	return _make("hit", 0.08, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.08)

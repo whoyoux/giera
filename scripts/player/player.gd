@@ -233,6 +233,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		var top_speed := SPEED * SPRINT_MULTIPLIER if sprinting else SPEED
 		if aiming:
 			top_speed *= equipment.active_stats().aim_move_scale
+		top_speed *= equipment.move_speed_scale()
 		wish = Vector3(input.move.x, 0.0, input.move.y).limit_length(1.0).rotated(Vector3.UP, yaw) * top_speed
 	var accel := (GROUND_ACCEL if on_floor else AIR_ACCEL) * delta
 	velocity.x = move_toward(velocity.x, wish.x, accel)
@@ -438,25 +439,43 @@ func _on_item_fired() -> void:
 	if Net.is_headless:
 		return
 	var stack := equipment.active_stack()
-	var stats := ItemStack.weapon_stats_of(stack)
-	if stats == null:
-		return
-	var tier := ItemStack.tier_of(stack)
-	shot_audio.stream = Sfx.shot(stats)
+	var behavior := ItemStack.behavior_of(stack)
+	if behavior != null:
+		behavior.show_fired(self, stack)
+
+
+## Kierunek patrzenia do efektow. Wlasna kamera wyprzedza symulacje o ulamek ticku.
+func look_direction() -> Vector3:
+	return Hitscan.direction(input.look_yaw, input.look_pitch) if is_local() else Hitscan.direction(yaw, pitch)
+
+
+func play_shot_sound(stream: AudioStreamWAV) -> void:
+	shot_audio.stream = stream
 	shot_audio.pitch_scale = randf_range(0.96, 1.04)
 	shot_audio.play()
-	var aim_yaw := input.look_yaw if is_local() else yaw
-	var aim_pitch := input.look_pitch if is_local() else pitch
-	var hit := Hitscan.trace(get_world_3d(), eye_position(), Hitscan.direction(aim_yaw, aim_pitch), peer_id, get_tree())
+
+
+## Smugi strzalu i odrzut. Kazdy pocisk ma wlasna smuge, ale blysk i odrzut sa jeden na strzal.
+func show_shots(hits: Array[Dictionary], stats: WeaponStats, tier: int) -> void:
 	var effect_color := Rarity.effect_color(tier)
 	if is_local():
 		var steady := AIM_RECOIL_SCALE if aiming else 1.0
 		view_model.kick(stats.recoil * steady)
 		_punch.x += stats.camera_kick * steady
-		view_model.on_next_pose(_show_shot.bind(hit, effect_color, stats.tracer_width))
+		view_model.on_next_pose(_show_shot.bind(hits, effect_color, stats.tracer_width))
 	else:
 		model.play_shot()
-		_show_shot(model.muzzle_position(), hit, effect_color, stats.tracer_width)
+		_show_shot(model.muzzle_position(), hits, effect_color, stats.tracer_width)
+
+
+## Cios widac w rekach, a u innych graczy w animacji postaci.
+func show_swing(hit: Dictionary) -> void:
+	if is_local():
+		view_model.play_slash()
+	else:
+		model.play_melee()
+	if hit.player != null or hit.hit_world:
+		ShotFx.impact(get_parent(), hit.position, Color("ff5d5d") if hit.player != null else Color("fff3a3"))
 
 
 func _on_priming_changed(primed: bool) -> void:
@@ -494,11 +513,12 @@ func _on_item_thrown() -> void:
 		model.play_shot()
 
 
-func _show_shot(muzzle: Vector3, hit: Dictionary, color: Color, width: float) -> void:
+func _show_shot(muzzle: Vector3, hits: Array[Dictionary], color: Color, width: float) -> void:
 	var fx_root := get_parent()
-	ShotFx.tracer(fx_root, muzzle, hit.position, color, width)
-	if hit.player != null or hit.hit_world:
-		ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else color)
+	for hit in hits:
+		ShotFx.tracer(fx_root, muzzle, hit.position, color, width)
+		if hit.player != null or hit.hit_world:
+			ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else color)
 
 
 func _on_action_started() -> void:

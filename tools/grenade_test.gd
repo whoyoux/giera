@@ -159,13 +159,13 @@ func _check_loot() -> void:
 	for i in 10000:
 		var rolled: Dictionary = Chests.LOOT_TABLE.roll(rng)
 		items[rolled.item] = items.get(rolled.item, 0) + 1
-		if rolled.item == ItemRegistry.DEFAULT_WEAPON:
+		if ItemRegistry.get_definition(rolled.item).has_tiers():
 			tiers[rolled.tier] += 1
 		else:
 			_check_once_tier(rolled)
 	print("[test] lup: %s, klasy broni: %s" % [items, tiers])
-	_check("ze skrzynki wypadaja trzy rodzaje", items.size() == 3)
-	var total_weapons: int = items[ItemRegistry.DEFAULT_WEAPON]
+	_check("ze skrzynki wypada piec rodzajow", items.size() == 5)
+	var total_weapons: int = tiers[0] + tiers[1] + tiers[2]
 	_check("legendarna wciaz jest rzadka", absf(float(tiers[Rarity.Tier.LEGENDARY]) / total_weapons - 0.05) < 0.02)
 	_check("zwykla wciaz najczestsza", absf(float(tiers[Rarity.Tier.COMMON]) / total_weapons - 0.7) < 0.03)
 

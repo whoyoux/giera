@@ -30,3 +30,7 @@ func visual(tier: int) -> ItemVisual:
 
 func full_charges(tier: int) -> int:
 	return stats(tier).magazine
+
+
+func draw_seconds(tier: int) -> float:
+	return stats(tier).draw_seconds

@@ -47,6 +47,43 @@ func _ready() -> void:
 	GameState.players[3].alive = false
 	_expect("martwy cel jest pomijany", _trace(world, eye, target.position + Vector3.UP * 0.9), null, false)
 
+	# Cios z bliska: zasieg, stozek i oslona.
+	GameState.players[3].alive = true
+	var melee_eye := Vector3(22, 1.6, 1)
+	target.position = Vector3(20, 0, 1)
+	var swing := Hitscan.melee(world, melee_eye, Vector3.LEFT, 2.6, 25.0, 2, get_tree())
+	_check("cios siega celu", swing.player == target)
+	swing = Hitscan.melee(world, melee_eye, Vector3.RIGHT, 2.6, 25.0, 2, get_tree())
+	_check("cios nie trafia za plecy", swing.player == null)
+	target.position = Vector3(15, 0, 1)
+	swing = Hitscan.melee(world, melee_eye, Vector3.LEFT, 2.6, 25.0, 2, get_tree())
+	_check("cios ma ograniczony zasieg", swing.player == null)
+	target.position = Vector3(20, 0, 1)
+	GameState.players[3].alive = false
+	swing = Hitscan.melee(world, melee_eye, Vector3.LEFT, 2.6, 25.0, 2, get_tree())
+	_check("martwy nie obrywa ciosem", swing.player == null)
+	GameState.players[3].alive = true
+	swing = Hitscan.melee(world, melee_eye, Vector3.LEFT, 2.6, 25.0, 3, get_tree())
+	_check("sam siebie nie mozna ciac", swing.player != target)
+	target.position = Vector3(-4.5, 0, -9)
+	swing = Hitscan.melee(world, Vector3(-4.5, 1.6, -1), Vector3.FORWARD, 9.0, 25.0, 2, get_tree())
+	_check("mur oslania przed ciosem", swing.player == null)
+
+	# Sruciny: kazda sprawdzana osobno, a mur zatrzymuje wszystkie.
+	target.position = Vector3(15, 0, 1)
+	var pellets_on_target := 0
+	for pellet in Hitscan.pellet_directions((target.position + Vector3.UP * 0.9 - eye).normalized(), 8, 5.5, 42):
+		if Hitscan.trace(world, eye, pellet, 2, get_tree()).player == target:
+			pellets_on_target += 1
+	print("[test] sruciny na celu z 7 m: %d" % pellets_on_target)
+	_check("z bliska trafia wiele srucin", pellets_on_target >= 3)
+	target.position = Vector3(-4.5, 0, -9)
+	pellets_on_target = 0
+	for pellet in Hitscan.pellet_directions(Vector3.FORWARD, 8, 5.5, 42):
+		if Hitscan.trace(world, Vector3(-4.5, 1.6, -1), pellet, 2, get_tree()).player == target:
+			pellets_on_target += 1
+	_check("mur zatrzymuje srut", pellets_on_target == 0)
+
 	# Respawn: obrazenia, smierc i liczniki.
 	GameState.players[3].alive = true
 	GameState.players[3].health = GameState.MAX_HEALTH

@@ -1,0 +1,107 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/weapon_definition.gd" id="1_definition"]
+[ext_resource type="Script" path="res://scripts/items/weapon_stats.gd" id="2_stats"]
+[ext_resource type="Script" path="res://scripts/items/item_visual.gd" id="3_visual"]
+
+[sub_resource type="Resource" id="common_visual"]
+script = ExtResource("3_visual")
+model_path = "res://assets/weapons/blaster-q.glb"
+icon_path = "res://assets/icons/shotgun_common.png"
+grip = Vector3(0, -0.07, 0.24)
+fore_grip = Vector3(-0.015, -0.1, -0.13)
+muzzle = Vector3(0, 0, -0.35)
+aim_offset = Vector3(0, -0.1, 0)
+
+[sub_resource type="Resource" id="epic_visual"]
+script = ExtResource("3_visual")
+model_path = "res://assets/weapons/blaster-l.glb"
+icon_path = "res://assets/icons/shotgun_epic.png"
+grip = Vector3(0, -0.07, 0.19)
+fore_grip = Vector3(-0.015, -0.07, -0.12)
+muzzle = Vector3(0, 0.05, -0.28)
+aim_offset = Vector3(0, -0.1, 0)
+
+[sub_resource type="Resource" id="legendary_visual"]
+script = ExtResource("3_visual")
+model_path = "res://assets/weapons/blaster-k.glb"
+icon_path = "res://assets/icons/shotgun_legendary.png"
+grip = Vector3(0, -0.07, 0.15)
+fore_grip = Vector3(-0.015, -0.08, -0.09)
+muzzle = Vector3(0, 0, -0.22)
+aim_offset = Vector3(0, -0.11, 0)
+
+[sub_resource type="Resource" id="common"]
+script = ExtResource("2_stats")
+visual = SubResource("common_visual")
+damage = 11
+headshot_damage = 16
+pellets = 8
+spread_degrees = 5.5
+fire_interval_ticks = 24
+magazine = 5
+reload_seconds = 2.4
+draw_seconds = 0.45
+aim_fov_scale = 0.88
+aim_move_scale = 0.7
+aim_spread_scale = 0.7
+recoil = 2.2
+camera_kick = 0.03
+tracer_width = 0.045
+shot_start_hz = 420.0
+shot_end_hz = 55.0
+shot_seconds = 0.36
+shot_noise = 0.7
+
+[sub_resource type="Resource" id="epic"]
+script = ExtResource("2_stats")
+visual = SubResource("epic_visual")
+damage = 12
+headshot_damage = 18
+pellets = 8
+spread_degrees = 5.0
+fire_interval_ticks = 22
+magazine = 6
+reload_seconds = 2.1
+draw_seconds = 0.4
+aim_fov_scale = 0.85
+aim_move_scale = 0.7
+aim_spread_scale = 0.7
+recoil = 2.4
+camera_kick = 0.034
+tracer_width = 0.05
+shot_start_hz = 360.0
+shot_end_hz = 48.0
+shot_seconds = 0.4
+shot_noise = 0.72
+
+[sub_resource type="Resource" id="legendary"]
+script = ExtResource("2_stats")
+visual = SubResource("legendary_visual")
+damage = 13
+headshot_damage = 20
+pellets = 9
+spread_degrees = 4.5
+fire_interval_ticks = 20
+magazine = 7
+reload_seconds = 1.8
+draw_seconds = 0.35
+aim_fov_scale = 0.82
+aim_move_scale = 0.7
+aim_spread_scale = 0.7
+recoil = 2.6
+camera_kick = 0.038
+tracer_width = 0.055
+shot_start_hz = 480.0
+shot_end_hz = 40.0
+shot_seconds = 0.44
+shot_noise = 0.75
+
+[resource]
+script = ExtResource("1_definition")
+id = &"shotgun"
+display_name = "Strzelba"
+feminine_name = true
+common = SubResource("common")
+epic = SubResource("epic")
+legendary = SubResource("legendary")

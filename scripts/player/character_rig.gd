@@ -54,6 +54,10 @@ func play_shot() -> void:
 	_fire("shoot")
 
 
+func play_melee() -> void:
+	_fire("melee")
+
+
 func play_reload() -> void:
 	_fire("reload")
 
@@ -124,7 +128,7 @@ func _build_tree(character: Node3D) -> void:
 	graph.connect_node("aim", 1, "aim_pose")
 
 	var previous := "aim"
-	for shot: Array in [["shoot", "2H_Ranged_Shoot"], ["reload", "2H_Ranged_Reload"], ["hit", "Hit_A"]]:
+	for shot: Array in [["shoot", "2H_Ranged_Shoot"], ["melee", "1H_Melee_Attack_Slice_Horizontal"], ["reload", "2H_Ranged_Reload"], ["hit", "Hit_A"]]:
 		var one_shot := AnimationNodeOneShot.new()
 		one_shot.fadein_time = 0.04
 		one_shot.fadeout_time = 0.12
