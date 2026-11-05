@@ -32,6 +32,9 @@ func _ready() -> void:
 	_check("klawisz 2 wybiera slot", equipment.active_slot == 1)
 	_check("epicki blaster ma swoje parametry", equipment.active_stats().damage == 24)
 	_check("widok broni nadal jest", player.view_model.has_item())
+	_check("model zgadza sie z klasa", player.view_model.shown_visual() == ItemStack.visual_of(equipment.active_stack()))
+	var muzzle_local := player.view_model.overlay_camera().to_local(player.view_model.muzzle_position())
+	_check("lufa jest przed kamera", muzzle_local.z < -0.3)
 
 	await _hold("fire", 0.35)
 	var epic_left := equipment.charges(1)

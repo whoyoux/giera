@@ -8,12 +8,15 @@ const RELOAD_SOUND_SECONDS := 1.6
 static var _cache := {}
 
 
-static func shot() -> AudioStreamWAV:
-	return _make("shot", 0.2, func(t: float, phase: float) -> float:
-		var envelope := pow(1.0 - t / 0.2, 2.0)
+## Strzal zbudowany z parametrow broni: im nizszy koniec opadania, tym ciezszy dzwiek.
+static func shot(stats: WeaponStats) -> AudioStreamWAV:
+	var seconds := stats.shot_seconds
+	var key := "shot_%f_%f_%f_%f" % [stats.shot_start_hz, stats.shot_end_hz, seconds, stats.shot_noise]
+	return _make(key, seconds, func(t: float, phase: float) -> float:
+		var envelope := pow(1.0 - t / seconds, 2.0)
 		var square := 1.0 if fposmod(phase, 1.0) < 0.5 else -1.0
-		return (square * 0.65 + randf_range(-0.35, 0.35)) * envelope
-	, func(t: float) -> float: return lerpf(880.0, 130.0, sqrt(t / 0.2)))
+		return (square * (1.0 - stats.shot_noise) + randf_range(-stats.shot_noise, stats.shot_noise)) * envelope
+	, func(t: float) -> float: return lerpf(stats.shot_start_hz, stats.shot_end_hz, sqrt(t / seconds)))
 
 
 static func hit() -> AudioStreamWAV:

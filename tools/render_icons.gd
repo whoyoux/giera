@@ -13,9 +13,9 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://assets/icons"))
 	for definition in ItemRegistry.DEFINITIONS:
 		for tier: int in TIER_NAMES:
-			var path := definition.model_path(tier)
-			if not path.is_empty():
-				await _render(path, "res://assets/icons/%s_%s.png" % [definition.id, TIER_NAMES[tier]])
+			var visual := definition.visual(tier)
+			if visual != null:
+				await _render(visual.model_path, visual.icon_path)
 	await _render(AMMO_MODEL, "res://assets/icons/ammo.png", 28.0, Vector3(-1.4, 0.8, 0.9))
 	get_tree().quit()
 

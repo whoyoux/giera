@@ -24,12 +24,8 @@ func behavior() -> ItemBehavior:
 	return _behavior
 
 
-func model_path(tier: int) -> String:
-	return stats(tier).model_path
-
-
-func icon_path(tier: int) -> String:
-	return stats(tier).icon_path
+func visual(tier: int) -> ItemVisual:
+	return stats(tier).visual
 
 
 func full_charges(tier: int) -> int:

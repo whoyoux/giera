@@ -21,7 +21,7 @@ var _aim_blend := 1.0
 var _dead := false
 var _armed := true
 var _gun_holder: Node3D
-var _model_path := ""
+var _visual: ItemVisual
 
 
 func setup(peer_id: int) -> void:
@@ -44,10 +44,10 @@ func set_item(stack: Dictionary) -> void:
 	_armed = not ItemStack.is_empty(stack)
 	_gun_holder.visible = _armed
 	if _armed:
-		var path := ItemStack.definition_of(stack).model_path(ItemStack.tier_of(stack))
-		if path != _model_path:
-			_model_path = path
-			CharacterAssets.set_gun_model(_gun_holder, path)
+		var visual := ItemStack.visual_of(stack)
+		if visual != _visual:
+			_visual = visual
+			CharacterAssets.set_gun_model(_gun_holder, visual)
 
 
 func play_shot() -> void:

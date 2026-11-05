@@ -85,7 +85,8 @@ czyli sumę SHA-512 pliku `SHA512-SUMS.txt` z wydania Godota.
 
 ## Jak działają przedmioty
 
-- **Definicja** w `data/items/*.tres` opisuje rodzaj przedmiotu, a broń ma osobne parametry dla każdej klasy.
+- **Definicja** w `data/items/*.tres` opisuje rodzaj przedmiotu, a broń ma osobne parametry, model, smugę i dźwięk dla każdej klasy.
+- **Wygląd** to `ItemVisual` z modelem, ikoną oraz punktami rękojeści i lufy, więc każdy model może mieć inny kształt.
 - **Egzemplarz** to `ItemStack`, a cztery sloty każdego gracza trzyma serwer w `GameState`.
 - **Zachowanie** to `ItemBehavior`. Nowy rodzaj przedmiotu dostaje własną definicję i zachowanie, bez zmian w kodzie sieciowym.
 - **Stan w ręku** (aktywny slot, naboje, przeładowanie) jest w `Equipment`. Klient przewiduje go od razu, a serwer koryguje.

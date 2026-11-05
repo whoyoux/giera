@@ -6,6 +6,7 @@ signal settings_requested
 
 const FEED_SECONDS := 5.0
 const LOW_HEALTH := 35
+const ITEM_NAME_SECONDS := 1.4
 ## Od tylu obrazen reakcja na trafienie jest najmocniejsza.
 const HEAVY_HIT_DAMAGE := 40.0
 const GOOD_PING := 60
@@ -19,6 +20,11 @@ var _health_label: Label
 var _speed_bar: ProgressBar
 var _speed_fill: StyleBoxFlat
 var _hotbar: Hotbar
+var _item_name_panel: PanelContainer
+var _item_name: Label
+var _item_name_style: StyleBoxFlat
+var _item_name_tween: Tween
+var _shown_item_uid := -1
 var _ammo_label: Label
 var _ammo_hint: Label
 var _ammo_panel: PanelContainer
@@ -58,6 +64,7 @@ func bind(player: Player) -> void:
 	_player = player
 	_indicator.bind(player)
 	_hotbar.bind(player.equipment)
+	_shown_item_uid = -1
 	_hit_amount = 0.0
 	_pause.visible = false
 	_refresh_scoreboard()
@@ -84,6 +91,7 @@ func _process(delta: float) -> void:
 	_speed_fill.bg_color = UiStyle.CORAL if _player.exhausted else UiStyle.SUN
 
 	_update_ammo(_player.equipment)
+	_update_item_name(_player.equipment)
 
 	_crosshair.hidden_for_sprint = _player.sprinting
 	_death_panel.visible = not info.alive
@@ -91,6 +99,27 @@ func _process(delta: float) -> void:
 		var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
 		_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
 	_score_center.visible = Input.is_action_pressed("scoreboard")
+
+
+## Po zmianie przedmiotu pokazuje na chwile jego nazwe w kolorze klasy.
+func _update_item_name(equipment: Equipment) -> void:
+	var stack := equipment.active_stack()
+	var uid := ItemStack.uid_of(stack)
+	if uid == _shown_item_uid:
+		return
+	var first_time := _shown_item_uid == -1
+	_shown_item_uid = uid
+	if _item_name_tween != null:
+		_item_name_tween.kill()
+	if first_time or ItemStack.is_empty(stack):
+		_item_name_panel.modulate.a = 0.0
+		return
+	_item_name.text = ItemStack.display_name_of(stack)
+	_item_name_style.bg_color = Rarity.color(ItemStack.tier_of(stack))
+	_item_name_panel.modulate.a = 1.0
+	_item_name_tween = create_tween()
+	_item_name_tween.tween_interval(ITEM_NAME_SECONDS)
+	_item_name_tween.tween_property(_item_name_panel, "modulate:a", 0.0, 0.3)
 
 
 func _update_ammo(equipment: Equipment) -> void:
@@ -286,6 +315,25 @@ func _build() -> void:
 	_hotbar.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_hotbar.position.y -= 32.0
 	add_child(_hotbar)
+
+	var name_center := CenterContainer.new()
+	name_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	name_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	name_center.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	name_center.position.y -= 150.0
+	name_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(name_center)
+	_item_name_panel = PanelContainer.new()
+	_item_name_style = UiStyle.sticker(UiStyle.BLUE, 16, 4)
+	_item_name_style.set_content_margin_all(7)
+	_item_name_style.content_margin_left = 16
+	_item_name_style.content_margin_right = 16
+	_item_name_panel.add_theme_stylebox_override("panel", _item_name_style)
+	_item_name_panel.modulate.a = 0.0
+	_item_name_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_center.add_child(_item_name_panel)
+	_item_name = UiStyle.label("", 19, Color.WHITE)
+	_item_name_panel.add_child(_item_name)
 
 	_feed = VBoxContainer.new()
 	_feed.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)

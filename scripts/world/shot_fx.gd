@@ -3,13 +3,13 @@ extends RefCounted
 ## Krotkotrwale efekty strzalu. Czysto wizualne, nie wplywaja na rozgrywke.
 
 
-static func tracer(parent: Node, from: Vector3, to: Vector3) -> void:
+static func tracer(parent: Node, from: Vector3, to: Vector3, color := Color("fff3a3"), width := 0.05) -> void:
 	var length := from.distance_to(to)
 	if length < 0.1:
 		return
 	var node := MeshInstance3D.new()
-	node.mesh = LowPoly.box(Vector3(0.05, 0.05, length))
-	node.material_override = LowPoly.glow(Color("fff3a3"))
+	node.mesh = LowPoly.box(Vector3(width, width, length))
+	node.material_override = LowPoly.glow(color)
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(node)
 	var up := Vector3.UP if absf((to - from).normalized().y) < 0.98 else Vector3.RIGHT

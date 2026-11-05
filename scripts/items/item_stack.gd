@@ -35,6 +35,17 @@ static func behavior_of(stack: Dictionary) -> ItemBehavior:
 	return definition.behavior() if definition != null else null
 
 
+static func visual_of(stack: Dictionary) -> ItemVisual:
+	var definition := definition_of(stack)
+	return definition.visual(tier_of(stack)) if definition != null else null
+
+
+## Nazwa do pokazania graczowi, np. "Epicki Blaster".
+static func display_name_of(stack: Dictionary) -> String:
+	var definition := definition_of(stack)
+	return "%s %s" % [Rarity.display_name(tier_of(stack)), definition.display_name] if definition != null else ""
+
+
 static func weapon_stats_of(stack: Dictionary) -> WeaponStats:
 	var definition := definition_of(stack) as WeaponDefinition
 	return definition.stats(tier_of(stack)) if definition != null else null

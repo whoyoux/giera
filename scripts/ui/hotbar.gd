@@ -65,9 +65,9 @@ func _show_stack(cell: Dictionary, stack: Dictionary) -> void:
 	var color := Rarity.color(tier)
 	style.bg_color = color.lerp(Color.WHITE, 0.62)
 	style.border_color = color
-	var path := ItemStack.definition_of(stack).icon_path(tier)
-	if ResourceLoader.exists(path):
-		icon.texture = load(path) as Texture2D
+	var visual := ItemStack.visual_of(stack)
+	if visual != null and ResourceLoader.exists(visual.icon_path):
+		icon.texture = load(visual.icon_path) as Texture2D
 
 
 func _update_charges(cell: Dictionary, slot: int, stack: Dictionary) -> void:
