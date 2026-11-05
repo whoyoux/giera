@@ -284,7 +284,7 @@ func _build() -> void:
 	_hotbar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_hotbar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_hotbar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_hotbar.position.y -= 24.0
+	_hotbar.position.y -= 32.0
 	add_child(_hotbar)
 
 	_feed = VBoxContainer.new()

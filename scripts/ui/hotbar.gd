@@ -1,11 +1,14 @@
 class_name Hotbar
 extends HBoxContainer
-## Pasek przedmiotow na dole ekranu: cztery naklejki z ikona, klasa, nabojami i numerem.
+## Pasek przedmiotow na dole ekranu: cztery naklejki z ikona i kolorem klasy. Numer klawisza
+## to znaczek na rogu, a naboje to pigulka na dolnej krawedzi, wiec nie zaslaniaja ikony.
 
 const SLOT_SIZE := Vector2(92, 92)
 const ACTIVE_SCALE := 1.14
 const ACTIVE_LIFT := -10.0
 const EMPTY_FILL := Color(1.0, 0.98, 0.94, 0.72)
+const BADGE_SIZE := Vector2(30, 30)
+const CHARGES_SIZE := Vector2(46, 26)
 
 var _cells: Array[Dictionary] = []
 var _equipment: Equipment
@@ -67,12 +70,15 @@ func _show_stack(cell: Dictionary, stack: Dictionary) -> void:
 
 
 func _update_charges(cell: Dictionary, slot: int, stack: Dictionary) -> void:
-	var label: Label = cell.charges
+	var pill: PanelContainer = cell.charges_pill
 	var definition := ItemStack.definition_of(stack)
 	if definition == null or definition.full_charges(ItemStack.tier_of(stack)) <= 0:
-		label.text = ""
+		pill.visible = false
 		return
-	label.text = str(_equipment.charges(slot))
+	pill.visible = true
+	var charges := _equipment.charges(slot)
+	(cell.charges as Label).text = str(charges)
+	(cell.charges_style as StyleBoxFlat).bg_color = UiStyle.CORAL if charges == 0 else UiStyle.INK
 
 
 func _animate_selection(cell: Dictionary, active: bool) -> void:
@@ -81,7 +87,7 @@ func _animate_selection(cell: Dictionary, active: bool) -> void:
 	var tween := panel.create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(panel, "scale", Vector2.ONE * (ACTIVE_SCALE if active else 1.0), 0.14)
 	tween.tween_property(panel, "position:y", ACTIVE_LIFT if active else 0.0, 0.14)
-	(cell.number as Label).add_theme_color_override("font_color", UiStyle.CORAL if active else UiStyle.INK)
+	(cell.badge_style as StyleBoxFlat).bg_color = UiStyle.CORAL if active else UiStyle.INK
 
 
 func _pop(panel: Control) -> void:
@@ -113,12 +119,51 @@ func _build_cell(slot: int) -> Dictionary:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 	inner.add_child(icon)
-	var number := UiStyle.label(str(slot + 1), 16, UiStyle.INK)
-	number.position = Vector2(4, 0)
-	inner.add_child(number)
-	var charges := UiStyle.label("", 16, UiStyle.INK)
-	charges.set_anchors_preset(Control.PRESET_FULL_RECT)
-	charges.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	charges.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	inner.add_child(charges)
-	return { "panel": panel, "style": style, "icon": icon, "number": number, "charges": charges }
+	var badge_style := _chip_style(15)
+	var badge := _chip(badge_style, BADGE_SIZE)
+	badge.position = -BADGE_SIZE * 0.5 + Vector2(4, 4)
+	inner.add_child(badge)
+	badge.add_child(_chip_label(str(slot + 1), 16))
+
+	var charges_style := _chip_style(13)
+	var charges_pill := _chip(charges_style, CHARGES_SIZE)
+	charges_pill.position = Vector2((SLOT_SIZE.x - 8.0 - CHARGES_SIZE.x) * 0.5, SLOT_SIZE.y - 8.0 - CHARGES_SIZE.y * 0.5)
+	charges_pill.visible = false
+	inner.add_child(charges_pill)
+	var charges := _chip_label("", 16)
+	charges_pill.add_child(charges)
+	return {
+		"panel": panel,
+		"style": style,
+		"icon": icon,
+		"badge_style": badge_style,
+		"charges": charges,
+		"charges_pill": charges_pill,
+		"charges_style": charges_style,
+	}
+
+
+func _chip_style(radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = UiStyle.INK
+	style.border_color = Color.WHITE
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(radius)
+	style.anti_aliasing = true
+	return style
+
+
+func _chip(style: StyleBoxFlat, chip_size: Vector2) -> PanelContainer:
+	var chip := PanelContainer.new()
+	chip.custom_minimum_size = chip_size
+	chip.size = chip_size
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_theme_stylebox_override("panel", style)
+	return chip
+
+
+func _chip_label(text: String, font_size: int) -> Label:
+	var label := UiStyle.label(text, font_size, Color.WHITE)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	return label
