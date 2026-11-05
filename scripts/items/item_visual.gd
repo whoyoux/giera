@@ -13,3 +13,5 @@ extends Resource
 @export var muzzle := Vector3.ZERO
 ## Przesuniecie broni przy celowaniu, gdy muszka modelu zaslanialaby celownik.
 @export var aim_offset := Vector3.ZERO
+## Skala modelu, gdy sam plik jest za maly. Punkty wyzej podaje sie bez skali.
+@export var model_scale := 1.0

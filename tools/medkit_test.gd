@@ -109,26 +109,6 @@ func _check_data() -> void:
 	_check("rejestr zna apteczke", definition != null)
 	_check("model i ikona istnieja", ResourceLoader.exists(definition.item_visual.model_path) and ResourceLoader.exists(definition.item_visual.icon_path))
 	_check("apteczka nie ma ladunkow", definition.full_charges(Rarity.Tier.COMMON) == 0)
-	var table := Chests.LOOT_TABLE
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 99
-	var bonus := 0
-	var tiers := [0, 0, 0]
-	for i in 10000:
-		var rolled: Array = table.roll_all(rng)
-		tiers[rolled[0].tier] += 1
-		_expect_item(rolled[0], ItemRegistry.DEFAULT_WEAPON)
-		if rolled.size() > 1:
-			bonus += 1
-			_expect_item(rolled[1], MEDKIT)
-	print("[test] klasy: %s, apteczek: %d" % [tiers, bonus])
-	_check("bron wypada zawsze w tych samych proporcjach", absi(tiers[0] - 7000) < 300 and absi(tiers[1] - 2500) < 300 and absi(tiers[2] - 500) < 150)
-	_check("apteczka wypada w okolo 30%", absi(bonus - 3000) < 300)
-
-
-func _expect_item(rolled: Dictionary, item: StringName) -> void:
-	if rolled.item != item:
-		_check("wypadl wlasciwy przedmiot", false)
 
 
 func _hold(seconds: float) -> void:

@@ -11,7 +11,7 @@ signal player_removed(id: int)
 signal player_changed(id: int)
 signal kill_announced(killer_id: int, victim_id: int)
 signal hit_confirmed(killed: bool)
-signal damaged(amount: int, attacker_id: int)
+signal damaged(amount: int, attacker_id: int, source: Vector3)
 signal pings_updated
 
 const MAX_HEALTH := 100
@@ -101,7 +101,8 @@ func server_add_player(id: int, player_name: String, character := "") -> void:
 
 
 ## Zadaje obrazenia. Wywolywane tylko na serwerze, raz na kazdy rozliczony strzal.
-func server_damage(victim_id: int, amount: int, attacker_id: int) -> void:
+## "source" to miejsce wybuchu. Bez niego kierunek trafienia wskazuje na atakujacego.
+func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vector3.INF) -> void:
 	var victim: Dictionary = players.get(victim_id, {})
 	if victim.is_empty() or not victim.alive:
 		return
@@ -114,14 +115,16 @@ func server_damage(victim_id: int, amount: int, attacker_id: int) -> void:
 		victim.death_tick = NetworkTime.tick
 		victim.respawn_tick = NetworkTime.tick + NetworkTime.seconds_to_ticks(RESPAWN_SECONDS)
 		_drop_loot_on_death(victim_id)
-		if players.has(attacker_id):
+		# Wlasny granat to smierc, ale nie punkt.
+		if players.has(attacker_id) and attacker_id != victim_id:
 			players[attacker_id].kills += 1
 			_broadcast(attacker_id)
 		print("[serwer] %s zabil %s" % [display_name(attacker_id), display_name(victim_id)])
 		_announce_kill.rpc(attacker_id, victim_id)
 	_broadcast(victim_id)
-	_notify_damage(victim_id, amount, attacker_id)
-	_notify_hit(attacker_id, killed)
+	_notify_damage(victim_id, amount, attacker_id, source)
+	if attacker_id != victim_id:
+		_notify_hit(attacker_id, killed)
 
 
 ## Konczy respawn, gdy symulacja przeniosla juz gracza na punkt odrodzenia.
@@ -232,9 +235,9 @@ func _give_starting_items(id: int) -> void:
 
 
 func _give_debug_items(id: int) -> void:
-	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC)
 	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
 	server_give_item(id, &"medkit", Rarity.Tier.COMMON)
+	server_give_item(id, &"grenade", Rarity.Tier.COMMON)
 
 
 ## Zwykly zdobyty przedmiot zostaje na ziemi, a jeden startowy blaster przy graczu.
@@ -271,11 +274,11 @@ func _broadcast(id: int) -> void:
 	_sync_player.rpc(id, players[id])
 
 
-func _notify_damage(victim_id: int, amount: int, attacker_id: int) -> void:
+func _notify_damage(victim_id: int, amount: int, attacker_id: int, source: Vector3) -> void:
 	if victim_id == multiplayer.get_unique_id():
-		damaged.emit(amount, attacker_id)
+		damaged.emit(amount, attacker_id, source)
 	elif players.has(victim_id):
-		_receive_damage.rpc_id(victim_id, amount, attacker_id)
+		_receive_damage.rpc_id(victim_id, amount, attacker_id, source)
 
 
 func _notify_hit(attacker_id: int, killed: bool) -> void:
@@ -352,8 +355,8 @@ func _confirm_hit(killed: bool) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
-func _receive_damage(amount: int, attacker_id: int) -> void:
-	damaged.emit(amount, attacker_id)
+func _receive_damage(amount: int, attacker_id: int, source: Vector3) -> void:
+	damaged.emit(amount, attacker_id, source)
 
 
 ## Aktualizuje slownik w miejscu, bo wezel gracza trzyma do niego referencje.

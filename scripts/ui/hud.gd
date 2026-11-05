@@ -262,7 +262,7 @@ func _on_hit_confirmed(killed: bool) -> void:
 	_audio.play()
 
 
-func _on_damaged(amount: int, attacker_id: int) -> void:
+func _on_damaged(amount: int, attacker_id: int, source: Vector3) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
 	var strength := clampf(float(amount) / HEAVY_HIT_DAMAGE, 0.5, 1.0)
@@ -271,6 +271,9 @@ func _on_damaged(amount: int, attacker_id: int) -> void:
 	_bump(_status_panel)
 	_hurt_audio.stream = Sfx.hurt()
 	_hurt_audio.play()
+	if source != Vector3.INF:
+		_indicator.add_hit(source)
+		return
 	var attacker := _player.get_parent().get_node_or_null(str(attacker_id)) as Player
 	if attacker != null:
 		_indicator.add_hit(attacker.position)

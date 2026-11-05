@@ -4,6 +4,7 @@ extends Node
 ## stan rollbacku, ktory klient przewiduje od razu. Zachowanie przedmiotu lezy w ItemBehavior.
 
 signal fired
+signal thrown
 signal action_started
 signal action_cancelled
 ## Zmienil sie przedmiot w reku: inny slot albo inny egzemplarz w tym samym slocie.
@@ -14,6 +15,7 @@ const ACTION_CORRECTION_TICKS := 8
 # Stan rollbacku. Osobne liczby zamiast tablicy, bo netfox wysyla tylko zmienione wartosci.
 var active_slot := 0
 var last_fire := -1000
+var last_throw := -1000
 var action_end := -1
 var draw_end := -1
 var slot_uid_0 := 0
@@ -27,6 +29,7 @@ var charges_3 := 0
 
 var _resolved_up_to := -1
 var _shown_fire := -1000
+var _shown_throw := -1000
 var _shown_slot := -1
 var _shown_uid := -1
 var _shown_action_end := -1
@@ -175,6 +178,9 @@ func _after_tick_loop() -> void:
 	if last_fire > _shown_fire:
 		_shown_fire = last_fire
 		fired.emit()
+	if last_throw > _shown_throw:
+		_shown_throw = last_throw
+		thrown.emit()
 	if action_end != _shown_action_end:
 		# Korekta serwera moze przesunac koniec o pare tickow, ale to wciaz to samo dzialanie.
 		if action_end < 0 or _shown_action_end < 0 or absi(action_end - _shown_action_end) > ACTION_CORRECTION_TICKS:

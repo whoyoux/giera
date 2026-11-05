@@ -34,6 +34,7 @@ var _bot_step := 0
 # Wybor gracza zmienia sie miedzy tickami, a rollback nadpisuje "slot" historia.
 var _wanted_slot := 0
 var _wanted_uid := 0
+var _fire_blocked := false
 var _displayed_state_tick := -1
 
 
@@ -90,6 +91,7 @@ func _keep_selection_valid() -> void:
 	var uid := ItemStack.uid_of(slots[_wanted_slot])
 	if _wanted_uid != 0 and uid == 0:
 		select_slot(maxi(Inventory.first_occupied(slots), 0))
+		_fire_blocked = true
 	else:
 		_wanted_uid = uid if _wanted_uid != 0 else _wanted_uid
 
@@ -110,7 +112,9 @@ func _gather() -> void:
 	elif Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		move = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		jump = Input.is_action_pressed("jump")
-		use_primary = Input.is_action_pressed("fire")
+		# Po uzyciu przedmiotu trzymany przycisk nie strzela kolejna bronia, dopoki go nie pusci.
+		_fire_blocked = _fire_blocked and Input.is_action_pressed("fire")
+		use_primary = Input.is_action_pressed("fire") and not _fire_blocked
 		aim = Input.is_action_pressed("aim")
 		sprint = Input.is_action_pressed("sprint")
 		reload = Input.is_action_pressed("reload")
@@ -204,6 +208,15 @@ func _gather_bot() -> void:
 			if kit >= 0 and _wanted_slot != kit:
 				select_slot(kit)
 			use_primary = kit >= 0 and me.info.health < GameState.MAX_HEALTH
+		"grenadier":
+			# Test sieci: co kilka sekund rzuca granat, gdy jakis ma.
+			var grenade := _find_item(me, &"grenade")
+			var throwing := fmod(_bot_time, 3.0) < 0.4 and grenade >= 0
+			if grenade >= 0 and _wanted_slot != grenade:
+				select_slot(grenade)
+			look_pitch = 0.25
+			look_yaw += 0.01
+			use_primary = throwing
 		"headhunter":
 			# Strzela tylko, gdy na ekranie ma dokladnie glowe celu w celowniku.
 			var target := _nearest_enemy(me)

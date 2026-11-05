@@ -11,10 +11,12 @@ const TIER_NAMES := { Rarity.Tier.COMMON: "common", Rarity.Tier.EPIC: "epic", Ra
 func _ready() -> void:
 	get_node("/root/Main/Menu").visible = false
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://assets/icons"))
+	var rendered := {}
 	for definition in ItemRegistry.DEFINITIONS:
 		for tier: int in TIER_NAMES:
 			var visual := definition.visual(tier)
-			if visual != null:
+			if visual != null and not rendered.has(visual.icon_path):
+				rendered[visual.icon_path] = true
 				await _render(visual.model_path, visual.icon_path)
 	await _render(AMMO_MODEL, "res://assets/icons/ammo.png", 28.0, Vector3(-1.4, 0.8, 0.9))
 	get_tree().quit()

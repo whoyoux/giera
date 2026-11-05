@@ -26,6 +26,7 @@ func _ready() -> void:
 	add_child(ChestField.new())
 	if not Net.is_headless:
 		add_child(PickupField.new())
+		add_child(ExplosionPool.new())
 	_apply_quality()
 	hud.visible = false
 	if Net.is_headless:
@@ -54,6 +55,8 @@ func _on_local_player_spawned(player: Player) -> void:
 	menu.visible = false
 	hud.bind(player)
 	hud.visible = true
+	if ExplosionPool.instance != null:
+		ExplosionPool.instance.warm_up(player.camera)
 	if Net.bot_mode.is_empty():
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
