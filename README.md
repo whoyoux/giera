@@ -42,6 +42,36 @@ godot --headless --path . --export-release "Windows Desktop" builds/Giera.exe
 Wymaga szablonów eksportu Godota 4.7.2. Po zmianach w kodzie sieciowym wszyscy gracze
 potrzebują nowego pliku `Giera.exe`.
 
+## Publikowanie nowej wersji
+
+Wydanie powstaje automatycznie po wypchnięciu tagu `v*`. Najpierw scal zmiany do `main`,
+a potem otaguj tę wersję:
+
+```bash
+git switch main
+```
+
+```bash
+git pull
+```
+
+```bash
+git tag v0.2.0
+```
+
+```bash
+git push origin v0.2.0
+```
+
+Workflow `.github/workflows/release.yml` zbuduje `Giera.exe` i po kilku minutach opublikuje
+go w zakładce **Releases**. Postęp widać w zakładce **Actions**.
+
+Sam tag nie wdraża serwera, ale każdy push na `main` wdraża go i rozłącza graczy.
+Tag z myślnikiem, np. `v0.2.0-rc1`, tworzy wersję próbną, która nie staje się najnowszą.
+
+Przed zmianą wersji Godota zaktualizuj w workflow `GODOT_VERSION` i `GODOT_SUMS_SHA512`,
+czyli sumę SHA-512 pliku `SHA512-SUMS.txt` z wydania Godota.
+
 ## Jak działa multiplayer
 
 - **Serwer decyduje o wszystkim.** Klient wysyła tylko klawisze, kąt patrzenia i przycisk strzału.

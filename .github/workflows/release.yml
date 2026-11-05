@@ -1,0 +1,91 @@
+# Buduje Giera.exe i publikuje wydanie GitHub po wypchnieciu tagu v*.
+# Nie wdraza serwera: Dokploy reaguje tylko na push do galezi main.
+name: Wydanie Windows
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.7.2
+  # SHA-512 pliku SHA512-SUMS.txt z wydania 4.7.2-stable. Podmiana sum na GitHubie przerwie build.
+  GODOT_SUMS_SHA512: e5a0b2214c7409871add5171b0d1f91a5018b3ea7eabacdae1c608a1381e5f2542b26fc4f6d3aecac02281802a258d412741277ec113fba4b6634a62773482b1
+
+jobs:
+  windows:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Pobierz kod
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Pobierz Godota i szablony eksportu
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          editor="Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          templates="Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$RUNNER_TEMP/godot"
+          cd "$RUNNER_TEMP/godot"
+          curl -fsSL --retry 3 -o SHA512-SUMS.txt "$base/SHA512-SUMS.txt"
+          echo "$GODOT_SUMS_SHA512  SHA512-SUMS.txt" | sha512sum -c -
+          curl -fsSL --retry 3 -o "$editor.zip" "$base/$editor.zip"
+          curl -fsSL --retry 3 -o "$templates" "$base/$templates"
+          # Dokladnie te dwa pliki. Brak ktoregos na liscie sum przerwie build.
+          grep -E "^[0-9a-f]{128}  ($editor\.zip|$templates)\$" SHA512-SUMS.txt > wanted.txt
+          test "$(wc -l < wanted.txt)" -eq 2
+          sha512sum -c wanted.txt
+
+          unzip -q "$editor.zip"
+          install -D -m 755 "$editor" "$HOME/.local/bin/godot"
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$dest"
+          unzip -q -j "$templates" 'templates/windows_*_x86_64*' templates/version.txt -d "$dest"
+          rm -f "$editor.zip" "$templates"
+
+      - name: Zaimportuj zasoby
+        # Import w trybie headless moze zwrocic blad mimo poprawnego wyniku, wiec liczy sie plik z cache.
+        run: |
+          godot --headless --path . --import || true
+          test -f .godot/global_script_class_cache.cfg
+
+      - name: Zbuduj Giera.exe
+        run: |
+          mkdir -p builds
+          godot --headless --path . --export-release "Windows Desktop" builds/Giera.exe
+          # Z osadzona gra plik musi byc wiekszy od samego szablonu.
+          template="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/windows_release_x86_64.exe"
+          test "$(stat -c %s builds/Giera.exe)" -gt "$(stat -c %s "$template")"
+
+      - name: Opublikuj wydanie
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          sha="$(sha256sum builds/Giera.exe | cut -d' ' -f1)"
+          cat > notes.md <<EOF
+          Wersja $TAG na Windows.
+
+          1. Pobierz \`Giera.exe\` i uruchom. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
+          2. Wpisz nick i adres serwera podany przez hosta, a potem kliknij **Dołącz**.
+
+          Sterowanie: WASD, mysz, LPM strzał, spacja skok, Tab wyniki, Esc pauza.
+
+          SHA-256: \`$sha\`
+          EOF
+          # Tag z myslnikiem (np. v0.3.0-rc1) to wersja probna: nie zostanie oznaczona jako najnowsza.
+          flags=()
+          case "$TAG" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$TAG" builds/Giera.exe \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "Giera $TAG" \
+            --notes-file notes.md \
+            "${flags[@]}"
