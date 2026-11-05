@@ -18,6 +18,7 @@ const OPENING_MIN_DOT := 0.3
 const AIM_HEIGHT := 0.5
 const LOOT_START_HEIGHT := 1.1
 const LOOT_THROW_DISTANCE := 1.7
+const LOOT_SPREAD := 0.55
 ## Tyle po zakonczeniu paska czekamy na serwer, zanim uznamy, ze odmowil.
 const ANSWER_TIMEOUT := 1.5
 const RESPAWN_CHECK_SECONDS := 1.0
@@ -187,15 +188,20 @@ func _finish_opening(chest: Dictionary, player: Player) -> void:
 		if _openings[peer].chest == chest.id:
 			_openings.erase(peer)
 	chest.reopen_tick = NetworkTime.tick + NetworkTime.seconds_to_ticks(RESPAWN_SECONDS)
-	var loot: Dictionary = LOOT_TABLE.roll(_rng)
-	print("[serwer] %s otworzyl skrzynke %d: %s" % [player.info.name, chest.id, Rarity.display_name(loot.tier)])
-	_chest_opened.rpc(chest.id, player.peer_id, loot.tier)
+	var loot: Array = LOOT_TABLE.roll_all(_rng)
+	print("[serwer] %s otworzyl skrzynke %d: %s, przedmiotow: %d" % [player.info.name, chest.id, Rarity.display_name(loot[0].tier), loot.size()])
+	_chest_opened.rpc(chest.id, player.peer_id, loot[0].tier)
 	if chest.busy:
 		_chest_busy.rpc(chest.id, false)
 	var from: Vector3 = chest.position + Vector3.UP * LOOT_START_HEIGHT
 	var to_player: Vector3 = (player.position - chest.position) * Vector3(1.0, 0.0, 1.0)
-	var toward := from + to_player.normalized() * LOOT_THROW_DISTANCE
-	WorldItems.server_launch(GameState.server_new_stack(loot.item, loot.tier), from, toward, player.position, player.get_world_3d())
+	var forward := to_player.normalized()
+	var side := forward.cross(Vector3.UP) * LOOT_SPREAD
+	for index in loot.size():
+		# Kilka przedmiotow rozchodzi sie na boki, zeby nie lezaly jeden w drugim.
+		var offset := side * (index * 2.0 - (loot.size() - 1))
+		var stack := GameState.server_new_stack(loot[index].item, loot[index].tier)
+		WorldItems.server_launch(stack, from, from + forward * LOOT_THROW_DISTANCE + offset, player.position, player.get_world_3d())
 
 
 func _on_player_added(id: int) -> void:

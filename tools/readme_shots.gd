@@ -31,6 +31,7 @@ func _ready() -> void:
 	var right := forward.cross(Vector3.UP)
 	GameState.server_give_item(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC)
 	GameState.server_give_item(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
+	GameState.server_give_item(1, &"medkit", Rarity.Tier.COMMON)
 	me.input.select_slot(2)
 	GameState.server_add_player(2, "Ziutek")
 	GameState.server_add_player(3, "Basia")

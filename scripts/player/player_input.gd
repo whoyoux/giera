@@ -194,6 +194,12 @@ func _gather_bot() -> void:
 				else:
 					Chests.arm()
 					bot_interact = true
+		"medic":
+			# Test sieci: trzyma apteczke i leczy sie, gdy jest ranny. Sloty dostaje z --debug-items.
+			var kit := _find_item(me, &"medkit")
+			if kit >= 0 and _wanted_slot != kit:
+				select_slot(kit)
+			use_primary = kit >= 0 and me.info.health < GameState.MAX_HEALTH
 		"headhunter":
 			# Strzela tylko, gdy na ekranie ma dokladnie glowe celu w celowniku.
 			var target := _nearest_enemy(me)
@@ -205,6 +211,13 @@ func _gather_bot() -> void:
 				look_pitch = asin(clampf(to_head.normalized().y, -1.0, 1.0))
 				var seen := Hitscan.trace(me.get_world_3d(), me.eye_position(), to_head.normalized(), me.peer_id, get_tree())
 				use_primary = seen.player == target and to_head.length() > 2.0
+
+
+func _find_item(me: Player, item_id: StringName) -> int:
+	for index in Inventory.SLOTS:
+		if StringName(me.info.slots[index].get("item", "")) == item_id:
+			return index
+	return -1
 
 
 func _nearest_closed_chest(me: Player) -> Dictionary:

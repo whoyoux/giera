@@ -32,6 +32,12 @@ var _prompt_action: Label
 var _prompt_name: Label
 var _prompt_bar: ProgressBar
 var _drop_hint: Control
+var _use_panel: PanelContainer
+var _use_label: Label
+var _use_bar: ProgressBar
+var _heal_label: Label
+var _heal_audio: AudioStreamPlayer
+var _seen_health := -1
 var _shown_prompt_id := -1
 var _ammo_label: Label
 var _ammo_hint: Label
@@ -102,6 +108,8 @@ func _process(delta: float) -> void:
 	_update_item_name(_player.equipment)
 	_update_prompt()
 	_drop_hint.visible = not ItemStack.is_empty(_player.equipment.active_stack())
+	_update_use_panel(_player.equipment)
+	_update_heal_feedback(info)
 
 	_crosshair.hidden_for_sprint = _player.sprinting
 	_death_panel.visible = not info.alive
@@ -109,6 +117,37 @@ func _process(delta: float) -> void:
 		var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
 		_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
 	_score_center.visible = Input.is_action_pressed("scoreboard")
+
+
+## Podpowiedz i pasek uzycia dla przedmiotow, ktore nie sa bronia.
+func _update_use_panel(equipment: Equipment) -> void:
+	var stack := equipment.active_stack()
+	var behavior := ItemStack.behavior_of(stack)
+	var text := ""
+	if behavior != null:
+		text = behavior.action_label(stack) if equipment.is_busy() else behavior.idle_hint(equipment, stack)
+	_use_panel.visible = not text.is_empty() and Chests.focused_id == 0 and WorldItems.focused_id == 0
+	if not _use_panel.visible:
+		return
+	_use_label.text = text
+	_use_bar.visible = equipment.is_busy()
+	_use_bar.value = equipment.action_progress()
+
+
+## Leczenie widac na pasku zdrowia. Powrot po smierci to nie leczenie.
+func _update_heal_feedback(info: Dictionary) -> void:
+	var health: int = info.health
+	if _seen_health > 0 and health > _seen_health:
+		_bump(_status_panel)
+		_heal_audio.stream = Sfx.heal()
+		_heal_audio.play()
+		_heal_label.text = "+%d" % (health - _seen_health)
+		_heal_label.modulate.a = 1.0
+		_heal_label.position.y = 0.0
+		var tween := _heal_label.create_tween().set_parallel()
+		tween.tween_property(_heal_label, "position:y", -36.0, 0.9)
+		tween.tween_property(_heal_label, "modulate:a", 0.0, 0.9).set_delay(0.3)
+	_seen_health = health
 
 
 ## Podpowiedz nad paskiem przedmiotow, gdy gracz patrzy na cos do podniesienia.
@@ -391,6 +430,7 @@ func _build() -> void:
 
 	_build_prompt()
 	_build_drop_hint()
+	_build_use_panel()
 
 	_feed = VBoxContainer.new()
 	_feed.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -505,6 +545,48 @@ func _key_chip(key_name: String, chip_size: float, font_size: int) -> PanelConta
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	chip.add_child(label)
 	return chip
+
+
+func _build_use_panel() -> void:
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	center.position.y -= 200.0
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center)
+	_use_panel = PanelContainer.new()
+	var style := UiStyle.sticker(UiStyle.PAPER, 18, 5)
+	style.set_content_margin_all(9)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.border_color = UiStyle.TEAL
+	_use_panel.add_theme_stylebox_override("panel", style)
+	_use_panel.custom_minimum_size = Vector2(300, 0)
+	_use_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_use_panel.visible = false
+	center.add_child(_use_panel)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 6)
+	_use_panel.add_child(rows)
+	_use_label = UiStyle.label("", 19, UiStyle.INK)
+	_use_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rows.add_child(_use_label)
+	_use_bar = UiStyle.bar(UiStyle.TEAL, 12)
+	_use_bar.max_value = 1.0
+	_use_bar.step = 0.0
+	_use_bar.visible = false
+	rows.add_child(_use_bar)
+
+	# Liczba przy pasku zdrowia po uleczeniu.
+	var heal_anchor := _anchored(Control.PRESET_BOTTOM_LEFT, Vector2(300, -160), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_BEGIN)
+	_heal_label = UiStyle.label("", 34, UiStyle.TEAL)
+	_heal_label.add_theme_color_override("font_outline_color", Color.WHITE)
+	_heal_label.add_theme_constant_override("outline_size", 8)
+	_heal_label.modulate.a = 0.0
+	heal_anchor.add_child(_heal_label)
+	_heal_audio = AudioStreamPlayer.new()
+	add_child(_heal_audio)
 
 
 ## Przypomnienie o wyrzucaniu tuz obok paska przedmiotow.

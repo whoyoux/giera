@@ -181,6 +181,21 @@ func server_take_stack(id: int, slot: int, uid: int) -> Dictionary:
 	return stack
 
 
+## Leczy i zabiera apteczke. Wolane raz na skonczone uzycie, tylko na serwerze.
+func server_use_medkit(id: int, uid: int, amount: int) -> void:
+	var info: Dictionary = players.get(id, {})
+	if info.is_empty() or not info.alive or info.health >= MAX_HEALTH:
+		return
+	for slot in Inventory.SLOTS:
+		if ItemStack.uid_of(info.slots[slot]) == uid:
+			info.slots[slot] = {}
+			info.inventory_tick = NetworkTime.tick
+			info.health = mini(info.health + amount, MAX_HEALTH)
+			print("[serwer] %s uleczyl sie do %d" % [info.name, info.health])
+			_broadcast(id)
+			return
+
+
 func player_node(id: int) -> Player:
 	for node in get_tree().get_nodes_in_group(&"players"):
 		if (node as Player).peer_id == id and not node.is_queued_for_deletion():
@@ -218,6 +233,7 @@ func _give_starting_items(id: int) -> void:
 func _give_debug_items(id: int) -> void:
 	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC)
 	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
+	server_give_item(id, &"medkit", Rarity.Tier.COMMON)
 
 
 ## Zwykly zdobyty przedmiot zostaje na ziemi, a jeden startowy blaster przy graczu.

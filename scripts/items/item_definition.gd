@@ -18,6 +18,11 @@ func visual(_tier: int) -> ItemVisual:
 	return null
 
 
+## Czy przedmiot wystepuje w klasach. Bez klas nazwa nie ma przedrostka, a kazdy egzemplarz jest zwykly.
+func has_tiers() -> bool:
+	return true
+
+
 ## Ile "ladunkow" ma nowy egzemplarz, np. naboje w magazynku.
 func full_charges(_tier: int) -> int:
 	return 0

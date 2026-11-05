@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MedkitDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/medkit_definition.gd" id="1_definition"]
+[ext_resource type="Script" path="res://scripts/items/item_visual.gd" id="2_visual"]
+
+[sub_resource type="Resource" id="visual"]
+script = ExtResource("2_visual")
+model_path = "res://scenes/items/medkit.tscn"
+icon_path = "res://assets/icons/medkit.png"
+grip = Vector3(0.02, -0.22, 0.04)
+fore_grip = Vector3(-0.12, -0.22, -0.1)
+muzzle = Vector3(0, 0, -0.2)
+
+[resource]
+script = ExtResource("1_definition")
+id = &"medkit"
+display_name = "Apteczka"
+heal_amount = 50
+use_seconds = 2.5
+item_visual = SubResource("visual")

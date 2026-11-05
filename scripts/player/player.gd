@@ -103,7 +103,6 @@ func _ready() -> void:
 	name_label.visible = not local
 	name_label.text = info.name
 	if not Net.is_headless:
-		reload_audio.stream = Sfx.reload_sound()
 		_switch_audio = AudioStreamPlayer.new()
 		_switch_audio.stream = Sfx.switch_item()
 		add_child(_switch_audio)
@@ -423,9 +422,12 @@ func _show_shot(muzzle: Vector3, hit: Dictionary, color: Color, width: float) ->
 func _on_action_started() -> void:
 	if Net.is_headless:
 		return
-	# Dzwiek ma stala dlugosc, wiec krotsze przeladowanie odtwarzamy szybciej.
-	var seconds := ItemStack.behavior_of(equipment.active_stack()).timed_action_seconds(equipment.active_stack())
-	reload_audio.pitch_scale = Sfx.RELOAD_SOUND_SECONDS / maxf(seconds, 0.1)
+	var behavior := ItemStack.behavior_of(equipment.active_stack())
+	var seconds := behavior.timed_action_seconds(equipment.active_stack())
+	# Dzwiek ma stala dlugosc, wiec krotsze dzialanie odtwarzamy szybciej.
+	var sound := behavior.action_sound()
+	reload_audio.stream = sound
+	reload_audio.pitch_scale = sound.get_length() / maxf(seconds, 0.1)
 	reload_audio.play()
 	if is_local():
 		view_model.set_reload_seconds(seconds)
