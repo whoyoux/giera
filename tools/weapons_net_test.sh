@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Test strzelby i noza przez siec: boty z opoznieniem walcza ze soba, a na koncu serwer
-# musi miec zabojstwa, klienci bledow nie moga zglaszac, a zaden egzemplarz nie moze sie podwoic.
+# musi miec zabojstwa, klienci bledow nie moga zglaszac, a gdy walka ucichnie, zaden egzemplarz
+# nie moze sie podwoic. W chwili smierci przedmiot bywa na moment i na ziemi, i w slocie.
 # Uzycie: tools/weapons_net_test.sh [opoznienie_ms] [strata_procent]
 set -u
 cd "$(dirname "$0")/.."
@@ -18,8 +19,8 @@ timeout 44 "$GODOT" --path . --headless -- --server --port=$SERVER_PORT --debug-
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" 42 > /dev/null 2>&1 &
 sleep 1
-timeout 40 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PROXY_PORT --name=Noz --bot=brawler $PROBE > "$LOGS/arms_knife.log" 2>&1 &
-timeout 40 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PROXY_PORT --name=Strzelba --bot=pumper $PROBE > "$LOGS/arms_shotgun.log" 2>&1 &
+timeout 40 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PROXY_PORT --name=Noz --bot=brawler --bot-seconds=30 $PROBE > "$LOGS/arms_knife.log" 2>&1 &
+timeout 40 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PROXY_PORT --name=Strzelba --bot=pumper --bot-seconds=30 $PROBE > "$LOGS/arms_shotgun.log" 2>&1 &
 wait
 
 FAILED=0

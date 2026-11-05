@@ -132,13 +132,10 @@ func _process(delta: float) -> void:
 			UiSound.play(Sfx.UiCue.PRESS)
 
 
-## Celownik strzelby pokazuje, gdzie naprawde poleci srut.
+## Celownik pokazuje, gdzie naprawde moze poleciec pocisk.
 func _spread_on_screen(player: Player) -> float:
-	var stats := player.equipment.active_stats()
-	if stats == null or stats.pellets <= 1:
-		return 0.0
 	var half_height := _crosshair.size.y * 0.5
-	return half_height * tan(deg_to_rad(stats.current_spread(player.aiming))) / tan(deg_to_rad(player.camera.fov * 0.5))
+	return half_height * tan(deg_to_rad(player.equipment.current_spread())) / tan(deg_to_rad(player.camera.fov * 0.5))
 
 
 ## Podpowiedz i pasek uzycia dla przedmiotow, ktore nie sa bronia.

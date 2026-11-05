@@ -38,11 +38,31 @@ func _check_shotgun() -> void:
 	_check("wyzsza klasa strzelby jest silniejsza", common.damage * common.pellets < epic.damage * epic.pellets and epic.damage * epic.pellets < legendary.damage * legendary.pellets)
 	_check("wyzsza klasa ma mniejszy rozrzut", common.spread_degrees > epic.spread_degrees and epic.spread_degrees > legendary.spread_degrees)
 	_check("wyzsza klasa strzelby szybciej laduje", common.reload_seconds > epic.reload_seconds and epic.reload_seconds > legendary.reload_seconds)
-	_check("celowanie zaciska rozrzut w danych", common.current_spread(true) < common.current_spread(false))
+	_check("celowanie zaciska rozrzut w danych", common.spread_at(0.0, 0.0, true) < common.spread_at(0.0, 0.0, false))
 	_check("nazwa odmienia sie przez rodzaj", ItemStack.display_name_of(ItemStack.create(1, &"shotgun", Rarity.Tier.EPIC)) == "Epicka Strzelba")
 	_check("strzelba brzmi inaczej niz blaster", Sfx.shot(common) != Sfx.shot(ItemRegistry.weapon_stats(ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON)))
 	var blaster := ItemRegistry.weapon_stats(ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON)
-	_check("blaster wciaz strzela jednym pociskiem", blaster.pellets == 1 and blaster.current_spread(false) == 0.0)
+	_check("blaster wciaz strzela jednym pociskiem", blaster.pellets == 1)
+	_check_spread_data(ItemRegistry.get_definition(ItemRegistry.DEFAULT_WEAPON) as WeaponDefinition)
+	_check_spread_data(shotgun)
+
+
+## Lepsza klasa strzela celniej w kazdej sytuacji, a stanie w miejscu jest najcelniejsze.
+func _check_spread_data(weapon: WeaponDefinition) -> void:
+	var common := weapon.stats(Rarity.Tier.COMMON)
+	var epic := weapon.stats(Rarity.Tier.EPIC)
+	var legendary := weapon.stats(Rarity.Tier.LEGENDARY)
+	for situation: Array in [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]:
+		var moving: float = situation[0]
+		var firing: float = situation[1]
+		var worst := common.spread_at(moving, common.max_bloom_degrees * firing, false)
+		var middle := epic.spread_at(moving, epic.max_bloom_degrees * firing, false)
+		var best := legendary.spread_at(moving, legendary.max_bloom_degrees * firing, false)
+		_check("%s: lepsza klasa celniejsza (%s)" % [weapon.id, situation], worst > middle and middle > best)
+	for stats: WeaponStats in [common, epic, legendary]:
+		_check("%s: ruch zwieksza rozrzut" % weapon.id, stats.spread_at(1.0, 0.0, false) > stats.spread_at(0.0, 0.0, false))
+		_check("%s: seria ma limit" % weapon.id, stats.max_bloom_degrees > stats.shot_spread_degrees and stats.shot_spread_degrees > 0.0)
+		_check("%s: bez ruchu i serii zostaje podstawa" % weapon.id, is_equal_approx(stats.spread_at(0.0, 0.0, false), stats.spread_degrees))
 
 
 func _check_knife() -> void:

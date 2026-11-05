@@ -220,7 +220,7 @@ func _gather_bot() -> void:
 		"brawler":
 			# Test sieci: z nozem biegnie do najblizszego gracza i tnie, gdy jest blisko.
 			var knife := _find_item(me, &"knife")
-			var enemy := _nearest_enemy(me)
+			var enemy := _nearest_enemy(me) if _bot_time < float(Net.args.get("bot-seconds", 3600.0)) else null
 			if knife >= 0 and _wanted_slot != knife:
 				select_slot(knife)
 			move = Vector2.ZERO
@@ -233,13 +233,15 @@ func _gather_bot() -> void:
 		"pumper":
 			# Test sieci: strzela ze strzelby do najblizszego gracza. Przeladowuje sam, gdy brak naboi.
 			var shotgun := _find_item(me, &"shotgun")
-			var prey := _nearest_enemy(me)
+			var prey := _nearest_enemy(me) if _bot_time < float(Net.args.get("bot-seconds", 3600.0)) else null
 			if shotgun >= 0 and _wanted_slot != shotgun:
 				select_slot(shotgun)
 			use_primary = shotgun >= 0 and prey != null
 			if prey != null:
 				_look_at(me, prey.position + Vector3.UP * 0.9)
 				move = Vector2(0.0, -1.0) if me.position.distance_to(prey.position) > 6.0 else Vector2.ZERO
+			else:
+				move = Vector2.ZERO
 		"headhunter":
 			# Strzela tylko, gdy na ekranie ma dokladnie glowe celu w celowniku.
 			var target := _nearest_enemy(me)
@@ -250,7 +252,7 @@ func _gather_bot() -> void:
 				look_yaw = atan2(-to_head.x, -to_head.z)
 				look_pitch = asin(clampf(to_head.normalized().y, -1.0, 1.0))
 				var seen := Hitscan.trace(me.get_world_3d(), me.eye_position(), to_head.normalized(), me.peer_id, get_tree())
-				use_primary = seen.player == target and to_head.length() > 2.0
+				use_primary = seen.player == target and to_head.length() > 2.0 and me.equipment.spread_bloom == 0.0 and me.is_on_floor()
 
 
 func _look_at(me: Player, point: Vector3) -> void:
