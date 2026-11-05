@@ -15,6 +15,8 @@ const ITEM_NAME_SECONDS := 1.4
 const HEAVY_HIT_DAMAGE := 40.0
 const GOOD_PING := 60
 const BAD_PING := 120
+## Jak mocno gra ciemnieje za pauza i tabela wynikow.
+const MODAL_SHADE_ALPHA := 0.55
 const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
 
 var _player: Player
@@ -292,6 +294,24 @@ func _set_paused(paused: bool) -> void:
 		_resume_button.grab_focus(true)
 
 
+## Przyciemnia gre za oknem i pojawia sie razem z nim, jakkolwiek okno zostanie otwarte.
+func _add_shade_behind(target: Control) -> void:
+	var shade := ColorRect.new()
+	shade.color = Color(UiStyle.INK, MODAL_SHADE_ALPHA)
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.visible = target.visible
+	add_child(shade)
+	move_child(shade, target.get_index())
+	target.visibility_changed.connect(func() -> void:
+		if shade.visible == target.visible:
+			return
+		shade.visible = target.visible
+		if shade.visible:
+			shade.modulate.a = 0.0
+			shade.create_tween().tween_property(shade, "modulate:a", 1.0, UiStyle.POP_SECONDS))
+
+
 func _on_focus_lost() -> void:
 	# Bez tego dwa okna na jednym komputerze walczylyby o kursor.
 	if _player != null and visible and Net.bot_mode.is_empty():
@@ -539,6 +559,7 @@ func _build() -> void:
 	_score_rows = VBoxContainer.new()
 	_score_rows.add_theme_constant_override("separation", 8)
 	_score_card.add_child(_score_rows)
+	_add_shade_behind(_score_center)
 
 	_pause = CenterContainer.new()
 	_pause.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -548,6 +569,7 @@ func _build() -> void:
 	_pause_card.custom_minimum_size = Vector2(360, 0)
 	_pause_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
 	_pause.add_child(_pause_card)
+	_add_shade_behind(_pause)
 	var pause_box := VBoxContainer.new()
 	pause_box.add_theme_constant_override("separation", 12)
 	_pause_card.add_child(pause_box)
