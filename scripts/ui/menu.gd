@@ -9,6 +9,11 @@ const PICKER_LEFT := 520.0
 const TITLE_COLORS: Array[Color] = [UiStyle.CORAL, UiStyle.SUN, UiStyle.TEAL, UiStyle.BLUE, Color("9b7bff")]
 const ACCOUNT_AVATAR_SIDE := 68.0
 const ACCOUNT_AVATAR_TILT := -4.0
+## Literki tytulu sa strojone pentatonicznie, wiec kazde przejechanie kursorem brzmi ladnie.
+const TITLE_NOTES: Array[float] = [1.0, 1.122, 1.26, 1.498, 1.682]
+const LETTER_POP_SCALE := 1.16
+const LETTER_POP_SECONDS := 0.32
+const INTRO_STAGGER_SECONDS := 0.05
 
 var _name_field: LineEdit
 var _account_name: Label
@@ -18,6 +23,7 @@ var _join_button: Button
 var _host_button: Button
 var _picker: CharacterPicker
 var _letters: Array[Control] = []
+var _card: PanelContainer
 var _time := 0.0
 
 
@@ -38,15 +44,15 @@ func _ready() -> void:
 
 	side.add_child(_build_title())
 
-	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(430, 0)
-	card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
-	side.add_child(card)
+	_card = PanelContainer.new()
+	_card.custom_minimum_size = Vector2(430, 0)
+	_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
+	side.add_child(_card)
 
 	var margin := MarginContainer.new()
 	for edge in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + edge, 10)
-	card.add_child(margin)
+	_card.add_child(margin)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
@@ -68,16 +74,16 @@ func _ready() -> void:
 	gap.custom_minimum_size = Vector2(0, 4)
 	column.add_child(gap)
 
-	_join_button = UiStyle.button("Dołącz do gry", UiStyle.CORAL)
+	_join_button = UiStyle.button("Dołącz do gry", UiStyle.CORAL, Color.WHITE, Sfx.UiCue.NONE)
 	_join_button.pressed.connect(_on_join)
 	column.add_child(_join_button)
 
-	_host_button = UiStyle.button("Hostuj na tym komputerze", UiStyle.TEAL)
+	_host_button = UiStyle.button("Hostuj na tym komputerze", UiStyle.TEAL, Color.WHITE, Sfx.UiCue.NONE)
 	_host_button.add_theme_font_size_override("font_size", 20)
 	_host_button.pressed.connect(_on_host)
 	column.add_child(_host_button)
 
-	var settings_button := UiStyle.button("Ustawienia", UiStyle.BLUE)
+	var settings_button := UiStyle.button("Ustawienia", UiStyle.BLUE, Color.WHITE, Sfx.UiCue.NONE)
 	settings_button.add_theme_font_size_override("font_size", 20)
 	settings_button.pressed.connect(func() -> void: settings_requested.emit())
 	column.add_child(settings_button)
@@ -89,6 +95,9 @@ func _ready() -> void:
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_status)
+
+	if not Net.is_headless:
+		_play_intro.call_deferred()
 
 
 ## Awatar lekko przechylony, jak litery tytulu, a obok nazwa konta.
@@ -149,6 +158,23 @@ func show_with_message(message: String) -> void:
 	visible = true
 	_status.text = message
 	_set_busy(false)
+	# Pusty powod to wlasne rozlaczenie, a tekst to np. utracone polaczenie.
+	if not message.is_empty():
+		UiSound.play(Sfx.UiCue.ERROR)
+		UiStyle.shake(_card)
+
+
+## Tytul wskakuje litera po literze, a reszta zaraz za nim. Czekamy na pierwsza klatke,
+## bo po wczytaniu sceny animacja przeskoczylaby do konca.
+func _play_intro() -> void:
+	for tile in _letters:
+		tile.modulate.a = 0.0
+	_card.modulate.a = 0.0
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for i in _letters.size():
+		UiStyle.pop_in(_letters[i], i * INTRO_STAGGER_SECONDS)
+	UiStyle.pop_in(_card, _letters.size() * INTRO_STAGGER_SECONDS)
 
 
 func _build_title() -> Control:
@@ -170,25 +196,52 @@ func _build_title() -> Control:
 		tile.add_child(letter)
 		holder.add_child(tile)
 		_letters.append(tile)
+		tile.mouse_entered.connect(_poke_letter.bind(tile, TITLE_NOTES[i]))
 	return row
+
+
+func _poke_letter(tile: Control, note: float) -> void:
+	if UiSound.can_hover():
+		UiSound.play(Sfx.UiCue.NOTE, note)
+	tile.scale = Vector2.ONE * LETTER_POP_SCALE
+	tile.create_tween().set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT).tween_property(tile, "scale", Vector2.ONE, LETTER_POP_SECONDS)
 
 
 func _on_join() -> void:
 	var parts := _address_field.text.strip_edges().rsplit(":", true, 1)
 	var address := parts[0]
 	if address.is_empty():
-		_status.text = "Wpisz adres serwera."
+		_fail("Wpisz adres serwera.", _address_field)
 		return
 	_apply_settings()
 	var port := int(parts[1]) if parts.size() == 2 else Net.DEFAULT_PORT
 	var error := Net.join(address, port)
-	_status.text = error if not error.is_empty() else "Łączenie…"
-	_set_busy(error.is_empty())
+	if not error.is_empty():
+		_fail(error, _address_field)
+		return
+	_status.text = "Łączenie…"
+	UiSound.play(Sfx.UiCue.CONFIRM)
+	_set_busy(true)
 
 
 func _on_host() -> void:
 	_apply_settings()
-	_status.text = Net.start_server()
+	var error := Net.start_server()
+	if not error.is_empty():
+		_fail(error, _host_button)
+		return
+	_status.text = ""
+	UiSound.play(Sfx.UiCue.CONFIRM)
+
+
+## Mowi co poszlo nie tak, pokazuje gdzie i ustawia tam kursor, zeby od razu poprawic.
+func _fail(message: String, culprit: Control) -> void:
+	_status.text = message
+	_set_busy(false)
+	UiSound.play(Sfx.UiCue.ERROR)
+	UiStyle.shake(culprit)
+	if culprit is LineEdit:
+		culprit.grab_focus()
 
 
 func _apply_settings() -> void:

@@ -25,7 +25,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Konto Steam:** gra na Windows sama pobiera nazwę i zdjęcie profilowe z konta Steam. Bez Steama wystarczy wpisać nick.
 - **Wybór postaci:** 9 modeli do wyboru strzałkami w menu, w tym rycerze i szkielety. Gra zapamiętuje wybór.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
-- **Leśna polana:** ruiny z wieżą na środku, wzgórze, strumień i gęsty las dookoła, szum wiatru, śpiew ptaków i kroki zależne od podłoża, animowane postacie i interfejs w stylu naklejek.
+- **Leśna polana:** ruiny z wieżą na środku, wzgórze, strumień i gęsty las dookoła, szum wiatru, śpiew ptaków i kroki zależne od podłoża, animowane postacie i żywy interfejs w stylu naklejek, który reaguje ruchem i dźwiękiem, z osobną głośnością.
 - **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
 
 ## Jak zagrać

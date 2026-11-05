@@ -10,6 +10,8 @@ const LOOP_SECONDS := 9.0
 const LOOP_FADE_SECONDS := 1.0
 ## Sredni poziom petli tla. Roznice miedzy nimi ustawia juz sama glosnosc odtwarzania.
 const LOOP_LOUDNESS := 0.16
+## Dzwieki interfejsu. Kazdy odpowiada za jedno znaczenie, wiec gracz rozroznia je bez patrzenia.
+enum UiCue { NONE, HOVER, PRESS, CONFIRM, BACK, TOGGLE_ON, TOGGLE_OFF, SLIDER, OPEN, CLOSE, ERROR, NOTE, SWITCH }
 
 static var _cache := {}
 
@@ -361,6 +363,90 @@ static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)
 	, func(t: float) -> float: return 880.0 if t < 0.1 else 1320.0)
+
+
+## Ledwie slyszalne tykniecie pod kursorem. Pada czesto, wiec musi byc najcichsze i najkrotsze.
+static func ui_hover() -> AudioStreamWAV:
+	return _make("ui_hover", 0.035, func(t: float, _phase: float) -> float:
+		return sin(TAU * 1900.0 * t) * sin(PI * t / 0.035)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Drewniane stukniecie w chwili wcisniecia, zeby reakcja nie czekala na puszczenie przycisku.
+static func ui_press() -> AudioStreamWAV:
+	return _make("ui_press", 0.05, func(t: float, _phase: float) -> float:
+		return _marimba(t, 560.0, 90.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Dwie rosnace nuty: idziemy dalej.
+static func ui_confirm() -> AudioStreamWAV:
+	return _make("ui_confirm", 0.24, func(t: float, _phase: float) -> float:
+		return _marimba(t, 659.0, 26.0) * 0.6 + (_marimba(t - 0.07, 988.0, 18.0) * 0.8 if t >= 0.07 else 0.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Te same dwie nuty w dol: wycofujemy sie.
+static func ui_back() -> AudioStreamWAV:
+	return _make("ui_back", 0.22, func(t: float, _phase: float) -> float:
+		return _marimba(t, 740.0, 28.0) * 0.6 + (_marimba(t - 0.07, 494.0, 20.0) * 0.8 if t >= 0.07 else 0.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+static func ui_toggle_on() -> AudioStreamWAV:
+	return _make("ui_toggle_on", 0.08, func(t: float, phase: float) -> float:
+		return sin(TAU * phase) * sin(PI * t / 0.08)
+	, func(t: float) -> float: return lerpf(520.0, 980.0, t / 0.08))
+
+
+static func ui_toggle_off() -> AudioStreamWAV:
+	return _make("ui_toggle_off", 0.08, func(t: float, phase: float) -> float:
+		return sin(TAU * phase) * sin(PI * t / 0.08)
+	, func(t: float) -> float: return lerpf(720.0, 400.0, t / 0.08))
+
+
+## Zabek suwaka. Wysokosc zmienia sie przy odtwarzaniu razem z wartoscia.
+static func ui_slider() -> AudioStreamWAV:
+	return _make("ui_slider", 0.03, func(t: float, _phase: float) -> float:
+		return sin(TAU * 1250.0 * t) * sin(PI * t / 0.03)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Miekki poslizg w gore: okno sie wysuwa.
+static func ui_open() -> AudioStreamWAV:
+	return _make("ui_open", 0.18, func(t: float, phase: float) -> float:
+		return (sin(TAU * phase) * 0.8 + randf_range(-0.12, 0.12)) * sin(PI * t / 0.18)
+	, func(t: float) -> float: return lerpf(320.0, 760.0, t / 0.18))
+
+
+static func ui_close() -> AudioStreamWAV:
+	return _make("ui_close", 0.14, func(t: float, phase: float) -> float:
+		return (sin(TAU * phase) * 0.8 + randf_range(-0.12, 0.12)) * sin(PI * t / 0.14)
+	, func(t: float) -> float: return lerpf(640.0, 280.0, t / 0.14))
+
+
+## Dwa niskie burkniecia: nie da sie. Niskie, bo wysoki pisk przy bledzie irytuje.
+static func ui_error() -> AudioStreamWAV:
+	return _make("ui_error", 0.22, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for start: float in [0.0, 0.11]:
+			if t >= start:
+				var since: float = t - start
+				sample += (sin(TAU * 196.0 * since) + sin(TAU * 392.0 * since) * 0.45) * exp(-since * 24.0)
+		return sample * 0.75
+	, func(_t: float) -> float: return 0.0)
+
+
+## Nuta cymbalkow, strojona przy odtwarzaniu. Graja na niej literki tytulu.
+static func ui_note() -> AudioStreamWAV:
+	return _make("ui_note", 0.4, func(t: float, _phase: float) -> float:
+		return _marimba(t, 523.25, 11.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Nuta jak z drewnianej sztabki: ton i krotki, jasny atak.
+static func _marimba(t: float, hz: float, decay: float) -> float:
+	return sin(TAU * hz * t) * exp(-t * decay) + sin(TAU * hz * 4.0 * t) * exp(-t * decay * 3.0) * 0.25
 
 
 static func _make(id: String, duration: float, wave: Callable, pitch: Callable) -> AudioStreamWAV:
