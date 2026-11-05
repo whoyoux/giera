@@ -5,5 +5,5 @@
 [resource]
 script = ExtResource("1")
 item_ids = Array[StringName]([&"blaster", &"medkit", &"grenade", &"shotgun", &"knife"])
-item_weights = Array[int]([4, 2, 2, 2, 2])
-tier_weights = Array[int]([70, 25, 5])
+item_weights = Array[int]([3, 2, 2, 3, 3])
+tier_weights = Array[int]([55, 35, 10])

@@ -135,15 +135,15 @@ func _check_loot_table() -> void:
 	rng.seed = 1234
 	var counts := [0, 0, 0]
 	var weapons := 0
-	for i in 40000:
+	for i in 60000:
 		var rolled: Dictionary = Chests.LOOT_TABLE.roll(rng)
 		if rolled.item == ItemRegistry.DEFAULT_WEAPON and weapons < 10000:
 			counts[rolled.tier] += 1
 			weapons += 1
 	print("[test] losowanie: %s" % [counts])
-	_check("zwykle okolo 70%", absi(counts[Rarity.Tier.COMMON] - 7000) < 300)
-	_check("epickie okolo 25%", absi(counts[Rarity.Tier.EPIC] - 2500) < 300)
-	_check("legendarne okolo 5%", absi(counts[Rarity.Tier.LEGENDARY] - 500) < 150)
+	_check("zwykle okolo 55%", absi(counts[Rarity.Tier.COMMON] - 5500) < 300)
+	_check("epickie okolo 35%", absi(counts[Rarity.Tier.EPIC] - 3500) < 300)
+	_check("legendarne okolo 10%", absi(counts[Rarity.Tier.LEGENDARY] - 1000) < 150)
 	_check("wypada istniejacy przedmiot", ItemRegistry.get_definition(Chests.LOOT_TABLE.roll(rng).item) != null)
 
 
