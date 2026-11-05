@@ -4,6 +4,12 @@ extends RefCounted
 
 const RATE := 22050
 const RELOAD_SOUND_SECONDS := 1.6
+const BIRD_VARIANTS := 3
+## Dlugosc petli tla i czas przenikania jej konca z poczatkiem.
+const LOOP_SECONDS := 9.0
+const LOOP_FADE_SECONDS := 1.0
+## Sredni poziom petli tla. Roznice miedzy nimi ustawia juz sama glosnosc odtwarzania.
+const LOOP_LOUDNESS := 0.16
 
 static var _cache := {}
 
@@ -113,11 +119,128 @@ static func chest_open() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 0.0)
 
 
-## Miekkie klapniecie buta.
-static func footstep() -> AudioStreamWAV:
-	return _make("footstep", 0.1, func(t: float, _phase: float) -> float:
-		return (sin(TAU * 105.0 * t) * 0.8 + randf_range(-0.3, 0.3)) * exp(-t * 48.0)
+## Krok zalezy od podloza pod stopami.
+static func footstep_on(ground: int) -> AudioStreamWAV:
+	match ground:
+		ForestTerrain.Ground.DIRT:
+			return _footstep_dirt()
+		ForestTerrain.Ground.STONE:
+			return _footstep_stone()
+		ForestTerrain.Ground.WATER:
+			return _footstep_water()
+	return _footstep_grass()
+
+
+## Szelest trawy i miekkie klapniecie.
+static func _footstep_grass() -> AudioStreamWAV:
+	return _make("footstep_grass", 0.17, func(t: float, _phase: float) -> float:
+		var thump := sin(TAU * 95.0 * t) * exp(-t * 50.0) * 0.7
+		var rustle := randf_range(-0.42, 0.42) * sin(PI * minf(t / 0.17, 1.0))
+		return thump + rustle
 	, func(_t: float) -> float: return 0.0)
+
+
+## Twardsza ziemia: gluche uderzenie i troche chrzestu.
+static func _footstep_dirt() -> AudioStreamWAV:
+	return _make("footstep_dirt", 0.12, func(t: float, _phase: float) -> float:
+		var thump := sin(TAU * 120.0 * t) * exp(-t * 42.0) * 0.8
+		return thump + randf_range(-0.35, 0.35) * exp(-t * 34.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Twarde stukniecie o kamien.
+static func _footstep_stone() -> AudioStreamWAV:
+	return _make("footstep_stone", 0.09, func(t: float, _phase: float) -> float:
+		var knock := sin(TAU * 310.0 * t) * exp(-t * 70.0) * 0.8
+		var click := sin(TAU * 1450.0 * t) * exp(-t * 150.0) * 0.4
+		return knock + click + randf_range(-0.1, 0.1) * exp(-t * 90.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Chlupniecie w plytkiej wodzie.
+static func _footstep_water() -> AudioStreamWAV:
+	return _make("footstep_water", 0.26, func(t: float, phase: float) -> float:
+		var splash := randf_range(-0.6, 0.6) * exp(-t * 15.0)
+		return splash + sin(TAU * phase) * exp(-t * 18.0) * 0.35
+	, func(t: float) -> float: return lerpf(240.0, 520.0, t / 0.26))
+
+
+## Niski, zmienny szum wiatru.
+static func wind_loop() -> AudioStreamWAV:
+	return _noise_loop("wind", 0.012, func(t: float) -> float:
+		return 0.72 + 0.28 * sin(TAU * t / LOOP_SECONDS * 2.0) * sin(TAU * t / LOOP_SECONDS * 3.0))
+
+
+## Wyzszy szelest, ktory narasta i opada falami.
+static func leaves_loop() -> AudioStreamWAV:
+	return _noise_loop("leaves", 0.3, func(t: float) -> float:
+		var waves := sin(TAU * t / LOOP_SECONDS * 4.0) * 0.5 + sin(TAU * t / LOOP_SECONDS * 7.0) * 0.3 + 0.2
+		return clampf(0.35 + waves * 0.65, 0.05, 1.0))
+
+
+## Szybki, gesty szmer wody z lekkim bulgotaniem.
+static func creek_loop() -> AudioStreamWAV:
+	return _noise_loop("creek", 0.14, func(t: float) -> float:
+		return 0.8 + 0.2 * sin(TAU * t / LOOP_SECONDS * 11.0))
+
+
+## Kilka nut ptaka. Kazdy wariant ma inny rytm i wysokosc.
+static func bird(variant: int) -> AudioStreamWAV:
+	var songs: Array[Array] = [
+		[[0.0, 0.1, 3300.0, 4100.0], [0.14, 0.1, 3400.0, 4300.0], [0.28, 0.16, 4200.0, 3200.0]],
+		[[0.0, 0.18, 2500.0, 2100.0], [0.24, 0.26, 2100.0, 2750.0]],
+		[[0.0, 0.05, 4600.0, 4900.0], [0.08, 0.05, 4600.0, 4900.0], [0.16, 0.05, 4600.0, 4900.0], [0.27, 0.2, 3900.0, 3000.0]],
+	]
+	var song: Array = songs[variant % songs.size()]
+	var last: Array = song[song.size() - 1]
+	var duration: float = last[0] + last[1] + 0.05
+	return _make("bird_%d" % variant, duration, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for note: Array in song:
+			if t >= note[0] and t < note[0] + note[1]:
+				var part: float = (t - note[0]) / note[1]
+				# Ton liczony wprost z czasu nuty, bo kazda ma wlasny przebieg.
+				var pitch: float = lerpf(note[2], note[3], part)
+				sample += sin(TAU * pitch * (t - note[0])) * sin(PI * part) * 0.7
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
+## Petla z wygladzonego szumu. Koniec przenika sie z poczatkiem, wiec nie slychac laczenia.
+static func _noise_loop(id: String, smoothing: float, envelope: Callable) -> AudioStreamWAV:
+	if _cache.has(id):
+		return _cache[id]
+	var fade := int(LOOP_FADE_SECONDS * RATE)
+	var count := int(LOOP_SECONDS * RATE)
+	var samples := PackedFloat32Array()
+	samples.resize(count + fade)
+	var low := 0.0
+	var slow := 0.0
+	for i in samples.size():
+		low += (randf_range(-1.0, 1.0) - low) * smoothing
+		# Roznica dwoch filtrow usuwa powolny dryf, ktory bylby trzaskiem na laczeniu.
+		slow += (low - slow) * smoothing * 0.05
+		samples[i] = low - slow
+	for i in fade:
+		var mix := float(i) / fade
+		samples[i] = samples[i] * mix + samples[count + i] * (1.0 - mix)
+	var energy := 0.0
+	for i in count:
+		energy += samples[i] * samples[i]
+	var gain := LOOP_LOUDNESS / maxf(sqrt(energy / count), 0.0001)
+	var data := PackedByteArray()
+	data.resize(count * 2)
+	for i in count:
+		var sample: float = samples[i] * gain * envelope.call(float(i) / RATE)
+		data.encode_s16(i * 2, int(clampf(sample, -1.0, 1.0) * 24000.0))
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = RATE
+	stream.data = data
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = count
+	_cache[id] = stream
+	return stream
 
 
 ## Krotki dzwiek w gore przy wybiciu.

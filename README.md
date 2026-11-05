@@ -23,7 +23,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Celowanie:** prawy przycisk przybliża widok i zmniejsza odrzut, ale spowalnia ruch. Lepsza broń ma mocniejsze przybliżenie.
 - **Wybór postaci:** 9 modeli do wyboru strzałkami w menu, w tym rycerze i szkielety. Gra zapamiętuje wybór.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
-- **Leśna polana:** ruiny z wieżą na środku, wzgórze, strumień i gęsty las dookoła, animowane postacie i interfejs w stylu naklejek.
+- **Leśna polana:** ruiny z wieżą na środku, wzgórze, strumień i gęsty las dookoła, szum wiatru, śpiew ptaków i kroki zależne od podłoża, animowane postacie i interfejs w stylu naklejek.
 - **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
 
 ## Jak zagrać

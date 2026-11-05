@@ -5,6 +5,9 @@ extends StaticBody3D
 ## Wysokosc wynika ze wzoru, wiec serwer i klienci maja taka sama kolizje.
 ## Ten sam wzor jest w tools/generate_forest.py i obie wersje musza sie zgadzac.
 
+## Rodzaj podloza pod stopami, od ktorego zalezy dzwiek kroku.
+enum Ground { GRASS, DIRT, STONE, WATER }
+
 const CELL := 2.5
 const HALF_CELLS := 36
 ## Dalej kolizja nie jest potrzebna, bo gracza zatrzymuje wczesniej granica mapy.
@@ -39,6 +42,10 @@ const CREEK_BED := Color("a3925f")
 const WATER := Color(0.36, 0.66, 0.82, 0.72)
 const PATH_WIDTH := 1.6
 const RUIN_DIRT_RADIUS := 9.5
+## Wyzej nad ziemia gracz stoi juz na kamieniach ruin albo skalach.
+const STANDING_ON_STONE_HEIGHT := 0.35
+## Od tej glebokosci stopa jest w wodzie.
+const WATER_STEP_MARGIN := 0.25
 
 
 static func height(x: float, z: float) -> float:
@@ -53,7 +60,23 @@ static func height(x: float, z: float) -> float:
 
 
 static func creek_distance(x: float, z: float) -> float:
-	return absf(z - (CREEK_Z + CREEK_WAVE * sin(x * CREEK_FREQUENCY)))
+	return absf(z - creek_center_z(x))
+
+
+static func creek_center_z(x: float) -> float:
+	return CREEK_Z + CREEK_WAVE * sin(x * CREEK_FREQUENCY)
+
+
+## Podloze pod stopami w danym miejscu.
+static func ground_at(feet: Vector3) -> Ground:
+	var floor_y := surface(feet.x, feet.z)
+	if feet.y - floor_y > STANDING_ON_STONE_HEIGHT:
+		return Ground.STONE
+	if floor_y < WATER_LEVEL + WATER_STEP_MARGIN:
+		return Ground.WATER
+	if Vector2(feet.x, feet.z).length() < RUIN_DIRT_RADIUS or is_path(feet.x, feet.z):
+		return Ground.DIRT
+	return Ground.GRASS
 
 
 ## Wysokosc na trojkatach siatki, czyli dokladnie tam, gdzie stoi gracz.
@@ -92,6 +115,8 @@ func _ready() -> void:
 	_build_water()
 	var scatter := ForestScatter.new()
 	add_child(scatter)
+	if not Engine.is_editor_hint():
+		add_child(ForestAmbience.new())
 
 
 func _build_ground() -> void:

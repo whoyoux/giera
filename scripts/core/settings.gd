@@ -11,6 +11,7 @@ const SAVE_DELAY := 0.4
 ## Domyslne wartosci. Nowe ustawienie wystarczy dopisac tutaj.
 const DEFAULTS := {
 	"volume": 0.8,
+	"ambience": 1.0,
 	"sensitivity": 1.0,
 	"invert_y": false,
 	"fov": 80.0,
