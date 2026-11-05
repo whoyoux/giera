@@ -52,6 +52,8 @@ var sprinting := false
 var aiming := false
 var exhausted := false
 var sprint_stop_tick := -1000
+## Numer tanca z DanceCatalog albo zero.
+var dance_id := DanceCatalog.NONE
 
 ## Pozycje z ostatnich tickow, potrzebne serwerowi do cofania czasu przy strzale.
 var _position_history := {}
@@ -79,6 +81,9 @@ var _seen_aiming := false
 var _view_zoom := 1.0
 var _prime_audio: AudioStreamPlayer3D
 var _next_prime_beep := 0.0
+var _seen_dance := DanceCatalog.NONE
+var _dance_music: DanceMusic
+var _dance_camera := DanceCamera.new()
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -133,11 +138,15 @@ func _ready() -> void:
 		_body_audio_3d = AudioStreamPlayer3D.new()
 		_body_audio_3d.max_distance = 28.0
 		add_child(_body_audio_3d)
+		_dance_music = DanceMusic.new()
+		_dance_music.setup(local)
+		add_child(_dance_music)
 	if not Net.is_headless:
+		# Wlasny model widac tylko w czasie tanca, wiec do tej pory nic nie liczy.
+		model.setup(info.character)
 		if local:
 			view_model.setup(info.character)
-		else:
-			model.setup(info.character)
+			model.set_animating(false)
 	if local:
 		# Na start patrzymy w strone srodka mapy.
 		input.look_yaw = atan2(position.x, position.z)
@@ -219,7 +228,9 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		equipment.on_respawn()
 
 	var dead := is_dead_at(tick)
-	if not dead:
+	_update_dance(dead)
+	# Tancerz stoi w miejscu, a mysz obraca tylko kamere wokol niego.
+	if not dead and dance_id == DanceCatalog.NONE:
 		yaw = input.yaw
 		pitch = input.pitch
 
@@ -251,6 +262,17 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	velocity /= NetworkTime.physics_factor
 	if multiplayer.is_server():
 		_remember_position(tick + 1)
+
+
+## Taniec jest tylko wygladem, wiec nie zatrzymuje gracza. Kazda akcja go przerywa.
+func _update_dance(dead: bool) -> void:
+	var busy := dead or input.move != Vector2.ZERO or input.jump or input.use_primary or input.aim or input.reload
+	var wanted := input.dance if not busy and DanceCatalog.is_valid(input.dance) else DanceCatalog.NONE
+	# Na poczatku tanca postac staje przodem do kamery, ktora odjezdza za jej plecy.
+	if wanted != DanceCatalog.NONE and dance_id == DanceCatalog.NONE:
+		yaw = wrapf(input.yaw + PI, -PI, PI)
+		pitch = 0.0
+	dance_id = wanted
 
 
 func _update_sprint(tick: int, delta: float, dead: bool) -> void:
@@ -302,7 +324,7 @@ func _after_tick_loop() -> void:
 
 func _process(delta: float) -> void:
 	if is_local():
-		rotation.y = input.look_yaw
+		rotation.y = yaw if dance_id != DanceCatalog.NONE else input.look_yaw
 		head.rotation.x = input.look_pitch
 		var dead_drop := -1.1 if not info.alive else 0.0
 		head.position.y = move_toward(head.position.y, EYE_HEIGHT + dead_drop, delta * 3.0)
@@ -325,6 +347,7 @@ func _process(delta: float) -> void:
 	_seen_health = health
 	_update_body_feedback(delta, grounded)
 	_update_prime_beep(delta)
+	_update_dance_view()
 	if is_local():
 		# Predkosc z symulacji jest rowna, a ta liczona z pozycji miedzy klatkami drzy.
 		_view_speed = lerpf(_view_speed, Vector2(velocity.x, velocity.z).length() / SPEED, minf(delta * 10.0, 1.0))
@@ -334,10 +357,27 @@ func _process(delta: float) -> void:
 		var sprint_fov := lerpf(camera.fov / maxf(_view_zoom, 0.01), base_fov + SPRINT_FOV_BONUS if sprinting else base_fov, minf(delta * 8.0, 1.0))
 		camera.fov = sprint_fov * _view_zoom
 		_punch = _punch.lerp(Vector3.ZERO, minf(delta * 9.0, 1.0))
-		camera.rotation = (_punch + _shake.update(delta)) * float(Settings.value("camera_shake"))
+		var kick := (_punch + _shake.update(delta)) * float(Settings.value("camera_shake"))
+		_dance_camera.update(self, delta)
+		if _dance_camera.is_active():
+			model.update_pose(delta, Vector2.ZERO, true, 0.0, false, not info.alive)
+		else:
+			camera.rotation = kick
 	else:
 		var local_velocity := _velocity_smoothed.rotated(Vector3.UP, -rotation.y)
 		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
+
+
+## Kazdy klient sam wlacza animacje i muzyke, gdy zobaczy zmiane stanu tanca.
+func _update_dance_view() -> void:
+	if dance_id == _seen_dance:
+		return
+	_seen_dance = dance_id
+	model.set_dance(dance_id)
+	if dance_id == DanceCatalog.NONE:
+		_dance_music.stop()
+	else:
+		_dance_music.play(DanceCatalog.music_of(dance_id))
 
 
 func _update_aim_view(delta: float) -> void:

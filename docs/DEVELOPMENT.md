@@ -42,12 +42,15 @@ Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
 
 ## Testy
 
-Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `weapons_test`, `feel_test`, `flow_test`, `ui_feel_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie), `steam_account_test` z `--fake-steam=Kapitan:76561197960265729` albo `--no-steam`. `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh`, `tools/steam_net_test.sh`, `tools/weapons_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
+Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `weapons_test`, `feel_test`, `flow_test`, `ui_feel_test`, `dance_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie), `steam_account_test` z `--fake-steam=Kapitan:76561197960265729` albo `--no-steam`. `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh`, `tools/steam_net_test.sh`, `tools/weapons_net_test.sh`, `tools/dance_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
 
 ## Zasoby wizualne
 
 - Ikony: `tools/render_icons.gd`, a potem `godot --headless --path . --import`.
 - Ikona aplikacji: `tools/render_app_icon.gd` zapisuje `assets/app_icon.png` i `assets/app_icon.ico`.
+- Ikony tańców: `tools/render_dance_icons.gd`, a potem `godot --headless --path . --import`.
+- Muzyka tańców: `python tools/generate_dance_music.py`, a potem `godot --headless --path . --import`.
+- Podgląd tańców na siatce: `tools/dance_preview.gd` z `--shot=<plik.png>` i opcjonalnie `--character=Skeleton_Minion`.
 - Zrzuty do README: `tools/readme_shots.gd` z `--dir=<ścieżka do docs/screenshots>` i `--fake-steam=Kapitan:76561197960265729`. Odśwież je po każdej zmianie wyglądu.
 
 ## Architektura
@@ -64,4 +67,5 @@ Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA
 - **Postacie** są w liście `ROSTER` w `character_assets.gd`. Szkielety to sam model, więc biorą animacje z `Knight.glb`, bo ich kości mają te same nazwy.
 - **Awatary:** `steam_account.gd` pobiera każdy raz i trzyma w pamięci. W interfejsie pokazuje je `avatar_view.gd`, a nad graczami `avatar_tag.gd`.
 - **Przedmioty:** `ItemDefinition` opisuje rodzaj, `ItemVisual` wygląd, `ItemStack` egzemplarz, a `ItemBehavior` działanie. Nowy rodzaj przedmiotu nie wymaga zmian w kodzie sieciowym: apteczka to własna definicja i zachowanie. Efekty użycia, np. smugi, są w `ItemBehavior.show_fired`.
+- **Tańce:** spis jest w `dance_catalog.gd`, a numer tańca idzie jako `Input:dance` i stan `Player:dance_id`. Serwer przerywa taniec, gdy widzi ruch, skok, strzał, celowanie, przeładowanie albo śmierć. Pozy są w `dance_clips.gd` jako funkcje uderzenia muzyki, a nogi liczy odwrotna kinematyka, więc stopy trzymają się ziemi. Muzyka jest w `dance_music.gd`, kamera w `dance_camera.gd`, a koło w `dance_wheel.gd`. Nowy taniec to wpis w `DANCES`, funkcja w `dance_clips.gd`, utwór w `generate_dance_music.py` i ikona.
 - **Animacje** nie idą przez sieć. Każdy klient wylicza je z ruchu gracza.

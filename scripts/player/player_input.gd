@@ -7,6 +7,12 @@ const MOUSE_SENSITIVITY := 0.0025
 const MAX_PITCH := 1.5
 const LOOTER_STEP_SECONDS := 0.9
 const OPENER_REACH := 2.2
+## Szybciej gracz spada dopiero wtedy, gdy stracil grunt pod nogami.
+const DANCE_FALL_SPEED := 2.0
+const DANCE_START_MAX_FALL := 0.6
+const DANCER_STEP_SECONDS := 6.0
+const DANCER_MOVE_AFTER := 4.5
+const DANCER_MOVE_UNTIL := 5.0
 
 # Wysylane do serwera (input_properties w RollbackSynchronizer).
 var move := Vector2.ZERO
@@ -23,6 +29,10 @@ var pitch := 0.0
 var bot_interact := false
 ## Tick stanu innych graczy widoczny teraz na ekranie. -1 oznacza stan biezacy.
 var view_tick := -1
+## Taniec, o ktory prosi gracz. Zero oznacza brak.
+var dance := DanceCatalog.NONE
+## Otwarte kolo tancow przejmuje mysz, wiec nie wolno strzelac ani celowac.
+var wheel_open := false
 
 # Biezace polozenie kamery aktualizowane co klatke. Rollback nadpisuje yaw i pitch
 # wartosciami z historii, wiec akumulator musi byc osobno.
@@ -36,6 +46,7 @@ var _wanted_slot := 0
 var _wanted_uid := 0
 var _fire_blocked := false
 var _displayed_state_tick := -1
+var _wanted_dance := DanceCatalog.NONE
 
 
 func _ready() -> void:
@@ -69,19 +80,49 @@ func _handle_slot_input(event: InputEvent) -> void:
 	for index in Inventory.SLOTS:
 		if event.is_action_pressed("slot_%d" % (index + 1)):
 			select_slot(index)
+			stop_dance()
 			return
 	var me := get_parent() as Player
 	if event.is_action_pressed("interact"):
 		me.try_interact()
+		stop_dance()
 		return
 	if event.is_action_pressed("drop_item"):
 		me.try_drop()
+		stop_dance()
 		return
 	var slots: Array = me.info.slots
 	if event.is_action_pressed("next_slot"):
 		select_slot(Inventory.next_occupied(slots, _wanted_slot, 1))
+		stop_dance()
 	elif event.is_action_pressed("prev_slot"):
 		select_slot(Inventory.next_occupied(slots, _wanted_slot, -1))
+		stop_dance()
+
+
+## Zaczyna taniec, chyba ze gracz wlasnie idzie, skacze albo spada. Zwraca, czy sie udalo.
+func request_dance(dance_id: int) -> bool:
+	var me := get_parent() as Player
+	if not DanceCatalog.is_valid(dance_id) or not me.info.alive or move != Vector2.ZERO or jump or absf(me.velocity.y) > DANCE_START_MAX_FALL:
+		return false
+	_wanted_dance = dance_id
+	return true
+
+
+func stop_dance() -> void:
+	_wanted_dance = DanceCatalog.NONE
+
+
+## Otwarcie i zamkniecie kola. Klikniecie w kole nie moze potem wystrzelic.
+func set_wheel_open(open: bool) -> void:
+	wheel_open = open
+	_fire_blocked = true
+
+
+func _keep_dance_valid() -> void:
+	var me := get_parent() as Player
+	if move != Vector2.ZERO or jump or use_primary or aim or reload or not me.info.alive or me.velocity.y < -DANCE_FALL_SPEED:
+		_wanted_dance = DanceCatalog.NONE
 
 
 ## Gdy przedmiot z wybranego slotu zniknie, np. po smierci, wracamy do czegos w reku.
@@ -114,8 +155,8 @@ func _gather() -> void:
 		jump = Input.is_action_pressed("jump")
 		# Po uzyciu przedmiotu trzymany przycisk nie strzela kolejna bronia, dopoki go nie pusci.
 		_fire_blocked = _fire_blocked and Input.is_action_pressed("fire")
-		use_primary = Input.is_action_pressed("fire") and not _fire_blocked
-		aim = Input.is_action_pressed("aim")
+		use_primary = Input.is_action_pressed("fire") and not _fire_blocked and not wheel_open
+		aim = Input.is_action_pressed("aim") and not wheel_open
 		sprint = Input.is_action_pressed("sprint")
 		reload = Input.is_action_pressed("reload")
 	else:
@@ -125,6 +166,8 @@ func _gather() -> void:
 		aim = false
 		sprint = false
 		reload = false
+	_keep_dance_valid()
+	dance = _wanted_dance
 	slot = _wanted_slot
 	yaw = look_yaw
 	pitch = look_pitch
@@ -242,6 +285,13 @@ func _gather_bot() -> void:
 				move = Vector2(0.0, -1.0) if me.position.distance_to(prey.position) > 6.0 else Vector2.ZERO
 			else:
 				move = Vector2.ZERO
+		"dancer":
+			# Test sieci: tanczy po kolei wszystkie tance i co chwile sie rusza, co musi je przerwac.
+			var dancing_time := _bot_time < float(Net.args.get("bot-seconds", 3600.0))
+			var phase := fmod(_bot_time, DANCER_STEP_SECONDS)
+			move = Vector2.RIGHT if dancing_time and phase >= DANCER_MOVE_AFTER and phase < DANCER_MOVE_UNTIL else Vector2.ZERO
+			if dancing_time and phase >= 1.0 and phase < DANCER_MOVE_AFTER and _wanted_dance == DanceCatalog.NONE:
+				request_dance(1 + int(_bot_time / DANCER_STEP_SECONDS) % DanceCatalog.DANCES.size())
 		"headhunter":
 			# Strzela tylko, gdy na ekranie ma dokladnie glowe celu w celowniku.
 			var target := _nearest_enemy(me)
