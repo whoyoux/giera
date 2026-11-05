@@ -1,7 +1,6 @@
 # Giera
 
-Low-poly, kreskówkowy FPS multiplayer w Godot 4.7. Gracze dołączają do jednego
-wspólnego serwera, biegają po mapie i strzelają z blastera.
+Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki w pokoju pełnym wielkich zabawek.
 
 ![Rozgrywka](docs/screenshots/gameplay.png)
 
@@ -9,150 +8,46 @@ wspólnego serwera, biegają po mapie i strzelają z blastera.
 |---|---|---|
 | ![Menu](docs/screenshots/menu.png) | ![Wyniki](docs/screenshots/scoreboard.png) | ![Obrażenia](docs/screenshots/damage.png) |
 
-## Szybki start
+## Co jest w grze
 
-Gotową wersję na Windows (`Giera.exe`) albo na macOS z procesorem Apple Silicon
-(`Giera-macOS.zip`) pobierzesz z zakładki **Releases**. Uruchom grę, wpisz adres serwera
-podany przez hosta i kliknij **Dołącz**. Aplikacja na macOS nie ma podpisu Apple, więc przy
-pierwszym uruchomieniu trzeba wybrać **Otwórz mimo to** w **Ustawienia systemowe →
-Prywatność i ochrona**.
+- **Multiplayer na żywo:** serwer dedykowany albo hostowanie z menu. Ruch reaguje od razu, a strzały liczą się tam, gdzie gracz widział cel na ekranie.
+- **Trzy klasy broni:** zwykła, epicka i legendarna, każda z własnym modelem, parametrami, smugą i dźwiękiem.
+- **Ekwipunek na 4 sloty:** szybka zmiana broni klawiszami lub scrollem, osobna amunicja w każdej broni.
+- **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
+- **Pokój zabawek:** mapa z książek, klocków, ołówków i piłek, animowane postacie i interfejs w stylu naklejek.
+- **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
 
-Żeby uruchomić projekt samodzielnie, otwórz folder w Godocie 4.7, naciśnij F5, a potem
-wybierz **Hostuj grę na tym komputerze**.
+W budowie: skrzynki z losowym łupem i podnoszenie broni z ziemi.
 
-Gra z botami na jednym komputerze:
+## Jak zagrać
 
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\run_local.ps1 -Bots 2 -Shooters 1
-```
+Pobierz najnowszą wersję z zakładki [Releases](../../releases/latest):
 
-`-Bots` to biegające cele, a `-Shooters` to boty, które strzelają do Ciebie. Dodaj
-`-DebugItems`, żeby każdy gracz dostał też epicki i legendarny blaster.
+- **Windows:** uruchom `Giera.exe`. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
+- **macOS z Apple Silicon:** rozpakuj `Giera-macOS.zip` i uruchom `Giera.app`. Aplikacja nie ma podpisu Apple, więc przy pierwszym uruchomieniu wybierz **Otwórz mimo to** w **Ustawienia systemowe → Prywatność i ochrona**.
 
-Sterowanie: **WASD** ruch, **mysz** celowanie, **LPM** strzał, **R** przeładowanie,
-**Shift** sprint, **spacja** skok, **1–4** lub **scroll** zmiana przedmiotu, **Tab** wyniki,
-**Esc** pauza.
+W menu wpisz adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu 7777/UDP.
 
-Ustawienia dźwięku, myszy i grafiki znajdziesz w menu głównym i w pauzie. Zapisują się
-na komputerze w folderze danych gry, więc nowy build ich nie kasuje.
+## Sterowanie
 
-## Serwer dedykowany
-
-```bash
-godot --path . --headless -- --server --port=7777
-```
-
-Serwer potrzebuje otwartego portu **7777/UDP**. W menu gry wpisz adres serwera,
-opcjonalnie z portem, np. `203.0.113.10:7777`.
-
-Gotowy obraz serwera buduje `Dockerfile`. Restart serwera rozłącza graczy i zeruje wyniki.
-
-## Build dla graczy
-
-```bash
-godot --headless --path . --export-release "Windows Desktop" builds/Giera.exe
-```
-
-Wymaga szablonów eksportu Godota 4.7.2. Po zmianach w kodzie sieciowym wszyscy gracze
-potrzebują nowego pliku `Giera.exe`.
-
-## Publikowanie nowej wersji
-
-Wydanie powstaje automatycznie po wypchnięciu tagu `v*`. Najpierw scal zmiany do `main`,
-a potem otaguj tę wersję:
-
-```bash
-git switch main
-```
-
-```bash
-git pull
-```
-
-```bash
-git tag v0.2.0
-```
-
-```bash
-git push origin v0.2.0
-```
-
-Workflow `.github/workflows/release.yml` zbuduje grę na Windows i macOS, uruchomi wersję na
-macOS na prawdziwym Macu z Apple Silicon i po kilku minutach opublikuje obie w zakładce **Releases**. Postęp widać w zakładce **Actions**.
-
-Sam tag nie wdraża serwera, ale każdy push na `main` wdraża go i rozłącza graczy.
-Tag z myślnikiem, np. `v0.2.0-rc1`, tworzy wersję próbną, która nie staje się najnowszą.
-
-Przed zmianą wersji Godota zaktualizuj w workflow `GODOT_VERSION` i `GODOT_SUMS_SHA512`,
-czyli sumę SHA-512 pliku `SHA512-SUMS.txt` z wydania Godota.
-
-## Jak działają przedmioty
-
-- **Definicja** w `data/items/*.tres` opisuje rodzaj przedmiotu, a broń ma osobne parametry, model, smugę i dźwięk dla każdej klasy.
-- **Wygląd** to `ItemVisual` z modelem, ikoną oraz punktami rękojeści i lufy, więc każdy model może mieć inny kształt.
-- **Egzemplarz** to `ItemStack`, a cztery sloty każdego gracza trzyma serwer w `GameState`.
-- **Zachowanie** to `ItemBehavior`. Nowy rodzaj przedmiotu dostaje własną definicję i zachowanie, bez zmian w kodzie sieciowym.
-- **Stan w ręku** (aktywny slot, naboje, przeładowanie) jest w `Equipment`. Klient przewiduje go od razu, a serwer koryguje.
-
-Po zmianie modelu przedmiotu odśwież ikony przez `tools/render_icons.gd`.
-
-## Jak działa multiplayer
-
-- **Serwer decyduje o wszystkim.** Klient wysyła tylko klawisze, kąt patrzenia i przycisk strzału.
-- **Ruch** działa w pętli rollbacku netfox: klient przewiduje go od razu, a serwer ewentualnie koryguje.
-- **Strzały** są rozliczane na serwerze. Klient widzi innych graczy z opóźnieniem, więc serwer cofa ich do chwili widocznej na ekranie strzelca, najwyżej o 0,3 s.
-- **Sprint** zużywa pasek przez 4 s, a pasek odnawia się w 5 s po 1 s przerwy. Stan paska liczy serwer.
-- **Zdrowie i wyniki** nie są stanem rollbacku. Serwer rozsyła je niezawodnym RPC z `game_state.gd`.
-- **Animacje** nie idą przez sieć. Każdy klient wylicza je z ruchu gracza.
-
-## Gdzie co jest
-
-| Ścieżka | Zawartość |
+| Klawisz | Akcja |
 |---|---|
-| `scenes/world.tscn` | Mapa, edytowalna w Godocie |
-| `scenes/player.tscn` | Postać gracza i konfiguracja synchronizacji |
-| `scripts/player/player.gd` | Ruch, skok, respawn |
-| `data/items/` | Definicje przedmiotów i parametry każdej klasy |
-| `scripts/items/` | System przedmiotów: definicje, ekwipunek, zachowania |
-| `scripts/player/equipment.gd` | Przedmiot w ręku i jego stan w sieci |
-| `scripts/player/hitscan.gd` | Sprawdzanie trafień i rozmiary hitboksów |
-| `scripts/core/game_state.gd` | Lista graczy, zdrowie, wyniki |
-| `scripts/core/net.gd` | Serwer, łączenie, parametry startowe |
-| `scripts/player/character_rig.gd` | Model i animacje innych graczy |
-| `scripts/player/view_model.gd` | Broń i rękawice w pierwszej osobie |
-| `scripts/world/` | Klocki mapy, zabawki, efekty |
-| `scripts/ui/` | Menu, HUD i styl naklejek |
-| `assets/` | Modele, broń i czcionka |
+| **WASD** | Ruch |
+| **Mysz** | Celowanie |
+| **LPM** | Strzał |
+| **R** | Przeładowanie |
+| **Shift** | Sprint |
+| **Spacja** | Skok |
+| **1–4 / scroll** | Zmiana broni |
+| **Tab** | Wyniki |
+| **Esc** | Pauza i ustawienia |
 
-Klocki mapy zmieniasz polami **Size** i **Color** w inspektorze. Uwaga:
-`tools/generate_world.py` nadpisuje `world.tscn`, więc po ręcznej edycji mapy
-nie uruchamiaj go ponownie.
+## Technologia
 
-## Testy
+Godot 4.7, GDScript i [netfox](https://github.com/foxssake/netfox). Serwer decyduje o przebiegu gry, klient przewiduje ruch i strzały, a strzelanie korzysta z cofania czasu, żeby rekompensować opóźnienie sieci.
 
-```bash
-godot --headless --path . -- --tool=res://tools/hitscan_test.gd
-```
+## Licencja
 
-```bash
-bash tools/bot_test.sh 25
-```
+Kod i własne pliki projektu są udostępnione wyłącznie do wglądu, a wszelkie prawa są zastrzeżone. Szczegóły są w pliku [LICENSE](LICENSE).
 
-```bash
-godot --path . --resolution 1280x720 -- --tool=res://tools/flow_test.gd
-```
-
-Pierwszy test sprawdza trafienia, zasłony, punkty odrodzenia i śmierć. Drugi uruchamia
-serwer z dwoma botami bez okien. Trzeci otwiera okno i sprawdza sterowanie, pauzę
-oraz ponowne hostowanie. `tools/lag_proxy.py` pozwala dodać opóźnienie i utratę pakietów.
-
-## Licencje
-
-Kod i pozostałe własne pliki projektu są udostępnione wyłącznie do wglądu, a wszelkie
-prawa są zastrzeżone. Szczegóły są w pliku [LICENSE](LICENSE). Licencje składników
-innych autorów:
-
-Addon [netfox](https://github.com/foxssake/netfox) jest na licencji MIT, a jego
-tekst znajduje się w `addons/netfox/LICENSE`. Postacie [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers)
-i [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) są na licencji CC0.
-Czcionka Fredoka jest na licencji SIL OFL. Pliki licencji leżą przy zasobach w `assets/`.
+Składniki innych autorów zachowują swoje licencje: [netfox](https://github.com/foxssake/netfox) (MIT), postacie [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers) (CC0), [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) (CC0) i czcionka Fredoka (SIL OFL). Pliki licencji leżą przy zasobach.

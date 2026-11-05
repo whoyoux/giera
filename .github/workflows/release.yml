@@ -89,14 +89,21 @@ jobs:
           name: buildy
           path: builds
 
-      - name: Sprawdz aplikacje
+      - name: Zostaw tylko wersje na Apple Silicon
+        # Oficjalny szablon Godota jest uniwersalny, a wspieramy wylacznie arm64.
         run: |
           set -euo pipefail
           ditto -x -k builds/Giera-macOS.zip unpacked
           app="unpacked/Giera.app"
           binary="$app/Contents/MacOS/Giera"
+          lipo "$binary" -thin arm64 -output thin
+          mv thin "$binary"
+          chmod +x "$binary"
+          codesign --force --deep --sign - "$app"
           test "$(lipo -archs "$binary")" = "arm64"
           codesign --verify --verbose "$app"
+          mkdir silicon
+          ditto -c -k --sequesterRsrc --keepParent "$app" silicon/Giera-macOS.zip
 
       - name: Uruchom serwer i klienta
         run: |
@@ -113,6 +120,14 @@ jobs:
           grep -q "dolaczyl TestMac" server.log
           ! grep -q "SCRIPT ERROR" server.log client.log
 
+      - name: Przekaz wersje na Apple Silicon
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-arm64
+          path: silicon/Giera-macOS.zip
+          if-no-files-found: error
+          retention-days: 3
+
   publish:
     needs: [build, test-macos]
     runs-on: ubuntu-24.04
@@ -122,6 +137,12 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: buildy
+          path: builds
+
+      - name: Pobierz wersje na Apple Silicon
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: macos-arm64
           path: builds
 
       - name: Opublikuj wydanie
