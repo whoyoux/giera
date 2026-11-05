@@ -5,8 +5,7 @@ extends Node3D
 
 const BASE_POSITION := Vector3(0.24, -0.2, -0.56)
 const GUN_SCALE := 0.62
-const RIGHT_HAND := Vector3(0.0, -0.17, 0.11)
-const LEFT_HAND := Vector3(-0.015, -0.1, -0.2)
+const RIGHT_HAND := CharacterAssets.HAND_POINT
 const GLOVE := Color("fffaf0")
 ## Warstwa widziana tylko przez kamere nakladki, nigdy przez kamere swiata.
 const OVERLAY_LAYER := 20
@@ -18,7 +17,10 @@ var _gun: Node3D
 var _left: Node3D
 var _magazine: Node3D
 var _model: Node3D
-var _model_path := ""
+var _visual: ItemVisual
+var _left_home := Vector3.ZERO
+var _flash_material: StandardMaterial3D
+var _recoil_strength := 1.0
 var _has_item := true
 var _reload_seconds := 1.6
 var _magazine_home := Vector3.ZERO
@@ -45,14 +47,15 @@ func setup(peer_id: int) -> void:
 	add_child(_gun)
 	var sleeve := CharacterAssets.color_for(peer_id)
 	_add_hand(_gun, RIGHT_HAND, Vector3(-28, 0, 0), sleeve, Vector3(0.05, -0.2, 0.3))
-	_left = _add_hand(_gun, LEFT_HAND, Vector3(12, 0, 0), sleeve, Vector3(-0.2, -0.22, 0.28))
+	_left = _add_hand(_gun, RIGHT_HAND, Vector3(12, 0, 0), sleeve, Vector3(-0.2, -0.22, 0.28))
 
 	_muzzle = Node3D.new()
 	_muzzle.position = Vector3(0.0, 0.03, -0.42)
 	_gun.add_child(_muzzle)
 	_flash = MeshInstance3D.new()
 	_flash.mesh = LowPoly.ball(0.11, 6, 3)
-	_flash.material_override = LowPoly.glow(Color("fff3a3"))
+	_flash_material = LowPoly.glow(Color("fff3a3"))
+	_flash.material_override = _flash_material
 	_flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_flash.visible = false
 	_muzzle.add_child(_flash)
@@ -150,12 +153,17 @@ func set_item(stack: Dictionary) -> void:
 	_reload_time = -1.0
 	if not _has_item:
 		return
-	var path := ItemStack.definition_of(stack).model_path(ItemStack.tier_of(stack))
-	if path != _model_path:
-		_model_path = path
-		_load_model(path)
+	var visual := ItemStack.visual_of(stack)
+	if visual != _visual:
+		_visual = visual
+		_load_model(visual)
+	_flash_material.albedo_color = Rarity.effect_color(ItemStack.tier_of(stack))
 	# Bron wjezdza od dolu ekranu.
 	_hide = 0.8
+
+
+func shown_visual() -> ItemVisual:
+	return _visual
 
 
 func has_item() -> bool:
@@ -166,12 +174,15 @@ func set_reload_seconds(seconds: float) -> void:
 	_reload_seconds = seconds
 
 
-func _load_model(path: String) -> void:
+func _load_model(visual: ItemVisual) -> void:
 	if _model != null:
 		_model.get_parent().remove_child(_model)
 		_model.queue_free()
-	_model = (load(path) as PackedScene).instantiate() as Node3D
+	_model = (load(visual.model_path) as PackedScene).instantiate() as Node3D
+	_model.position = RIGHT_HAND - visual.grip
 	_gun.add_child(_model)
+	_muzzle.position = RIGHT_HAND - visual.grip + visual.muzzle
+	_left_home = RIGHT_HAND - visual.grip + visual.fore_grip
 	for node in _model.find_children("*", "MeshInstance3D", true, false):
 		(node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_magazine = _model.find_child("magazine", true, false) as Node3D
@@ -180,8 +191,9 @@ func _load_model(path: String) -> void:
 	_put_on_overlay_layer(_model)
 
 
-func kick() -> void:
+func kick(strength := 1.0) -> void:
 	_recoil = 1.0
+	_recoil_strength = strength
 	_flash_time = 0.05
 	if _flash != null:
 		_flash.visible = true
@@ -222,7 +234,7 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 
 	_bob_amount = move_toward(_bob_amount, minf(speed_ratio, 1.5) if on_floor else 0.0, delta * 5.0)
 	_lift = lerpf(_lift, clampf(vertical_speed * 0.006, -0.05, 0.05), minf(delta * 10.0, 1.0))
-	var recoil_curve := _recoil * _recoil
+	var recoil_curve := _recoil * _recoil * _recoil_strength
 	# Pelna fala cosinusa zamiast wartosci bezwzglednej: bez ostrego odbicia przy kazdym kroku.
 	var position_offset := Vector3(sin(_time) * 0.012 * _bob_amount, -(1.0 - cos(_time * 2.0)) * 0.007 * _bob_amount, recoil_curve * 0.07)
 	_landing_shown = lerpf(_landing_shown, _landing, minf(delta * 22.0, 1.0))
@@ -260,7 +272,7 @@ func _update_reload(delta: float, reloading: bool) -> float:
 		left_offset = Vector3(-0.02, -0.48, 0.22) * hand_away
 	if _magazine != null:
 		_magazine.position = _magazine_home + magazine_offset
-	_left.position = LEFT_HAND + left_offset
+	_left.position = _left_home + left_offset
 	return tilt
 
 

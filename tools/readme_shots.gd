@@ -29,6 +29,9 @@ func _ready() -> void:
 	center.y = 0.0
 	var forward := center.normalized()
 	var right := forward.cross(Vector3.UP)
+	GameState.server_give_item(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC)
+	GameState.server_give_item(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
+	me.input.select_slot(2)
 	GameState.server_add_player(2, "Ziutek")
 	GameState.server_add_player(3, "Basia")
 	GameState.server_add_player(4, "Mietek")
@@ -52,7 +55,6 @@ func _ready() -> void:
 	GameState.kill_announced.emit(1, 2)
 	GameState.kill_announced.emit(3, 4)
 	await _wait(1.6)
-	me.view_model.kick()
 	me.equipment.fired.emit()
 	await _wait(0.03)
 	await _shot("gameplay.png")

@@ -75,7 +75,6 @@ func _ready() -> void:
 	model.visible = not local
 	name_label.visible = not local
 	name_label.text = info.name
-	shot_audio.stream = Sfx.shot()
 	if not Net.is_headless:
 		reload_audio.stream = Sfx.reload_sound()
 		_switch_audio = AudioStreamPlayer.new()
@@ -237,22 +236,30 @@ func _process(delta: float) -> void:
 func _on_item_fired() -> void:
 	if Net.is_headless:
 		return
-	shot_audio.pitch_scale = randf_range(0.94, 1.06)
+	var stack := equipment.active_stack()
+	var stats := ItemStack.weapon_stats_of(stack)
+	if stats == null:
+		return
+	var tier := ItemStack.tier_of(stack)
+	shot_audio.stream = Sfx.shot(stats)
+	shot_audio.pitch_scale = randf_range(0.96, 1.04)
 	shot_audio.play()
 	var aim_yaw := input.look_yaw if is_local() else yaw
 	var aim_pitch := input.look_pitch if is_local() else pitch
 	var muzzle: Vector3
 	if is_local():
-		view_model.kick()
+		view_model.kick(stats.recoil)
 		muzzle = view_model.muzzle_position()
+		_punch.x += stats.camera_kick
 	else:
 		model.play_shot()
 		muzzle = model.muzzle_position()
 	var hit := Hitscan.trace(get_world_3d(), eye_position(), Hitscan.direction(aim_yaw, aim_pitch), peer_id, get_tree())
 	var fx_root := get_parent()
-	ShotFx.tracer(fx_root, muzzle, hit.position)
+	var effect_color := Rarity.effect_color(tier)
+	ShotFx.tracer(fx_root, muzzle, hit.position, effect_color, stats.tracer_width)
 	if hit.player != null or hit.hit_world:
-		ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else Color("fff3a3"))
+		ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else effect_color)
 
 
 func _on_action_started() -> void:
