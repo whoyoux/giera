@@ -78,6 +78,7 @@ func _first_person(world: Node3D) -> void:
 			view.update_pose(1.0 / 60.0, speed, true, 0.0, sprint, reload, dead)
 			await get_tree().process_frame
 	await pose.call(50, 0.0, false, false)
+	print("[test] okno %s, bron renderowana w %s" % [get_window().size, view.overlay_size()])
 	await _shot("fp_aim.png")
 	# Bron przy samej scianie nie moze w nia wchodzic.
 	var open_position := camera.position

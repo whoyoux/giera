@@ -12,20 +12,47 @@ signal player_changed(id: int)
 signal kill_announced(killer_id: int, victim_id: int)
 signal hit_confirmed(killed: bool)
 signal damaged(amount: int, attacker_id: int)
+signal pings_updated
 
 const MAX_HEALTH := 100
 const RESPAWN_SECONDS := 3.0
 const MAX_NAME_LENGTH := 16
+const PING_INTERVAL := 1.0
 
 var players := {}
+## Ping graczy w milisekundach, mierzony przez serwer. Host ma zawsze 0.
+var pings := {}
+
+var _ping_timer := 0.0
 
 
 func _ready() -> void:
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 
 
+func _process(delta: float) -> void:
+	_ping_timer += delta
+	if _ping_timer < PING_INTERVAL:
+		return
+	_ping_timer = 0.0
+	var peer := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if peer == null or not multiplayer.is_server():
+		return
+	var connected := multiplayer.get_peers()
+	var fresh := {}
+	for id: int in players:
+		if id == 1:
+			fresh[id] = 0
+		elif connected.has(id):
+			fresh[id] = int(peer.get_peer(id).get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME))
+	pings = fresh
+	pings_updated.emit()
+	_sync_pings.rpc(fresh)
+
+
 ## Czysci stan lokalny przy wyjsciu z sesji.
 func reset() -> void:
+	pings.clear()
 	for id: int in players.keys():
 		players.erase(id)
 		player_removed.emit(id)
@@ -146,6 +173,12 @@ func _sync_roster(roster: Dictionary) -> void:
 @rpc("authority", "call_remote", "reliable")
 func _sync_player(id: int, info: Dictionary) -> void:
 	_store(id, info)
+
+
+@rpc("authority", "call_remote", "unreliable_ordered")
+func _sync_pings(fresh: Dictionary) -> void:
+	pings = fresh
+	pings_updated.emit()
 
 
 @rpc("authority", "call_remote", "reliable")

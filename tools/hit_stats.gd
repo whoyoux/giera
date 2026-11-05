@@ -24,5 +24,6 @@ func _on_node_added(node: Node) -> void:
 
 func _report() -> void:
 	var percent := 100.0 * _hits / maxi(_shots, 1)
+	print("[hit_stats] pingi=", GameState.pings.values(), " rtt_klienta=", int(NetworkTime.remote_rtt * 1000.0))
 	print("[hit_stats] strzaly=%d trafienia=%d zaliczone=%.1f%% obrywal=%d rtt=%dms" % [_shots, _hits, percent, _damaged, int(NetworkTime.remote_rtt * 1000.0)])
 	get_tree().create_timer(5.0).timeout.connect(_report)

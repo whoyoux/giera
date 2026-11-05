@@ -13,6 +13,7 @@ func _ready() -> void:
 		_check("czulosc po restarcie", is_equal_approx(Settings.value("sensitivity"), 1.75))
 		_check("odwrocenie po restarcie", Settings.value("invert_y") == true)
 		_check("pole widzenia po restarcie", is_equal_approx(Settings.value("fov"), 95.0))
+		_check("licznik FPS po restarcie", Settings.value("show_fps") == false)
 		_check("nick po restarcie", Settings.player_value("name", "") == "TestNick")
 		_check("glosnosc dziala po starcie", is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(0)), 0.35))
 		DirAccess.remove_absolute(Settings.path)
@@ -29,6 +30,7 @@ func _ready() -> void:
 	Settings.set_value("sensitivity", 1.75)
 	Settings.set_value("invert_y", true)
 	Settings.set_value("fov", 95.0)
+	Settings.set_value("show_fps", false)
 	Settings.set_player_value("name", "TestNick")
 	await _wait(0.6)
 	_check("plik ustawien powstal", FileAccess.file_exists(Settings.path))
@@ -90,6 +92,18 @@ func _test_reload_sound() -> void:
 	print("[test] dlugosc dzwieku %.2f s, szczyt %d" % [clip.get_length(), peak])
 	_check("dzwiek przeladowania nie jest cichy", peak > 5000)
 	_check("dzwiek trwa tyle co przeladowanie", absf(clip.get_length() - Weapon.RELOAD_SECONDS) < 0.05)
+
+	var hud := get_node("/root/Main/Hud") as Hud
+	await _wait(0.1)
+	_check("licznik FPS jest domyslnie widoczny", hud._fps_panel.visible)
+	_check("licznik pokazuje wartosc", hud._fps_label.text.ends_with(" FPS"))
+	var fps_toggle := get_node("/root/Main/SettingsPanel").find_child("show_fps", true, false) as Button
+	fps_toggle.button_pressed = false
+	await _wait(0.1)
+	_check("przelacznik wylacza licznik FPS", not hud._fps_panel.visible and Settings.value("show_fps") == false)
+	fps_toggle.button_pressed = true
+	await _wait(0.1)
+	_check("przelacznik wlacza licznik FPS", hud._fps_panel.visible)
 
 	# Pelne przeladowanie: dzwiek gra i konczy sie razem z nim.
 	Input.action_press("fire")

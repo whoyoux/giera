@@ -17,6 +17,7 @@ const DEFAULTS := {
 	"fullscreen": false,
 	"vsync": true,
 	"high_quality": true,
+	"show_fps": true,
 }
 
 var path := DEFAULT_PATH

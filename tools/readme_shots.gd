@@ -46,6 +46,9 @@ func _ready() -> void:
 	GameState.players[3].deaths = 3
 	GameState.players[4].deaths = 1
 	GameState.player_changed.emit(1)
+	GameState.set_process(false)
+	GameState.pings = { 1: 0, 2: 34, 3: 87, 4: 142 }
+	GameState.pings_updated.emit()
 	GameState.kill_announced.emit(1, 2)
 	GameState.kill_announced.emit(3, 4)
 	await _wait(1.6)

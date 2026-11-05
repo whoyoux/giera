@@ -18,6 +18,8 @@ func _ready() -> void:
 	_check("host startuje", Net.start_server(PORT).is_empty())
 	await _wait(1.5)
 	var player := _local_player()
+	# Okno testu moze nie miec fokusu, a sterowanie dziala tylko z przechwycona mysza.
+	get_window().focus_exited.disconnect((main.get_node("Hud") as Hud)._on_focus_lost)
 	_check("lokalny gracz istnieje", player != null)
 	if player == null:
 		_finish()

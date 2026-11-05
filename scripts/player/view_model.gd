@@ -13,6 +13,7 @@ const OVERLAY_LAYER := 20
 
 var _main_camera: Camera3D
 var _overlay_camera: Camera3D
+var _overlay_viewport: SubViewport
 var _gun: Node3D
 var _left: Node3D
 var _magazine: Node3D
@@ -72,18 +73,27 @@ func _build_overlay() -> void:
 	var canvas := CanvasLayer.new()
 	canvas.layer = 0
 	add_child(canvas)
-	var container := SubViewportContainer.new()
-	container.stretch = true
-	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	canvas.add_child(container)
-	var viewport := SubViewport.new()
+	_overlay_viewport = SubViewport.new()
+	var viewport := _overlay_viewport
 	viewport.transparent_bg = true
 	viewport.msaa_3d = Viewport.MSAA_4X
 	viewport.handle_input_locally = false
 	viewport.gui_disable_input = true
 	viewport.positional_shadow_atlas_size = 0
-	container.add_child(viewport)
+	canvas.add_child(viewport)
+	# Interfejs gry jest skalowany z 1280x720. Bron renderujemy w pikselach okna,
+	# bo inaczej powiekszony obraz bylby rozmazany.
+	_match_window_size()
+	get_window().size_changed.connect(_match_window_size)
+	var picture := TextureRect.new()
+	picture.texture = viewport.get_texture()
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	picture.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var blend := CanvasItemMaterial.new()
+	blend.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
+	picture.material = blend
+	canvas.add_child(picture)
 
 	_overlay_camera = Camera3D.new()
 	_overlay_camera.near = _main_camera.near
@@ -108,6 +118,14 @@ func _overlay_environment() -> Environment:
 	environment.ssao_enabled = false
 	environment.glow_enabled = false
 	return environment
+
+
+func _match_window_size() -> void:
+	_overlay_viewport.size = get_window().size
+
+
+func overlay_size() -> Vector2i:
+	return _overlay_viewport.size
 
 
 func overlay_camera() -> Camera3D:

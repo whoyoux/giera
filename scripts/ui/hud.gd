@@ -6,6 +6,8 @@ signal settings_requested
 
 const FEED_SECONDS := 5.0
 const LOW_HEALTH := 35
+const GOOD_PING := 60
+const BAD_PING := 120
 const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
 
 var _player: Player
@@ -17,6 +19,8 @@ var _speed_fill: StyleBoxFlat
 var _ammo_label: Label
 var _ammo_hint: Label
 var _ammo_panel: PanelContainer
+var _fps_panel: PanelContainer
+var _fps_label: Label
 var _feed: VBoxContainer
 var _death_panel: PanelContainer
 var _death_label: Label
@@ -43,6 +47,7 @@ func _ready() -> void:
 	GameState.player_changed.connect(func(_id: int) -> void: _refresh_scoreboard())
 	GameState.player_added.connect(func(_id: int) -> void: _refresh_scoreboard())
 	GameState.player_removed.connect(func(_id: int) -> void: _refresh_scoreboard())
+	GameState.pings_updated.connect(_refresh_scoreboard)
 	get_window().focus_exited.connect(_on_focus_lost)
 
 
@@ -63,6 +68,9 @@ func _process(delta: float) -> void:
 		return
 	var info := _player.info
 	_update_vignette(delta, info)
+	_fps_panel.visible = Settings.value("show_fps")
+	if _fps_panel.visible:
+		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 	_health_bar.value = lerpf(_health_bar.value, info.health, 0.25)
 	_health_label.text = str(info.health)
 	var fill := _health_bar.get_theme_stylebox("fill") as StyleBoxFlat
@@ -174,13 +182,25 @@ func _refresh_scoreboard() -> void:
 	var ids := GameState.players.keys()
 	ids.sort_custom(func(a: int, b: int) -> bool:
 		return GameState.players[a].kills > GameState.players[b].kills)
-	_score_rows.add_child(_score_row("Gracz", "Zabójstwa", "Śmierci", UiStyle.CORAL))
+	_score_rows.add_child(_score_row("Gracz", "Zabójstwa", "Śmierci", "Ping", UiStyle.CORAL, UiStyle.CORAL))
 	for id: int in ids:
 		var info: Dictionary = GameState.players[id]
-		_score_rows.add_child(_score_row(info.name, str(info.kills), str(info.deaths), UiStyle.INK))
+		var ping: int = GameState.pings.get(id, -1)
+		var ping_text := "%d ms" % ping if ping >= 0 else "–"
+		_score_rows.add_child(_score_row(info.name, str(info.kills), str(info.deaths), ping_text, UiStyle.INK, _ping_color(ping)))
 
 
-func _score_row(player_name: String, kills: String, deaths: String, color: Color) -> HBoxContainer:
+func _ping_color(ping: int) -> Color:
+	if ping < 0:
+		return UiStyle.INK
+	if ping < GOOD_PING:
+		return UiStyle.TEAL.darkened(0.15)
+	if ping < BAD_PING:
+		return Color("d98a00")
+	return UiStyle.CORAL.darkened(0.1)
+
+
+func _score_row(player_name: String, kills: String, deaths: String, ping: String, color: Color, ping_color: Color) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	var name_label := UiStyle.label(player_name, 21, color)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -190,6 +210,10 @@ func _score_row(player_name: String, kills: String, deaths: String, color: Color
 		cell.custom_minimum_size = Vector2(120, 0)
 		cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		row.add_child(cell)
+	var ping_cell := UiStyle.label(ping, 21, ping_color)
+	ping_cell.custom_minimum_size = Vector2(90, 0)
+	ping_cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(ping_cell)
 	return row
 
 
@@ -229,6 +253,18 @@ func _build() -> void:
 	_crosshair.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_crosshair)
 
+	_fps_panel = PanelContainer.new()
+	var fps_style := UiStyle.sticker(UiStyle.PAPER, 14, 3)
+	fps_style.set_content_margin_all(8)
+	fps_style.content_margin_left = 14
+	fps_style.content_margin_right = 14
+	_fps_panel.add_theme_stylebox_override("panel", fps_style)
+	_fps_panel.position = Vector2(24, 22)
+	_fps_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_fps_panel)
+	_fps_label = UiStyle.label("0 FPS", 17, UiStyle.INK)
+	_fps_panel.add_child(_fps_label)
+
 	_build_status_sticker()
 	_build_ammo_sticker()
 
@@ -259,7 +295,7 @@ func _build() -> void:
 	_score_center.visible = false
 	add_child(_score_center)
 	var scoreboard := PanelContainer.new()
-	scoreboard.custom_minimum_size = Vector2(620, 0)
+	scoreboard.custom_minimum_size = Vector2(700, 0)
 	scoreboard.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
 	_score_center.add_child(scoreboard)
 	_score_rows = VBoxContainer.new()
