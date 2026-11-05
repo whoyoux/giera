@@ -3,6 +3,12 @@
 Low-poly, kreskówkowy FPS multiplayer w Godot 4.7. Gracze dołączają do jednego
 wspólnego serwera, biegają po mapie i strzelają z blastera.
 
+![Rozgrywka](docs/screenshots/gameplay.png)
+
+| Menu | Wyniki | Obrażenia |
+|---|---|---|
+| ![Menu](docs/screenshots/menu.png) | ![Wyniki](docs/screenshots/scoreboard.png) | ![Obrażenia](docs/screenshots/damage.png) |
+
 ## Szybki start
 
 Gotową wersję na Windows pobierzesz z zakładki **Releases**. Uruchom `Giera.exe`, wpisz
