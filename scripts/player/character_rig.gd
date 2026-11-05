@@ -41,6 +41,11 @@ func play_reload() -> void:
 	_fire("reload")
 
 
+func stop_reload() -> void:
+	if _tree != null:
+		_tree.set("parameters/reload/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+
+
 func play_hit() -> void:
 	_fire("hit")
 

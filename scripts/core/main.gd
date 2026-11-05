@@ -7,6 +7,8 @@ const MENU_ORBIT_SPEED := 0.08
 @onready var menu_camera := $MenuCamera as Camera3D
 @onready var menu := $Menu as Menu
 @onready var hud := $Hud as Hud
+@onready var settings_panel := $SettingsPanel as SettingsPanel
+@onready var world_environment := $World/WorldEnvironment as WorldEnvironment
 
 var _orbit := 0.6
 
@@ -16,10 +18,18 @@ func _ready() -> void:
 	players.local_player_removed.connect(_on_local_player_removed)
 	Net.session_ended.connect(_on_session_ended)
 	Net.session_started.connect(_on_session_started)
+	menu.settings_requested.connect(settings_panel.open)
+	hud.settings_requested.connect(settings_panel.open)
+	Settings.changed.connect(_apply_quality)
+	_apply_quality()
 	hud.visible = false
 	if Net.is_headless:
 		menu.visible = false
 		set_process(false)
+
+
+func _apply_quality() -> void:
+	world_environment.environment.ssao_enabled = Settings.value("high_quality")
 
 
 func _process(delta: float) -> void:

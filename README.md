@@ -28,6 +28,9 @@ powershell -ExecutionPolicy Bypass -File tools\run_local.ps1 -Bots 2 -Shooters 1
 Sterowanie: **WASD** ruch, **mysz** celowanie, **LPM** strzał, **R** przeładowanie,
 **Shift** sprint, **spacja** skok, **Tab** wyniki, **Esc** pauza.
 
+Ustawienia dźwięku, myszy i grafiki znajdziesz w menu głównym i w pauzie. Zapisują się
+na komputerze w folderze danych gry, więc nowy build ich nie kasuje.
+
 ## Serwer dedykowany
 
 ```bash

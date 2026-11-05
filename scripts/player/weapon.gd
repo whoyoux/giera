@@ -5,6 +5,7 @@ extends Node
 
 signal fired
 signal reload_started
+signal reload_cancelled
 
 const FIRE_INTERVAL := 0.2
 const DAMAGE := 20
@@ -41,13 +42,17 @@ func refill() -> void:
 
 
 func _rollback_tick(_delta: float, tick: int, _is_fresh: bool) -> void:
-	if reload_end >= 0 and tick >= reload_end:
+	var dead := player.is_dead_at(tick)
+	if dead or player.sprinting:
+		# Smierc i sprint przerywaja przeladowanie bez uzupelniania amunicji.
+		reload_end = -1
+	elif reload_end >= 0 and tick >= reload_end:
 		refill()
-	if player.is_dead_at(tick):
+	if dead or player.sprinting:
 		return
 	if reload_end < 0 and ammo < MAGAZINE and (input.reload or (ammo == 0 and input.fire)):
 		reload_end = tick + NetworkTime.seconds_to_ticks(RELOAD_SECONDS)
-	if not input.fire or player.sprinting or reload_end >= 0 or ammo <= 0:
+	if not input.fire or reload_end >= 0 or ammo <= 0:
 		return
 	if tick - last_fire < NetworkTime.seconds_to_ticks(FIRE_INTERVAL):
 		return
@@ -80,4 +85,6 @@ func _after_tick_loop() -> void:
 	if reload_end != _shown_reload_end:
 		if reload_end >= 0:
 			reload_started.emit()
+		elif ammo < MAGAZINE:
+			reload_cancelled.emit()
 		_shown_reload_end = reload_end

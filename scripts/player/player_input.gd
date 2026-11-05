@@ -35,8 +35,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not is_multiplayer_authority():
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		look_yaw -= event.relative.x * MOUSE_SENSITIVITY
-		look_pitch = clampf(look_pitch - event.relative.y * MOUSE_SENSITIVITY, -MAX_PITCH, MAX_PITCH)
+		var sensitivity: float = MOUSE_SENSITIVITY * Settings.value("sensitivity")
+		var vertical: float = -1.0 if Settings.value("invert_y") else 1.0
+		look_yaw -= event.relative.x * sensitivity
+		look_pitch = clampf(look_pitch - event.relative.y * sensitivity * vertical, -MAX_PITCH, MAX_PITCH)
 		(get_parent() as Player).view_model.add_look(event.relative * 0.02)
 
 

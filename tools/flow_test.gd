@@ -30,8 +30,8 @@ func _ready() -> void:
 	motion.relative = Vector2(100, 40)
 	Input.parse_input_event(motion)
 	await _wait(0.1)
-	_check("mysz obraca kamere", absf(player.input.look_yaw - yaw_before + 0.25) < 0.001)
-	_check("mysz porusza widok w pionie", player.input.look_pitch < -0.05)
+	_check("mysz obraca kamere", absf(player.input.look_yaw - yaw_before + 100.0 * PlayerInput.MOUSE_SENSITIVITY * Settings.value("sensitivity")) < 0.001)
+	_check("mysz porusza widok w pionie", absf(player.input.look_pitch) > 0.05)
 
 	var start := player.position
 	var forward := Hitscan.direction(player.input.look_yaw, 0.0)

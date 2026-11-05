@@ -47,6 +47,10 @@ outline_size = 12
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
 unit_size = 8.0
 
+[node name="ReloadAudio" type="AudioStreamPlayer3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+unit_size = 5.0
+
 [node name="Input" type="Node" parent="."]
 script = ExtResource("2_input")
 

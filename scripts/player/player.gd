@@ -17,8 +17,8 @@ const STAMINA_REGEN := 20.0
 const STAMINA_REGEN_DELAY := 1.0
 ## Po calkowitym wyczerpaniu sprint wraca dopiero od tego poziomu.
 const STAMINA_UNLOCK := 20.0
-const DEFAULT_FOV := 80.0
-const SPRINT_FOV := 90.0
+## O tyle kamera poszerza widok w sprincie.
+const SPRINT_FOV_BONUS := 10.0
 const POSITION_HISTORY_TICKS := 30
 
 var peer_id := 0
@@ -53,6 +53,7 @@ var _view_speed := 0.0
 @onready var model := $Model as CharacterRig
 @onready var name_label := $NameLabel as Label3D
 @onready var shot_audio := $ShotAudio as AudioStreamPlayer3D
+@onready var reload_audio := $ReloadAudio as AudioStreamPlayer3D
 
 
 func _ready() -> void:
@@ -62,6 +63,7 @@ func _ready() -> void:
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
 	weapon.fired.connect(_on_weapon_fired)
 	weapon.reload_started.connect(_on_reload_started)
+	weapon.reload_cancelled.connect(_on_reload_cancelled)
 	_seen_health = info.health
 
 	var local := is_local()
@@ -71,6 +73,8 @@ func _ready() -> void:
 	name_label.visible = not local
 	name_label.text = info.name
 	shot_audio.stream = Sfx.shot()
+	if not Net.is_headless:
+		reload_audio.stream = Sfx.reload_sound()
 	if not Net.is_headless:
 		if local:
 			view_model.setup(peer_id)
@@ -215,7 +219,8 @@ func _process(delta: float) -> void:
 		# Predkosc z symulacji jest rowna, a ta liczona z pozycji miedzy klatkami drzy.
 		_view_speed = lerpf(_view_speed, Vector2(velocity.x, velocity.z).length() / SPEED, minf(delta * 10.0, 1.0))
 		view_model.update_pose(delta, _view_speed, grounded, velocity.y, sprinting, weapon.is_reloading(), not info.alive)
-		camera.fov = lerpf(camera.fov, SPRINT_FOV if sprinting else DEFAULT_FOV, minf(delta * 8.0, 1.0))
+		var base_fov: float = Settings.value("fov")
+		camera.fov = lerpf(camera.fov, base_fov + SPRINT_FOV_BONUS if sprinting else base_fov, minf(delta * 8.0, 1.0))
 		_punch = _punch.lerp(Vector3.ZERO, minf(delta * 9.0, 1.0))
 		camera.rotation = _punch
 	else:
@@ -245,5 +250,16 @@ func _on_weapon_fired() -> void:
 
 
 func _on_reload_started() -> void:
-	if not Net.is_headless and not is_local():
+	if Net.is_headless:
+		return
+	reload_audio.play()
+	if not is_local():
 		model.play_reload()
+
+
+func _on_reload_cancelled() -> void:
+	if Net.is_headless:
+		return
+	reload_audio.stop()
+	if not is_local():
+		model.stop_reload()

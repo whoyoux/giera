@@ -2,7 +2,8 @@ class_name Menu
 extends CanvasLayer
 ## Ekran startowy: nick, adres serwera, dolaczanie i hostowanie.
 
-const SETTINGS_PATH := "user://settings.cfg"
+signal settings_requested
+
 const TITLE_COLORS: Array[Color] = [UiStyle.CORAL, UiStyle.SUN, UiStyle.TEAL, UiStyle.BLUE, Color("9b7bff")]
 
 var _name_field: LineEdit
@@ -16,9 +17,6 @@ var _time := 0.0
 
 func _ready() -> void:
 	UiStyle.apply_font()
-	var settings := ConfigFile.new()
-	settings.load(SETTINGS_PATH)
-
 	var root := MarginContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("margin_left", 72)
@@ -49,12 +47,12 @@ func _ready() -> void:
 	margin.add_child(column)
 
 	column.add_child(UiStyle.label("Twój nick", 17, UiStyle.INK, false))
-	_name_field = UiStyle.field(settings.get_value("player", "name", "Gracz"), "Nick")
+	_name_field = UiStyle.field(Settings.player_value("name", "Gracz"), "Nick")
 	_name_field.max_length = GameState.MAX_NAME_LENGTH
 	column.add_child(_name_field)
 
 	column.add_child(UiStyle.label("Adres serwera", 17, UiStyle.INK, false))
-	_address_field = UiStyle.field(settings.get_value("player", "address", ""), "np. 203.0.113.10")
+	_address_field = UiStyle.field(Settings.player_value("address", ""), "np. 203.0.113.10")
 	column.add_child(_address_field)
 
 	var gap := Control.new()
@@ -69,6 +67,11 @@ func _ready() -> void:
 	_host_button.add_theme_font_size_override("font_size", 20)
 	_host_button.pressed.connect(_on_host)
 	column.add_child(_host_button)
+
+	var settings_button := UiStyle.button("Ustawienia", UiStyle.BLUE)
+	settings_button.add_theme_font_size_override("font_size", 20)
+	settings_button.pressed.connect(func() -> void: settings_requested.emit())
+	column.add_child(settings_button)
 
 	_status = UiStyle.label("", 17, UiStyle.CORAL, false)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -132,10 +135,8 @@ func _on_host() -> void:
 
 func _apply_settings() -> void:
 	Net.player_name = _name_field.text
-	var settings := ConfigFile.new()
-	settings.set_value("player", "name", _name_field.text)
-	settings.set_value("player", "address", _address_field.text)
-	settings.save(SETTINGS_PATH)
+	Settings.set_player_value("name", _name_field.text)
+	Settings.set_player_value("address", _address_field.text)
 
 
 func _set_busy(busy: bool) -> void:

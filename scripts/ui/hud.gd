@@ -2,6 +2,8 @@ class_name Hud
 extends CanvasLayer
 ## Interfejs w grze: zdrowie, speed, amunicja, celownik, zabojstwa, wyniki i pauza.
 
+signal settings_requested
+
 const FEED_SECONDS := 5.0
 const LOW_HEALTH := 35
 const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
@@ -281,6 +283,9 @@ func _build() -> void:
 	var resume := UiStyle.button("Wróć do gry", UiStyle.TEAL)
 	resume.pressed.connect(_set_paused.bind(false))
 	pause_box.add_child(resume)
+	var settings_button := UiStyle.button("Ustawienia", UiStyle.BLUE)
+	settings_button.pressed.connect(func() -> void: settings_requested.emit())
+	pause_box.add_child(settings_button)
 	var disconnect_button := UiStyle.button("Rozłącz", UiStyle.CORAL)
 	disconnect_button.pressed.connect(func() -> void: Net.leave())
 	pause_box.add_child(disconnect_button)

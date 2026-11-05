@@ -28,6 +28,19 @@ static func hurt() -> AudioStreamWAV:
 	, func(t: float) -> float: return lerpf(240.0, 70.0, t / 0.24))
 
 
+## Magazynek wypada, nowy wchodzi, a na koncu zamek. Czasy odpowiadaja animacji broni.
+static func reload_sound() -> AudioStreamWAV:
+	var events: Array[Array] = [[0.24, 900.0, 55.0, 0.8], [0.5, 170.0, 22.0, 0.6], [1.22, 620.0, 45.0, 0.9], [1.4, 1100.0, 70.0, 0.7], [1.5, 780.0, 60.0, 0.9]]
+	return _make("reload", Weapon.RELOAD_SECONDS, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for event in events:
+			if t >= event[0]:
+				var since: float = t - event[0]
+				sample += (sin(TAU * event[1] * since) * 0.7 + randf_range(-0.3, 0.3)) * exp(-since * event[2]) * event[3]
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
 static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)
