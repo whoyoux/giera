@@ -115,6 +115,11 @@ func server_scatter(stacks: Array, center: Vector3, world: World3D) -> void:
 		angle += TAU / stacks.size()
 
 
+## Wyrzuca przedmiot z dowolnego miejsca, np. ze skrzynki.
+func server_launch(stack: Dictionary, from: Vector3, toward: Vector3, fallback: Vector3, world: World3D) -> void:
+	_server_spawn(stack, from, _landing(world, from, toward, fallback))
+
+
 func _server_spawn(stack: Dictionary, from: Vector3, landing: Vector3) -> void:
 	if items.size() >= MAX_ITEMS:
 		_remove_item.rpc(items.keys().min(), 0)

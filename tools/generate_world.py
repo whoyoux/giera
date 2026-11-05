@@ -173,6 +173,20 @@ for i, (x, z) in enumerate(spawns):
         f"transform = {transform(x, 0.2, z)}\n"
     )
 
+group("ChestSpots")
+chest_spots = [
+    (22, 0.03, -12, -90), (-22, 0.03, 12, 90), (-2.5, 3.0, 2.5, 20),
+    (-8, 0.03, -12, 200), (8, 0.03, 12, 20),
+    (28.5, 0.0, -28.5, -45), (-28.5, 0.0, 28.5, 135),
+    (-6, 0.03, -18, 90), (6, 0.03, 18, -90),
+    (27, 0.0, 6, -90), (-27, 0.0, -6, 90),
+]
+for i, (x, y, z, rot) in enumerate(chest_spots):
+    nodes.append(
+        f'[node name="Chest{i + 1}" type="Marker3D" parent="ChestSpots" groups=["chest_spots"]]\n'
+        f"transform = {transform(x, y, z, 0, rot)}\n"
+    )
+
 header = """[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/world/block.gd" id="block"]

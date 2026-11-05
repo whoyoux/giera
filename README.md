@@ -4,7 +4,9 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 ![Rozgrywka](docs/screenshots/gameplay.png)
 
-![Bronie na ziemi](docs/screenshots/loot.png)
+| Skrzynka | Bronie na ziemi |
+|---|---|
+| ![Otwieranie skrzynki](docs/screenshots/chest_open.png) | ![Bronie na ziemi](docs/screenshots/loot.png) |
 
 | Menu | Wyniki | Obrażenia |
 |---|---|---|
@@ -15,11 +17,11 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Multiplayer na żywo:** serwer dedykowany albo hostowanie z menu. Ruch reaguje od razu, a strzały liczą się tam, gdzie gracz widział cel na ekranie.
 - **Trzy klasy broni:** zwykła, epicka i legendarna, każda z własnym modelem, parametrami, smugą i dźwiękiem.
 - **Ekwipunek na 4 sloty:** szybka zmiana broni klawiszami lub scrollem, osobna amunicja w każdej broni.
+- **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Losują broń z szansą 70% na zwykłą, 25% na epicką i 5% na legendarną, a po minucie wracają.
+- **Podnoszenie i wyrzucanie:** bronie leżą na ziemi, a po śmierci wypadają dla innych.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
 - **Pokój zabawek:** mapa z książek, klocków, ołówków i piłek, animowane postacie i interfejs w stylu naklejek.
 - **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
-
-W budowie: skrzynki z losowym łupem.
 
 ## Jak zagrać
 
@@ -41,7 +43,7 @@ W menu wpisz adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym k
 | **Shift** | Sprint |
 | **Spacja** | Skok |
 | **1–4 / scroll** | Zmiana broni |
-| **E** | Podniesienie przedmiotu |
+| **E** | Podniesienie przedmiotu, przytrzymanie otwiera skrzynkę |
 | **G** | Wyrzucenie przedmiotu |
 | **Tab** | Wyniki |
 | **Esc** | Pauza i ustawienia |

@@ -23,6 +23,7 @@ Settings="*res://scripts/core/settings.gd"
 GameState="*res://scripts/core/game_state.gd"
 Net="*res://scripts/core/net.gd"
 WorldItems="*res://scripts/core/world_items.gd"
+Chests="*res://scripts/core/chests.gd"
 
 [display]
 
