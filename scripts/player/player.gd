@@ -42,10 +42,11 @@ var _velocity_smoothed := Vector3.ZERO
 var _seen_health := 0
 var _punch := Vector3.ZERO
 var _view_speed := 0.0
+var _switch_audio: AudioStreamPlayer
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
-@onready var weapon := $Weapon as Weapon
+@onready var equipment := $Equipment as Equipment
 @onready var interpolator := $TickInterpolator as TickInterpolator
 @onready var head := $Head as Node3D
 @onready var camera := $Head/Camera3D as Camera3D
@@ -61,10 +62,12 @@ func _ready() -> void:
 	info = GameState.players[peer_id]
 	_last_position = position
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
-	weapon.fired.connect(_on_weapon_fired)
-	weapon.reload_started.connect(_on_reload_started)
-	weapon.reload_cancelled.connect(_on_reload_cancelled)
+	equipment.fired.connect(_on_item_fired)
+	equipment.action_started.connect(_on_action_started)
+	equipment.action_cancelled.connect(_on_action_cancelled)
+	equipment.active_item_changed.connect(_on_active_item_changed)
 	_seen_health = info.health
+	equipment.initialize()
 
 	var local := is_local()
 	camera.current = local
@@ -75,6 +78,9 @@ func _ready() -> void:
 	shot_audio.stream = Sfx.shot()
 	if not Net.is_headless:
 		reload_audio.stream = Sfx.reload_sound()
+		_switch_audio = AudioStreamPlayer.new()
+		_switch_audio.stream = Sfx.switch_item()
+		add_child(_switch_audio)
 	if not Net.is_headless:
 		if local:
 			view_model.setup(peer_id)
@@ -116,7 +122,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		velocity = Vector3.ZERO
 		stamina = STAMINA_MAX
 		exhausted = false
-		weapon.refill()
+		equipment.on_respawn()
 
 	var dead := is_dead_at(tick)
 	if not dead:
@@ -218,7 +224,7 @@ func _process(delta: float) -> void:
 	if is_local():
 		# Predkosc z symulacji jest rowna, a ta liczona z pozycji miedzy klatkami drzy.
 		_view_speed = lerpf(_view_speed, Vector2(velocity.x, velocity.z).length() / SPEED, minf(delta * 10.0, 1.0))
-		view_model.update_pose(delta, _view_speed, grounded, velocity.y, sprinting, weapon.is_reloading(), not info.alive)
+		view_model.update_pose(delta, _view_speed, grounded, velocity.y, sprinting, equipment.is_reloading(), not info.alive)
 		var base_fov: float = Settings.value("fov")
 		camera.fov = lerpf(camera.fov, base_fov + SPRINT_FOV_BONUS if sprinting else base_fov, minf(delta * 8.0, 1.0))
 		_punch = _punch.lerp(Vector3.ZERO, minf(delta * 9.0, 1.0))
@@ -228,7 +234,7 @@ func _process(delta: float) -> void:
 		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
 
 
-func _on_weapon_fired() -> void:
+func _on_item_fired() -> void:
 	if Net.is_headless:
 		return
 	shot_audio.pitch_scale = randf_range(0.94, 1.06)
@@ -249,17 +255,33 @@ func _on_weapon_fired() -> void:
 		ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else Color("fff3a3"))
 
 
-func _on_reload_started() -> void:
+func _on_action_started() -> void:
 	if Net.is_headless:
 		return
+	# Dzwiek ma stala dlugosc, wiec krotsze przeladowanie odtwarzamy szybciej.
+	var seconds := ItemStack.behavior_of(equipment.active_stack()).timed_action_seconds(equipment.active_stack())
+	reload_audio.pitch_scale = Sfx.RELOAD_SOUND_SECONDS / maxf(seconds, 0.1)
 	reload_audio.play()
-	if not is_local():
+	if is_local():
+		view_model.set_reload_seconds(seconds)
+	else:
 		model.play_reload()
 
 
-func _on_reload_cancelled() -> void:
+func _on_action_cancelled() -> void:
 	if Net.is_headless:
 		return
 	reload_audio.stop()
 	if not is_local():
 		model.stop_reload()
+
+
+func _on_active_item_changed() -> void:
+	if Net.is_headless:
+		return
+	var stack := equipment.active_stack()
+	if is_local():
+		view_model.set_item(stack)
+		_switch_audio.play()
+	else:
+		model.set_item(stack)

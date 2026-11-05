@@ -17,6 +17,10 @@ var _overlay_viewport: SubViewport
 var _gun: Node3D
 var _left: Node3D
 var _magazine: Node3D
+var _model: Node3D
+var _model_path := ""
+var _has_item := true
+var _reload_seconds := 1.6
 var _magazine_home := Vector3.ZERO
 var _muzzle: Node3D
 var _flash: MeshInstance3D
@@ -39,14 +43,6 @@ func setup(peer_id: int) -> void:
 	_gun = Node3D.new()
 	_gun.scale = Vector3.ONE * GUN_SCALE
 	add_child(_gun)
-	var model := (load(CharacterAssets.GUN_PATH) as PackedScene).instantiate() as Node3D
-	_gun.add_child(model)
-	for node in model.find_children("*", "MeshInstance3D", true, false):
-		(node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_magazine = model.find_child("magazine", true, false) as Node3D
-	if _magazine != null:
-		_magazine_home = _magazine.position
-
 	var sleeve := CharacterAssets.color_for(peer_id)
 	_add_hand(_gun, RIGHT_HAND, Vector3(-28, 0, 0), sleeve, Vector3(0.05, -0.2, 0.3))
 	_left = _add_hand(_gun, LEFT_HAND, Vector3(12, 0, 0), sleeve, Vector3(-0.2, -0.22, 0.28))
@@ -145,6 +141,45 @@ func _process(_delta: float) -> void:
 		_overlay_camera.fov = _main_camera.fov
 
 
+## Wklada przedmiot do rak z krotka animacja wyciagania albo chowa rece przy pustym slocie.
+func set_item(stack: Dictionary) -> void:
+	if _gun == null:
+		return
+	_has_item = not ItemStack.is_empty(stack)
+	_gun.visible = _has_item
+	_reload_time = -1.0
+	if not _has_item:
+		return
+	var path := ItemStack.definition_of(stack).model_path(ItemStack.tier_of(stack))
+	if path != _model_path:
+		_model_path = path
+		_load_model(path)
+	# Bron wjezdza od dolu ekranu.
+	_hide = 0.8
+
+
+func has_item() -> bool:
+	return _has_item
+
+
+func set_reload_seconds(seconds: float) -> void:
+	_reload_seconds = seconds
+
+
+func _load_model(path: String) -> void:
+	if _model != null:
+		_model.get_parent().remove_child(_model)
+		_model.queue_free()
+	_model = (load(path) as PackedScene).instantiate() as Node3D
+	_gun.add_child(_model)
+	for node in _model.find_children("*", "MeshInstance3D", true, false):
+		(node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_magazine = _model.find_child("magazine", true, false) as Node3D
+	if _magazine != null:
+		_magazine_home = _magazine.position
+	_put_on_overlay_layer(_model)
+
+
 func kick() -> void:
 	_recoil = 1.0
 	_flash_time = 0.05
@@ -214,7 +249,7 @@ func _update_reload(delta: float, reloading: bool) -> float:
 	var tilt := 0.0
 	if _reload_time >= 0.0:
 		_reload_time += delta
-		var t := clampf(_reload_time / Weapon.stats().reload_seconds, 0.0, 1.0)
+		var t := clampf(_reload_time / _reload_seconds, 0.0, 1.0)
 		tilt = smoothstep(0.0, 0.14, t) * (1.0 - smoothstep(0.85, 1.0, t))
 		var dropped := smoothstep(0.14, 0.34, t) * (1.0 - smoothstep(0.42, 0.44, t))
 		var hand_away := smoothstep(0.12, 0.38, t) * (1.0 - smoothstep(0.58, 0.82, t))

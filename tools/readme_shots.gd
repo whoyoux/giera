@@ -53,7 +53,7 @@ func _ready() -> void:
 	GameState.kill_announced.emit(3, 4)
 	await _wait(1.6)
 	me.view_model.kick()
-	me.weapon.fired.emit()
+	me.equipment.fired.emit()
 	await _wait(0.03)
 	await _shot("gameplay.png")
 

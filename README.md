@@ -23,10 +23,12 @@ Gra z botami na jednym komputerze:
 powershell -ExecutionPolicy Bypass -File tools\run_local.ps1 -Bots 2 -Shooters 1
 ```
 
-`-Bots` to biegające cele, a `-Shooters` to boty, które strzelają do Ciebie.
+`-Bots` to biegające cele, a `-Shooters` to boty, które strzelają do Ciebie. Dodaj
+`-DebugItems`, żeby każdy gracz dostał też epicki i legendarny blaster.
 
 Sterowanie: **WASD** ruch, **mysz** celowanie, **LPM** strzał, **R** przeładowanie,
-**Shift** sprint, **spacja** skok, **Tab** wyniki, **Esc** pauza.
+**Shift** sprint, **spacja** skok, **1–4** lub **scroll** zmiana przedmiotu, **Tab** wyniki,
+**Esc** pauza.
 
 Ustawienia dźwięku, myszy i grafiki znajdziesz w menu głównym i w pauzie. Zapisują się
 na komputerze w folderze danych gry, więc nowy build ich nie kasuje.
@@ -81,6 +83,15 @@ Tag z myślnikiem, np. `v0.2.0-rc1`, tworzy wersję próbną, która nie staje s
 Przed zmianą wersji Godota zaktualizuj w workflow `GODOT_VERSION` i `GODOT_SUMS_SHA512`,
 czyli sumę SHA-512 pliku `SHA512-SUMS.txt` z wydania Godota.
 
+## Jak działają przedmioty
+
+- **Definicja** w `data/items/*.tres` opisuje rodzaj przedmiotu, a broń ma osobne parametry dla każdej klasy.
+- **Egzemplarz** to `ItemStack`, a cztery sloty każdego gracza trzyma serwer w `GameState`.
+- **Zachowanie** to `ItemBehavior`. Nowy rodzaj przedmiotu dostaje własną definicję i zachowanie, bez zmian w kodzie sieciowym.
+- **Stan w ręku** (aktywny slot, naboje, przeładowanie) jest w `Equipment`. Klient przewiduje go od razu, a serwer koryguje.
+
+Po zmianie modelu przedmiotu odśwież ikony przez `tools/render_icons.gd`.
+
 ## Jak działa multiplayer
 
 - **Serwer decyduje o wszystkim.** Klient wysyła tylko klawisze, kąt patrzenia i przycisk strzału.
@@ -97,7 +108,9 @@ czyli sumę SHA-512 pliku `SHA512-SUMS.txt` z wydania Godota.
 | `scenes/world.tscn` | Mapa, edytowalna w Godocie |
 | `scenes/player.tscn` | Postać gracza i konfiguracja synchronizacji |
 | `scripts/player/player.gd` | Ruch, skok, respawn |
-| `scripts/player/weapon.gd` | Strzelanie, obrażenia, szybkostrzelność |
+| `data/items/` | Definicje przedmiotów i parametry każdej klasy |
+| `scripts/items/` | System przedmiotów: definicje, ekwipunek, zachowania |
+| `scripts/player/equipment.gd` | Przedmiot w ręku i jego stan w sieci |
 | `scripts/player/hitscan.gd` | Sprawdzanie trafień i rozmiary hitboksów |
 | `scripts/core/game_state.gd` | Lista graczy, zdrowie, wyniki |
 | `scripts/core/net.gd` | Serwer, łączenie, parametry startowe |
