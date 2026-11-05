@@ -54,7 +54,7 @@ func value(key: String) -> Variant:
 ## Zmienia ustawienie od razu, a zapis na dysk odklada, zeby suwak nie pisal co klatke.
 func set_value(key: String, new_value: Variant) -> void:
 	_config.set_value(SECTION, key, new_value)
-	apply()
+	apply(key)
 	changed.emit()
 	if _save_timer != null:
 		_save_timer.start()
@@ -85,17 +85,31 @@ func set_player_value(key: String, new_value: String) -> void:
 	save()
 
 
-func apply() -> void:
-	var volume: float = value("volume")
-	AudioServer.set_bus_mute(0, volume <= 0.001)
-	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.001)))
+## Stosuje ustawienia. Pusty klucz oznacza wszystkie, a podany tylko to jedno, zeby suwak
+## glosnosci nie ruszal okna ani cieni.
+func apply(key := "") -> void:
+	if key.is_empty() or key == "volume":
+		var volume: float = value("volume")
+		AudioServer.set_bus_mute(0, volume <= 0.001)
+		AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.001)))
 	if DisplayServer.get_name() == "headless":
 		return
-	var window_mode := DisplayServer.WINDOW_MODE_FULLSCREEN if value("fullscreen") else DisplayServer.WINDOW_MODE_WINDOWED
-	if DisplayServer.window_get_mode() != window_mode:
-		DisplayServer.window_set_mode(window_mode)
-	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if value("vsync") else DisplayServer.VSYNC_DISABLED)
-	var high: bool = value("high_quality")
-	RenderingServer.directional_shadow_atlas_set_size(8192 if high else 2048, true)
-	RenderingServer.directional_soft_shadow_filter_set_quality(
-		RenderingServer.SHADOW_QUALITY_SOFT_HIGH if high else RenderingServer.SHADOW_QUALITY_SOFT_LOW)
+	if key.is_empty() or key == "fullscreen":
+		_apply_window()
+	if key.is_empty() or key == "vsync":
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if value("vsync") else DisplayServer.VSYNC_DISABLED)
+	if key.is_empty() or key == "high_quality":
+		var high: bool = value("high_quality")
+		RenderingServer.directional_shadow_atlas_set_size(8192 if high else 2048, true)
+		RenderingServer.directional_soft_shadow_filter_set_quality(
+			RenderingServer.SHADOW_QUALITY_SOFT_HIGH if high else RenderingServer.SHADOW_QUALITY_SOFT_LOW)
+
+
+## Wychodzac z pelnego ekranu wracamy do okna, a okna zmaksymalizowanego nie ruszamy.
+func _apply_window() -> void:
+	var current := DisplayServer.window_get_mode()
+	var is_fullscreen := current == DisplayServer.WINDOW_MODE_FULLSCREEN or current == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+	if value("fullscreen") and not is_fullscreen:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	elif not value("fullscreen") and is_fullscreen:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)

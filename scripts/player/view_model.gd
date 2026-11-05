@@ -12,6 +12,10 @@ const RIGHT_HAND := CharacterAssets.HAND_POINT
 const GLOVE := Color("fffaf0")
 ## Warstwa widziana tylko przez kamere nakladki, nigdy przez kamere swiata.
 const OVERLAY_LAYER := 20
+const EDGE_SHADER := preload("res://shaders/overlay_edges.gdshader")
+## Przy odbezpieczonym granacie reka cofa sie do rzutu.
+const PRIMED_OFFSET := Vector3(0.06, 0.1, 0.2)
+const PRIMED_SPEED := 9.0
 
 var _main_camera: Camera3D
 var _overlay_camera: Camera3D
@@ -44,6 +48,8 @@ var _lift := 0.0
 var _landing_shown := 0.0
 var _aim := 0.0
 var _aim_target := false
+var _priming := 0.0
+var _priming_target := false
 var _pose_callbacks: Array[Callable] = []
 
 
@@ -95,9 +101,9 @@ func _build_overlay() -> void:
 	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	picture.set_anchors_preset(Control.PRESET_FULL_RECT)
-	var blend := CanvasItemMaterial.new()
-	blend.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
-	picture.material = blend
+	var edges := ShaderMaterial.new()
+	edges.shader = EDGE_SHADER
+	picture.material = edges
 	canvas.add_child(picture)
 
 	_overlay_camera = Camera3D.new()
@@ -238,6 +244,10 @@ func play_throw() -> void:
 	_hide = 1.0
 
 
+func set_priming(priming: bool) -> void:
+	_priming_target = priming
+
+
 func set_aiming(aiming: bool) -> void:
 	_aim_target = aiming
 
@@ -263,6 +273,7 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 	_hide = move_toward(_hide, 1.0 if dead else 0.0, delta * 3.5)
 	_sprint = move_toward(_sprint, 1.0 if sprinting else 0.0, delta * 7.0)
 	_aim = move_toward(_aim, 1.0 if _aim_target and not dead else 0.0, delta * AIM_SPEED)
+	_priming = move_toward(_priming, 1.0 if _priming_target else 0.0, delta * PRIMED_SPEED)
 	var aim_blend := smoothstep(0.0, 1.0, _aim)
 	# Przy celowaniu bron prawie sie nie kolysze, zeby nie przeszkadzala w trafianiu.
 	var steadiness := 1.0 - aim_blend * 0.85
@@ -293,7 +304,7 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 	position_offset += Vector3.DOWN * _hide * 0.6
 	position_offset += Vector3(_sway.x * -0.01, _sway.y * 0.01, 0.0) * steadiness
 	position_offset += Vector3(-0.05, 0.02, 0.03) * reload_tilt
-	_gun.position = BASE_POSITION.lerp(_aim_position(), aim_blend) + position_offset
+	_gun.position = BASE_POSITION.lerp(_aim_position(), aim_blend) + position_offset + PRIMED_OFFSET * _priming
 	_gun.rotation = Vector3(
 		recoil_curve * 0.16 - _sprint * 0.35 + reload_tilt * 0.5,
 		_sprint * 0.9 + reload_tilt * 0.45,

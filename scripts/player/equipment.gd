@@ -5,6 +5,8 @@ extends Node
 
 signal fired
 signal thrown
+## Zmienil sie stan odbezpieczenia przedmiotu w reku.
+signal priming_changed(primed: bool)
 signal action_started
 signal action_cancelled
 ## Zmienil sie przedmiot w reku: inny slot albo inny egzemplarz w tym samym slocie.
@@ -16,6 +18,7 @@ const ACTION_CORRECTION_TICKS := 8
 var active_slot := 0
 var last_fire := -1000
 var last_throw := -1000
+var prime_tick := -1
 var action_end := -1
 var draw_end := -1
 var slot_uid_0 := 0
@@ -30,6 +33,7 @@ var charges_3 := 0
 var _resolved_up_to := -1
 var _shown_fire := -1000
 var _shown_throw := -1000
+var _shown_primed := false
 var _shown_slot := -1
 var _shown_uid := -1
 var _shown_action_end := -1
@@ -141,6 +145,8 @@ func _rollback_tick(_delta: float, tick: int, _is_fresh: bool) -> void:
 		_sync_slots(tick)
 	var dead := player.is_dead_at(tick)
 	var wanted := clampi(input.slot, 0, Inventory.SLOTS - 1)
+	if prime_tick >= 0:
+		_update_primed(tick, dead or wanted != active_slot)
 	if not dead and wanted != active_slot:
 		active_slot = wanted
 		_begin_draw(tick)
@@ -153,6 +159,15 @@ func _rollback_tick(_delta: float, tick: int, _is_fresh: bool) -> void:
 	if dead or player.sprinting or ItemStack.is_empty(stack) or tick < draw_end:
 		return
 	ItemStack.behavior_of(stack).rollback_tick(self, stack, tick)
+
+
+## Przedmiot zniknal z reki, np. po smierci, wiec nie ma juz czego odbezpieczac.
+func _update_primed(tick: int, force_drop: bool) -> void:
+	var stack := active_stack()
+	if ItemStack.is_empty(stack):
+		prime_tick = -1
+	else:
+		ItemStack.behavior_of(stack).primed_tick(self, stack, tick, force_drop)
 
 
 func _begin_draw(tick: int) -> void:
@@ -181,6 +196,9 @@ func _after_tick_loop() -> void:
 	if last_throw > _shown_throw:
 		_shown_throw = last_throw
 		thrown.emit()
+	if (prime_tick >= 0) != _shown_primed:
+		_shown_primed = prime_tick >= 0
+		priming_changed.emit(_shown_primed)
 	if action_end != _shown_action_end:
 		# Korekta serwera moze przesunac koniec o pare tickow, ale to wciaz to samo dzialanie.
 		if action_end < 0 or _shown_action_end < 0 or absi(action_end - _shown_action_end) > ACTION_CORRECTION_TICKS:

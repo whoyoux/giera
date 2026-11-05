@@ -4,31 +4,43 @@ extends PanelContainer
 
 signal character_changed(id: String)
 
-const VIEW_SIZE := Vector2i(320, 400)
-const SPIN_SPEED := 0.5
+const VIEW_SIZE := Vector2(320, 400)
+## Obraz powstaje dwa razy wiekszy niz na ekranie i jest zmniejszany, co daje gladkie krawedzie.
+const SUPERSAMPLING := 2.0
+const SWAY_SPEED := 0.7
+const SWAY_ANGLE := 0.55
+## Model domyslnie patrzy od kamery, wiec obracamy go przodem z lekkim skosem na bron.
+const FRONT_ANGLE := PI + 0.35
 const ARROW_SIZE := Vector2(58, 58)
-## Model startuje bokiem do kamery, zeby od razu bylo widac jego ksztalt.
-const START_ANGLE := 0.5
 const POP_SCALE := 0.86
 const POP_SECONDS := 0.22
+const EDGE_SHADER := preload("res://shaders/overlay_edges.gdshader")
 
 var _viewport: SubViewport
+var _picture: TextureRect
 var _stage: Node3D
-var _model: Node3D
+var _rig: CharacterRig
 var _name_label: Label
 var _index := 0
+var _time := 0.0
 var _switch_audio: AudioStreamPlayer
 
 
 func _ready() -> void:
 	add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
 	_build()
+	get_window().size_changed.connect(_match_window)
+	_match_window()
 	select(Settings.player_value("character", CharacterAssets.ROSTER[0].id), false)
 
 
 func _process(delta: float) -> void:
-	if _stage != null and is_visible_in_tree():
-		_stage.rotation.y += delta * SPIN_SPEED
+	if _stage == null or not is_visible_in_tree():
+		return
+	_time += delta
+	_stage.rotation.y = FRONT_ANGLE + sin(_time * SWAY_SPEED) * SWAY_ANGLE
+	if _rig != null:
+		_rig.update_pose(delta, Vector2.ZERO, true, 0.0, false, false)
 
 
 func selected_id() -> String:
@@ -50,22 +62,26 @@ func step(direction: int) -> void:
 
 
 func _show_current() -> void:
-	if _model != null:
-		_stage.remove_child(_model)
-		_model.queue_free()
+	if _rig != null:
+		_stage.remove_child(_rig)
+		_rig.queue_free()
 	var entry: Dictionary = CharacterAssets.ROSTER[_index]
 	_name_label.text = entry.name
-	_model = CharacterAssets.character_for(entry.id)
-	_model.scale = Vector3.ONE * CharacterAssets.MODEL_SCALE * POP_SCALE
-	_stage.add_child(_model)
-	var holder := CharacterAssets.prepare_hands(_model)
-	CharacterAssets.set_gun_model(holder, ItemRegistry.weapon_stats(ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON).visual)
-	var player := CharacterAssets.player_of(_model)
-	player.get_animation("Idle").loop_mode = Animation.LOOP_LINEAR
-	player.play("Idle")
-	_stage.rotation.y = START_ANGLE
-	var tween := _model.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_model, "scale", Vector3.ONE * CharacterAssets.MODEL_SCALE, POP_SECONDS)
+	# Ten sam wezel postaci co w grze, wiec poza i chwyt broni sa takie jak u innych graczy.
+	_rig = CharacterRig.new()
+	_rig.scale = Vector3.ONE * POP_SCALE
+	_stage.add_child(_rig)
+	_rig.setup(entry.id)
+	_rig.set_item(ItemStack.create(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON))
+	var tween := _rig.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_rig, "scale", Vector3.ONE, POP_SECONDS)
+
+
+## Interfejs jest skalowany z 1280x720, a obraz postaci liczymy w pikselach okna, inaczej bylby rozmyty.
+func _match_window() -> void:
+	var window := get_window()
+	var ui_scale := float(window.size.y) / maxf(get_viewport().get_visible_rect().size.y, 1.0)
+	_viewport.size = Vector2i(VIEW_SIZE * maxf(ui_scale, 1.0) * SUPERSAMPLING)
 
 
 func _build() -> void:
@@ -76,16 +92,23 @@ func _build() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 
-	var view := SubViewportContainer.new()
-	view.custom_minimum_size = VIEW_SIZE
-	view.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(view)
 	_viewport = SubViewport.new()
-	_viewport.size = VIEW_SIZE
 	_viewport.own_world_3d = true
 	_viewport.transparent_bg = true
 	_viewport.msaa_3d = Viewport.MSAA_4X
-	view.add_child(_viewport)
+	_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	add_child(_viewport)
+	_picture = TextureRect.new()
+	_picture.custom_minimum_size = VIEW_SIZE
+	_picture.texture = _viewport.get_texture()
+	_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_picture.stretch_mode = TextureRect.STRETCH_SCALE
+	_picture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var edges := ShaderMaterial.new()
+	edges.shader = EDGE_SHADER
+	_picture.material = edges
+	column.add_child(_picture)
 	_build_stage()
 
 	var row := HBoxContainer.new()

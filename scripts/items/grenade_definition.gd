@@ -9,7 +9,8 @@ extends ItemDefinition
 ## Obrazenia tuz za promieniem smierci i na samej krawedzi wybuchu.
 @export var near_damage := 85
 @export var edge_damage := 8
-@export var fuse_seconds := 2.4
+## Liczy sie od odbezpieczenia, a nie od rzutu.
+@export var fuse_seconds := 3.0
 @export var throw_speed := 17.0
 @export var throw_lift := 3.5
 @export var item_visual: ItemVisual

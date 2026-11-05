@@ -124,15 +124,14 @@ func _process(delta: float) -> void:
 func _update_use_panel(equipment: Equipment) -> void:
 	var stack := equipment.active_stack()
 	var behavior := ItemStack.behavior_of(stack)
-	var text := ""
-	if behavior != null:
-		text = behavior.action_label(stack) if equipment.is_busy() else behavior.idle_hint(equipment, stack)
+	var text := behavior.current_label(equipment, stack) if behavior != null else ""
 	_use_panel.visible = not text.is_empty() and Chests.focused_id == 0 and WorldItems.focused_id == 0
 	if not _use_panel.visible:
 		return
 	_use_label.text = text
-	_use_bar.visible = equipment.is_busy()
-	_use_bar.value = equipment.action_progress()
+	var progress := behavior.current_progress(equipment, stack)
+	_use_bar.visible = progress >= 0.0
+	_use_bar.value = progress
 
 
 ## Leczenie widac na pasku zdrowia. Powrot po smierci to nie leczenie.

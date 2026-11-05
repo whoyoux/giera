@@ -20,7 +20,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Każda daje jeden przedmiot: broń, apteczkę albo granat, a po minucie wraca. Wśród broni 70% to zwykłe, 25% epickie i 5% legendarne.
 - **Podnoszenie i wyrzucanie:** bronie leżą na ziemi, a po śmierci wypadają dla innych.
 - **Apteczki:** przytrzymanie strzału przez 2,5 s leczy o 50 punktów.
-- **Granaty:** odbijają się od ziemi i wybuchają po chwili. Im bliżej wybuchu, tym większe obrażenia, a tuż obok giniesz od razu.
+- **Granaty:** przytrzymanie odbezpiecza, a puszczenie rzuca, więc można skrócić czas do wybuchu. Im bliżej wybuchu, tym większe obrażenia, a tuż obok giniesz od razu.
 - **Celowanie:** prawy przycisk przybliża widok i zmniejsza odrzut, ale spowalnia ruch. Lepsza broń ma mocniejsze przybliżenie.
 - **Wybór postaci:** 9 modeli do wyboru strzałkami w menu, w tym rycerze i szkielety. Gra zapamiętuje wybór.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
@@ -42,7 +42,7 @@ W menu wpisz adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym k
 |---|---|
 | **WASD** | Ruch |
 | **Mysz** | Celowanie |
-| **LPM** | Strzał, rzut granatem, przytrzymanie używa apteczki |
+| **LPM** | Strzał. Przytrzymanie używa apteczki albo odbezpiecza granat, a puszczenie go rzuca |
 | **PPM** | Celowanie (przytrzymaj) |
 | **R** | Przeładowanie |
 | **Shift** | Sprint |
