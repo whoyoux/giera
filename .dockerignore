@@ -1,0 +1,7 @@
+.git
+.godot
+builds
+tools
+Dockerfile
+.dockerignore
+*.md

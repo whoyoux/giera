@@ -15,6 +15,7 @@ signal session_ended(reason: String)
 const DEFAULT_PORT := 7777
 const MAX_CLIENTS := 32
 const CONNECT_TIMEOUT_SECONDS := 8.0
+const DEDICATED_MAX_FPS := 60
 
 var args := {}
 var is_headless := false
@@ -53,6 +54,9 @@ func start_server(port := DEFAULT_PORT, dedicated := false) -> String:
 			get_tree().quit(1)
 		return reason
 	is_dedicated = dedicated
+	if dedicated:
+		# Bez limitu petla silnika zajmowalaby caly rdzen procesora.
+		Engine.max_fps = DEDICATED_MAX_FPS
 	multiplayer.multiplayer_peer = peer
 	in_session = true
 	print("[serwer] nasluch na porcie UDP %d (%s)" % [port, "dedykowany" if dedicated else "z graczem"])
