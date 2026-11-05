@@ -5,7 +5,11 @@ wspólnego serwera, biegają po mapie i strzelają z blastera.
 
 ## Szybki start
 
-Otwórz folder w Godocie 4.7 i naciśnij F5, a potem **Hostuj grę na tym komputerze**.
+Gotową wersję na Windows pobierzesz z zakładki **Releases**. Uruchom `Giera.exe`, wpisz
+adres serwera podany przez hosta i kliknij **Dołącz**.
+
+Żeby uruchomić projekt samodzielnie, otwórz folder w Godocie 4.7, naciśnij F5, a potem
+wybierz **Hostuj grę na tym komputerze**.
 
 Gra z botami na jednym komputerze:
 
@@ -26,6 +30,17 @@ godot --path . --headless -- --server --port=7777
 
 Serwer potrzebuje otwartego portu **7777/UDP**. W menu gry wpisz adres serwera,
 opcjonalnie z portem, np. `203.0.113.10:7777`.
+
+Gotowy obraz serwera buduje `Dockerfile`. Restart serwera rozłącza graczy i zeruje wyniki.
+
+## Build dla graczy
+
+```bash
+godot --headless --path . --export-release "Windows Desktop" builds/Giera.exe
+```
+
+Wymaga szablonów eksportu Godota 4.7.2. Po zmianach w kodzie sieciowym wszyscy gracze
+potrzebują nowego pliku `Giera.exe`.
 
 ## Jak działa multiplayer
 

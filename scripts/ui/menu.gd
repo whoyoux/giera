@@ -45,7 +45,7 @@ func _ready() -> void:
 	column.add_child(_name_field)
 
 	column.add_child(_caption("Adres serwera"))
-	_address_field = UiStyle.field(settings.get_value("player", "address", "127.0.0.1"), "127.0.0.1")
+	_address_field = UiStyle.field(settings.get_value("player", "address", ""), "np. 203.0.113.10")
 	column.add_child(_address_field)
 
 	_join_button = UiStyle.button("Dołącz", UiStyle.ACCENT)
@@ -78,9 +78,12 @@ func _caption(text: String) -> Label:
 
 
 func _on_join() -> void:
-	_apply_settings()
 	var parts := _address_field.text.strip_edges().rsplit(":", true, 1)
-	var address := parts[0] if not parts[0].is_empty() else "127.0.0.1"
+	var address := parts[0]
+	if address.is_empty():
+		_status.text = "Wpisz adres serwera."
+		return
+	_apply_settings()
 	var port := int(parts[1]) if parts.size() == 2 else Net.DEFAULT_PORT
 	var error := Net.join(address, port)
 	_status.text = error if not error.is_empty() else "Łączenie…"

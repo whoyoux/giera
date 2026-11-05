@@ -10,6 +10,11 @@ var _failures := 0
 
 func _ready() -> void:
 	var main := get_node("/root/Main")
+	var menu := main.get_node("Menu") as Menu
+	menu._address_field.text = ""
+	menu._on_join()
+	_check("puste pole adresu nie laczy", not Net.in_session and menu._status.text == "Wpisz adres serwera.")
+	menu._status.text = ""
 	_check("host startuje", Net.start_server(PORT).is_empty())
 	await _wait(1.5)
 	var player := _local_player()
