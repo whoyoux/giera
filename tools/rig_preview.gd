@@ -30,6 +30,7 @@ func _rigs(world: Node3D) -> void:
 		var rig := CharacterRig.new()
 		world.add_child(rig)
 		rig.setup(i + 1)
+		rig.set_item(ItemStack.create(1, ItemRegistry.DEFAULT_WEAPON, i % 3))
 		rig.position = Vector3((i - 3) * 2.0, 0.1, 25.0)
 		rig.rotation.y = PI * 0.85
 		rigs.append(rig)
@@ -73,6 +74,7 @@ func _first_person(world: Node3D) -> void:
 	var view := ViewModel.new()
 	camera.add_child(view)
 	view.setup(int(Net.args.get("fp-peer", 2)))
+	view.set_item(ItemStack.create(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON))
 	var pose := func(frames: int, speed: float, sprint: bool, reload: bool, dead := false) -> void:
 		for frame in frames:
 			view.update_pose(1.0 / 60.0, speed, true, 0.0, sprint, reload, dead)
@@ -80,6 +82,13 @@ func _first_person(world: Node3D) -> void:
 	await pose.call(50, 0.0, false, false)
 	print("[test] okno %s, bron renderowana w %s" % [get_window().size, view.overlay_size()])
 	await _shot("fp_aim.png")
+	for tier: int in [Rarity.Tier.COMMON, Rarity.Tier.EPIC, Rarity.Tier.LEGENDARY]:
+		view.set_item(ItemStack.create(1, ItemRegistry.DEFAULT_WEAPON, tier))
+		await pose.call(40, 0.0, false, false)
+		await _shot("fp_tier_%d.png" % tier)
+		view.kick(ItemRegistry.weapon_stats(ItemRegistry.DEFAULT_WEAPON, tier).recoil)
+		await pose.call(2, 0.0, false, false)
+		await _shot("fp_tier_%d_shot.png" % tier)
 	# Bron przy samej scianie nie moze w nia wchodzic.
 	var open_position := camera.position
 	camera.position = Vector3(-16.0, 1.5, -31.3)

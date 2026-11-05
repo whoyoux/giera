@@ -3,7 +3,8 @@
 param(
 	[int]$Bots = 1,
 	[int]$Shooters = 0,
-	[int]$Port = 7777
+	[int]$Port = 7777,
+	[switch]$DebugItems
 )
 
 $project = Split-Path -Parent $PSScriptRoot
@@ -16,7 +17,7 @@ if (-not (Test-Path $godot)) {
 }
 
 $running = @()
-$running += Start-Process $godot -ArgumentList "--path `"$project`" --headless -- --server --port=$Port" -WindowStyle Minimized -PassThru
+$running += Start-Process $godot -ArgumentList "--path `"$project`" --headless -- --server --port=$Port $(if ($DebugItems) { '--debug-items' })" -WindowStyle Minimized -PassThru
 Start-Sleep -Seconds 2
 
 for ($i = 1; $i -le $Bots; $i++) {

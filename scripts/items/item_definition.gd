@@ -13,12 +13,9 @@ func behavior() -> ItemBehavior:
 	return null
 
 
-func model_path(_tier: int) -> String:
-	return ""
-
-
-func icon_path(_tier: int) -> String:
-	return ""
+## Wyglad przedmiotu w danej klasie.
+func visual(_tier: int) -> ItemVisual:
+	return null
 
 
 ## Ile "ladunkow" ma nowy egzemplarz, np. naboje w magazynku.

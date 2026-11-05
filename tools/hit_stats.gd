@@ -16,9 +16,9 @@ func _ready() -> void:
 
 
 func _on_node_added(node: Node) -> void:
-	if node is Weapon:
+	if node is Equipment:
 		node.ready.connect(func() -> void:
-			if (node as Weapon).player.is_local():
+			if (node as Equipment).player.is_local():
 				node.fired.connect(func() -> void: _shots += 1))
 
 

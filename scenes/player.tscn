@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/player/player_input.gd" id="2_input"]
-[ext_resource type="Script" path="res://scripts/player/weapon.gd" id="3_weapon"]
+[ext_resource type="Script" path="res://scripts/player/equipment.gd" id="3_equipment"]
 [ext_resource type="Script" path="res://scripts/player/character_rig.gd" id="4_model"]
 [ext_resource type="Script" path="res://scripts/player/view_model.gd" id="5_view"]
 [ext_resource type="Script" path="res://addons/netfox/rollback/rollback-synchronizer.gd" id="6_sync"]
@@ -54,14 +54,14 @@ unit_size = 5.0
 [node name="Input" type="Node" parent="."]
 script = ExtResource("2_input")
 
-[node name="Weapon" type="Node" parent="."]
-script = ExtResource("3_weapon")
+[node name="Equipment" type="Node" parent="."]
+script = ExtResource("3_equipment")
 
 [node name="RollbackSynchronizer" type="Node" parent="." node_paths=PackedStringArray("root")]
 script = ExtResource("6_sync")
 root = NodePath("..")
-state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", ":stamina", ":sprinting", ":exhausted", ":sprint_stop_tick", "Weapon:last_fire", "Weapon:ammo", "Weapon:reload_end"])
-input_properties = Array[String](["Input:move", "Input:jump", "Input:fire", "Input:sprint", "Input:reload", "Input:yaw", "Input:pitch", "Input:view_tick"])
+state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", ":stamina", ":sprinting", ":exhausted", ":sprint_stop_tick", "Equipment:active_slot", "Equipment:last_fire", "Equipment:action_end", "Equipment:draw_end", "Equipment:slot_uid_0", "Equipment:slot_uid_1", "Equipment:slot_uid_2", "Equipment:slot_uid_3", "Equipment:charges_0", "Equipment:charges_1", "Equipment:charges_2", "Equipment:charges_3"])
+input_properties = Array[String](["Input:move", "Input:jump", "Input:use_primary", "Input:slot", "Input:sprint", "Input:reload", "Input:yaw", "Input:pitch", "Input:view_tick"])
 enable_input_broadcast = false
 
 [node name="TickInterpolator" type="Node" parent="." node_paths=PackedStringArray("root")]

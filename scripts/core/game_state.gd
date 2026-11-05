@@ -25,6 +25,8 @@ var players := {}
 var pings := {}
 
 var _ping_timer := 0.0
+var _next_item_uid := 1
+var _adding_player := false
 
 
 func _ready() -> void:
@@ -84,7 +86,12 @@ func server_add_player(id: int, player_name: String) -> void:
 		"respawn_id": 0,
 		"death_tick": -1,
 		"respawn_tick": -1,
+		"slots": Inventory.empty_slots(),
+		"inventory_tick": -1,
 	}
+	_adding_player = true
+	_give_starting_items(id)
+	_adding_player = false
 	print("[serwer] dolaczyl %s (%d), graczy: %d" % [clean, id, players.size()])
 	player_added.emit(id)
 	if id != 1:
@@ -105,6 +112,7 @@ func server_damage(victim_id: int, amount: int, attacker_id: int) -> void:
 		victim.respawn_id += 1
 		victim.death_tick = NetworkTime.tick
 		victim.respawn_tick = NetworkTime.tick + NetworkTime.seconds_to_ticks(RESPAWN_SECONDS)
+		_clear_loot(victim_id)
 		if players.has(attacker_id):
 			players[attacker_id].kills += 1
 			_broadcast(attacker_id)
@@ -122,8 +130,45 @@ func server_finish_respawn(id: int) -> void:
 		return
 	info.alive = true
 	info.health = MAX_HEALTH
+	if Net.args.has("debug-items"):
+		_give_debug_items(id)
 	print("[serwer] %s wraca do gry" % display_name(id))
 	_broadcast(id)
+
+
+## Dodaje przedmiot do pierwszego wolnego slotu. Zwraca numer slotu albo -1, gdy brak miejsca.
+func server_give_item(id: int, item_id: StringName, tier: int) -> int:
+	var info: Dictionary = players.get(id, {})
+	if info.is_empty():
+		return -1
+	var slot := Inventory.first_free(info.slots)
+	if slot < 0:
+		return -1
+	info.slots[slot] = ItemStack.create(_next_item_uid, item_id, tier)
+	_next_item_uid += 1
+	info.inventory_tick = NetworkTime.tick
+	if not _adding_player:
+		_broadcast(id)
+	return slot
+
+
+func _give_starting_items(id: int) -> void:
+	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON)
+	if Net.args.has("debug-items"):
+		_give_debug_items(id)
+
+
+func _give_debug_items(id: int) -> void:
+	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC)
+	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
+
+
+## Smierc zabiera wszystko oprocz startowego blastera w pierwszym slocie.
+func _clear_loot(id: int) -> void:
+	var info: Dictionary = players[id]
+	for slot in range(1, Inventory.SLOTS):
+		info.slots[slot] = {}
+	info.inventory_tick = NetworkTime.tick
 
 
 func _broadcast(id: int) -> void:

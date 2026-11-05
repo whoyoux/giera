@@ -51,13 +51,13 @@ func _ready() -> void:
 	GameState.players[3].alive = true
 	GameState.players[3].health = GameState.MAX_HEALTH
 	for i in 4:
-		GameState.server_damage(3, Weapon.stats().damage, 2)
+		GameState.server_damage(3, ItemRegistry.weapon_stats(ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON).damage, 2)
 	_check("po 4 trafieniach gracz zyje", GameState.players[3].alive and GameState.players[3].health == 20)
-	GameState.server_damage(3, Weapon.stats().damage, 2)
+	GameState.server_damage(3, ItemRegistry.weapon_stats(ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON).damage, 2)
 	_check("piate trafienie zabija", not GameState.players[3].alive)
 	_check("zabojstwo jest policzone", GameState.players[2].kills == 1 and GameState.players[3].deaths == 1)
 	_check("respawn jest zaplanowany", GameState.players[3].respawn_id == 1)
-	GameState.server_damage(3, Weapon.stats().damage, 2)
+	GameState.server_damage(3, ItemRegistry.weapon_stats(ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.COMMON).damage, 2)
 	_check("trafienie w martwego nic nie zmienia", GameState.players[2].kills == 1)
 
 	print("[test] %s" % ("WSZYSTKO OK" if _failures == 0 else "BLEDY: %d" % _failures))
