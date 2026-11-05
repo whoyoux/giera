@@ -135,7 +135,7 @@ func _check_loot_table() -> void:
 	rng.seed = 1234
 	var counts := [0, 0, 0]
 	var weapons := 0
-	for i in 20000:
+	for i in 40000:
 		var rolled: Dictionary = Chests.LOOT_TABLE.roll(rng)
 		if rolled.item == ItemRegistry.DEFAULT_WEAPON and weapons < 10000:
 			counts[rolled.tier] += 1

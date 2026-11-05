@@ -13,6 +13,8 @@ signal action_cancelled
 signal active_item_changed
 
 const ACTION_CORRECTION_TICKS := 8
+## Granica cofania czasu, zeby gracz z bardzo slabym laczem nie trafial "przez sciany".
+const MAX_REWIND_SECONDS := 0.3
 
 # Stan rollbacku. Osobne liczby zamiast tablicy, bo netfox wysyla tylko zmienione wartosci.
 var active_slot := 0
@@ -90,6 +92,19 @@ func active_charges() -> int:
 
 func set_active_charges(value: int) -> void:
 	_set_charges(active_slot, value)
+
+
+## Szybkosc biegu z tym, co jest teraz w reku.
+func move_speed_scale() -> float:
+	var definition := ItemStack.definition_of(active_stack())
+	return definition.move_speed_scale() if definition != null else 1.0
+
+
+## Do ktorego ticku serwer cofa cele przy rozliczaniu ataku. -1 oznacza stan biezacy.
+func rewind_tick(tick: int) -> int:
+	if input.view_tick < 0:
+		return -1
+	return clampi(input.view_tick, tick - NetworkTime.seconds_to_ticks(MAX_REWIND_SECONDS), tick)
 
 
 ## Celowac mozna tylko bronia i nie w trakcie przeladowania.
@@ -172,8 +187,9 @@ func _update_primed(tick: int, force_drop: bool) -> void:
 
 func _begin_draw(tick: int) -> void:
 	action_end = -1
-	var stats := active_stats()
-	draw_end = tick + (NetworkTime.seconds_to_ticks(stats.draw_seconds) if stats != null else 0)
+	var stack := active_stack()
+	var definition := ItemStack.definition_of(stack)
+	draw_end = tick + (NetworkTime.seconds_to_ticks(definition.draw_seconds(ItemStack.tier_of(stack))) if definition != null else 0)
 
 
 ## Dopasowuje stan do zawartosci slotow. Nowy egzemplarz wnosi wlasne naboje.

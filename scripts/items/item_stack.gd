@@ -45,7 +45,7 @@ static func display_name_of(stack: Dictionary) -> String:
 	var definition := definition_of(stack)
 	if definition == null:
 		return ""
-	return "%s %s" % [Rarity.display_name(tier_of(stack)), definition.display_name] if definition.has_tiers() else definition.display_name
+	return "%s %s" % [Rarity.display_name(tier_of(stack), definition.feminine_name), definition.display_name] if definition.has_tiers() else definition.display_name
 
 
 static func weapon_stats_of(stack: Dictionary) -> WeaponStats:

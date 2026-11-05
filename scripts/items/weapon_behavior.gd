@@ -3,9 +3,6 @@ extends ItemBehavior
 ## Strzelanie i przeladowanie. Lokalny strzal widac od razu, a o trafieniu
 ## i obrazeniach decyduje wylacznie serwer.
 
-## Granica cofania czasu, zeby gracz z bardzo slabym laczem nie trafial "przez sciany".
-const MAX_REWIND_SECONDS := 0.3
-
 
 func rollback_tick(equipment: Equipment, stack: Dictionary, tick: int) -> void:
 	var stats := ItemStack.weapon_stats_of(stack)
@@ -39,16 +36,31 @@ func timed_action_seconds(stack: Dictionary) -> float:
 	return ItemStack.weapon_stats_of(stack).reload_seconds
 
 
+func show_fired(player: Player, stack: Dictionary) -> void:
+	var stats := ItemStack.weapon_stats_of(stack)
+	player.play_shot_sound(Sfx.shot(stats))
+	var hits: Array[Dictionary] = []
+	for direction in _shot_directions(stats, player.look_direction(), player.aiming, player.equipment.last_fire):
+		hits.append(Hitscan.trace(player.get_world_3d(), player.eye_position(), direction, player.peer_id, player.get_tree()))
+	player.show_shots(hits, stats, ItemStack.tier_of(stack))
+
+
+func _shot_directions(stats: WeaponStats, aim: Vector3, aiming: bool, fire_tick: int) -> Array[Vector3]:
+	return Hitscan.pellet_directions(aim, stats.pellets, stats.current_spread(aiming), fire_tick)
+
+
 ## Klient widzi innych graczy z opoznieniem, wiec serwer cofa ich do chwili, ktora
 ## strzelec mial na ekranie. Dzieki temu liczy sie to, w co gracz naprawde celowal.
+## Sruciny jednego strzalu daja jedno trafienie, zeby znaczniki i dzwieki sie nie mnozyly.
 func _resolve_shot(equipment: Equipment, stats: WeaponStats, tick: int) -> void:
 	var player := equipment.player
-	var view_tick := -1
-	if equipment.input.view_tick >= 0:
-		view_tick = clampi(equipment.input.view_tick, tick - NetworkTime.seconds_to_ticks(MAX_REWIND_SECONDS), tick)
-	var hit := Hitscan.trace(player.get_world_3d(), player.eye_position(),
-			Hitscan.direction(player.yaw, player.pitch), player.peer_id, player.get_tree(), view_tick)
-	var victim := hit.player as Player
-	if victim != null:
-		var damage: int = stats.headshot_damage if hit.headshot else stats.damage
-		GameState.server_damage(victim.peer_id, damage, player.peer_id)
+	var view_tick := equipment.rewind_tick(tick)
+	var damage_by_victim := {}
+	for direction in _shot_directions(stats, Hitscan.direction(player.yaw, player.pitch), player.aiming, tick):
+		var hit := Hitscan.trace(player.get_world_3d(), player.eye_position(), direction, player.peer_id, player.get_tree(), view_tick)
+		var victim := hit.player as Player
+		if victim != null:
+			var damage: int = stats.headshot_damage if hit.headshot else stats.damage
+			damage_by_victim[victim.peer_id] = damage_by_victim.get(victim.peer_id, 0) + damage
+	for victim_id: int in damage_by_victim:
+		GameState.server_damage(victim_id, damage_by_victim[victim_id], player.peer_id)

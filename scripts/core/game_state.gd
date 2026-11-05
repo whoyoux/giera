@@ -146,8 +146,7 @@ func server_finish_respawn(id: int) -> void:
 		return
 	info.alive = true
 	info.health = MAX_HEALTH
-	if Net.args.has("debug-items"):
-		_give_debug_items(id)
+	_give_debug_items(id)
 	print("[serwer] %s wraca do gry" % display_name(id))
 	_broadcast(id)
 
@@ -242,14 +241,18 @@ func _give_starter(id: int) -> void:
 
 func _give_starting_items(id: int) -> void:
 	_give_starter(id)
-	if Net.args.has("debug-items"):
-		_give_debug_items(id)
+	_give_debug_items(id)
 
 
 func _give_debug_items(id: int) -> void:
-	server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
-	server_give_item(id, &"medkit", Rarity.Tier.COMMON)
-	server_give_item(id, &"grenade", Rarity.Tier.COMMON)
+	if Net.args.has("debug-items"):
+		server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
+		server_give_item(id, &"medkit", Rarity.Tier.COMMON)
+		server_give_item(id, &"grenade", Rarity.Tier.COMMON)
+	if Net.args.has("debug-weapons"):
+		server_give_item(id, &"shotgun", Rarity.Tier.COMMON)
+		server_give_item(id, &"shotgun", Rarity.Tier.LEGENDARY)
+		server_give_item(id, &"knife", Rarity.Tier.COMMON)
 
 
 ## Zwykly zdobyty przedmiot zostaje na ziemi, a jeden startowy blaster przy graczu.

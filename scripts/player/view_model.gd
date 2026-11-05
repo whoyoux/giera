@@ -16,6 +16,7 @@ const EDGE_SHADER := preload("res://shaders/overlay_edges.gdshader")
 ## Przy odbezpieczonym granacie reka cofa sie do rzutu.
 const PRIMED_OFFSET := Vector3(0.06, 0.1, 0.2)
 const PRIMED_SPEED := 9.0
+const SLASH_SECONDS := 0.34
 
 var _main_camera: Camera3D
 var _overlay_camera: Camera3D
@@ -50,6 +51,7 @@ var _aim := 0.0
 var _aim_target := false
 var _priming := 0.0
 var _priming_target := false
+var _slash := 1.0
 var _pose_callbacks: Array[Callable] = []
 
 
@@ -212,6 +214,7 @@ func _load_model(visual: ItemVisual) -> void:
 	_gun.add_child(_model)
 	_muzzle.position = RIGHT_HAND + (visual.muzzle - visual.grip) * visual.model_scale
 	_left_home = RIGHT_HAND + (visual.fore_grip - visual.grip) * visual.model_scale
+	_left.visible = not visual.one_handed
 	for node in _model.find_children("*", "MeshInstance3D", true, false):
 		(node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_magazine = _model.find_child("magazine", true, false) as Node3D
@@ -242,6 +245,11 @@ func play_throw() -> void:
 	_gun.visible = false
 	_has_item = false
 	_hide = 1.0
+
+
+## Ciecie nozem: reka zamachuje sie i przechodzi przez srodek ekranu.
+func play_slash() -> void:
+	_slash = 0.0
 
 
 func set_priming(priming: bool) -> void:
@@ -304,11 +312,22 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 	position_offset += Vector3.DOWN * _hide * 0.6
 	position_offset += Vector3(_sway.x * -0.01, _sway.y * 0.01, 0.0) * steadiness
 	position_offset += Vector3(-0.05, 0.02, 0.03) * reload_tilt
-	_gun.position = BASE_POSITION.lerp(_aim_position(), aim_blend) + position_offset + PRIMED_OFFSET * _priming
+	_slash = minf(_slash + delta / SLASH_SECONDS, 1.0)
+	var swing := _slash_amount()
+	position_offset += Vector3(-0.2, 0.05, -0.14) * swing
+	var hold := _visual.hold_offset if _visual != null else Vector3.ZERO
+	_gun.position = (BASE_POSITION + hold).lerp(_aim_position(), aim_blend) + position_offset + PRIMED_OFFSET * _priming
 	_gun.rotation = Vector3(
-		recoil_curve * 0.16 - _sprint * 0.35 + reload_tilt * 0.5,
-		_sprint * 0.9 + reload_tilt * 0.45,
-		_sway.x * 0.012 * steadiness + _sprint * 0.25 + reload_tilt * 0.35)
+		recoil_curve * 0.16 - _sprint * 0.35 + reload_tilt * 0.5 - swing * 0.2,
+		_sprint * 0.9 + reload_tilt * 0.45 + swing * 0.4,
+		_sway.x * 0.012 * steadiness + _sprint * 0.25 + reload_tilt * 0.35 + swing * 0.9)
+
+
+## Szybki wymach na poczatku i wolniejszy powrot.
+func _slash_amount() -> float:
+	if _slash >= 1.0:
+		return 0.0
+	return smoothstep(0.0, 0.25, _slash) * (1.0 - smoothstep(0.35, 1.0, _slash))
 
 
 ## Pozycja broni, przy ktorej lufa kazdego modelu lezy w tym samym miejscu ekranu.

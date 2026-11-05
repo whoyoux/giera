@@ -5,12 +5,15 @@ extends RefCounted
 enum Tier { COMMON, EPIC, LEGENDARY }
 
 const NAMES := { Tier.COMMON: "Zwykły", Tier.EPIC: "Epicki", Tier.LEGENDARY: "Legendarny" }
+## Odmiana dla przedmiotow rodzaju zenskiego, np. "Epicka Strzelba".
+const FEMININE_NAMES := { Tier.COMMON: "Zwykła", Tier.EPIC: "Epicka", Tier.LEGENDARY: "Legendarna" }
 const EFFECT_COLORS := { Tier.COMMON: Color("fff3a3"), Tier.EPIC: Color("d9b8ff"), Tier.LEGENDARY: Color("ffd24d") }
 const COLORS := { Tier.COMMON: Color("a9adb8"), Tier.EPIC: Color("9b5de5"), Tier.LEGENDARY: Color("f6a609") }
 
 
-static func display_name(tier: int) -> String:
-	return NAMES.get(tier, NAMES[Tier.COMMON])
+static func display_name(tier: int, feminine := false) -> String:
+	var names: Dictionary = FEMININE_NAMES if feminine else NAMES
+	return names.get(tier, names[Tier.COMMON])
 
 
 ## Kolor smugi i blysku strzalu.
