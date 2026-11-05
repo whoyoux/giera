@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/player/player_input.gd" id="2_input"]
+[ext_resource type="Script" path="res://scripts/player/weapon.gd" id="3_weapon"]
+[ext_resource type="Script" path="res://scripts/player/player_model.gd" id="4_model"]
+[ext_resource type="Script" path="res://scripts/player/view_model.gd" id="5_view"]
+[ext_resource type="Script" path="res://addons/netfox/rollback/rollback-synchronizer.gd" id="6_sync"]
+[ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="7_interp"]
+
+[sub_resource type="CapsuleShape3D" id="capsule"]
+radius = 0.4
+height = 1.8
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
+floor_snap_length = 0.3
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("capsule")
+
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("4_model")
+
+[node name="Head" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head"]
+near = 0.03
+fov = 80.0
+
+[node name="ViewModel" type="Node3D" parent="Head/Camera3D"]
+script = ExtResource("5_view")
+
+[node name="NameLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)
+pixel_size = 0.007
+billboard = 1
+no_depth_test = true
+font_size = 48
+outline_size = 12
+
+[node name="ShotAudio" type="AudioStreamPlayer3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+unit_size = 8.0
+
+[node name="Input" type="Node" parent="."]
+script = ExtResource("2_input")
+
+[node name="Weapon" type="Node" parent="."]
+script = ExtResource("3_weapon")
+
+[node name="RollbackSynchronizer" type="Node" parent="." node_paths=PackedStringArray("root")]
+script = ExtResource("6_sync")
+root = NodePath("..")
+state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", "Weapon:last_fire"])
+input_properties = Array[String](["Input:move", "Input:jump", "Input:fire", "Input:yaw", "Input:pitch"])
+enable_input_broadcast = false
+
+[node name="TickInterpolator" type="Node" parent="." node_paths=PackedStringArray("root")]
+script = ExtResource("7_interp")
+root = NodePath("..")
+properties = Array[String]([":position", ":yaw", ":pitch"])

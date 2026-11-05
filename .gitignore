@@ -1,0 +1,10 @@
+# Godot
+.godot/
+*.translation
+export_credentials.cfg
+
+# Buildy
+builds/
+
+# Logi testow
+tools/logs/
