@@ -5,6 +5,9 @@ extends CanvasLayer
 signal settings_requested
 
 const FEED_SECONDS := 5.0
+const FEED_NAME_LENGTH := 18
+const FEED_AVATAR_SIDE := 26.0
+const SCORE_AVATAR_SIDE := 34.0
 const LOW_HEALTH := 35
 const KILL_SHAKE := 0.28
 const ITEM_NAME_SECONDS := 1.4
@@ -323,15 +326,27 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 	row.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 8)
-	line.add_child(UiStyle.label(GameState.display_name(killer_id), 17, UiStyle.BLUE))
+	line.add_child(_avatar_of(killer_id, FEED_AVATAR_SIDE))
+	line.add_child(UiStyle.label(_short_name(killer_id), 17, UiStyle.BLUE))
 	line.add_child(UiStyle.label("✦", 15, UiStyle.CORAL))
-	line.add_child(UiStyle.label(GameState.display_name(victim_id), 17, UiStyle.CORAL))
+	line.add_child(_avatar_of(victim_id, FEED_AVATAR_SIDE))
+	line.add_child(UiStyle.label(_short_name(victim_id), 17, UiStyle.CORAL))
 	row.add_child(line)
 	_feed.add_child(row)
 	var tween := row.create_tween()
 	tween.tween_interval(FEED_SECONDS)
 	tween.tween_property(row, "modulate:a", 0.0, 0.4)
 	tween.tween_callback(row.queue_free)
+
+
+func _avatar_of(id: int, side: float) -> AvatarView:
+	return AvatarView.new(GameState.steam_id_of(id), GameState.display_name(id), side)
+
+
+## Nazwy ze Steama bywaja dlugie, a lista zabojstw musi sie zmiescic przy krawedzi ekranu.
+func _short_name(id: int) -> String:
+	var full := GameState.display_name(id)
+	return full if full.length() <= FEED_NAME_LENGTH else full.left(FEED_NAME_LENGTH - 1) + "…"
 
 
 func _refresh_scoreboard() -> void:
@@ -347,7 +362,10 @@ func _refresh_scoreboard() -> void:
 		var info: Dictionary = GameState.players[id]
 		var ping: int = GameState.pings.get(id, -1)
 		var ping_text := "%d ms" % ping if ping >= 0 else "–"
-		_score_rows.add_child(_score_row(info.name, str(info.kills), str(info.deaths), ping_text, UiStyle.INK, _ping_color(ping)))
+		var row := _score_row(info.name, str(info.kills), str(info.deaths), ping_text, UiStyle.INK, _ping_color(ping))
+		row.add_child(_avatar_of(id, SCORE_AVATAR_SIDE))
+		row.move_child(row.get_child(-1), 0)
+		_score_rows.add_child(row)
 
 
 func _ping_color(ping: int) -> Color:
@@ -362,8 +380,11 @@ func _ping_color(ping: int) -> Color:
 
 func _score_row(player_name: String, kills: String, deaths: String, ping: String, color: Color, ping_color: Color) -> HBoxContainer:
 	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
 	var name_label := UiStyle.label(player_name, 21, color)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(name_label)
 	for value in [kills, deaths]:
 		var cell := UiStyle.label(value, 21, color)

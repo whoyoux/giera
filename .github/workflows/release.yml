@@ -50,19 +50,29 @@ jobs:
           unzip -q -j "$templates" 'templates/windows_*_x86_64*' templates/macos.zip templates/version.txt -d "$dest"
           rm -f "$editor.zip" "$templates"
 
+      - name: Pobierz GodotSteam
+        run: bash tools/fetch_godotsteam.sh
+
       - name: Zaimportuj zasoby
         # Import w trybie headless moze zwrocic blad mimo poprawnego wyniku, wiec liczy sie plik z cache.
         run: |
           godot --headless --path . --import || true
           test -f .godot/global_script_class_cache.cfg
 
-      - name: Zbuduj Giera.exe
+      - name: Zbuduj wersje na Windows
         run: |
           mkdir -p builds
           godot --headless --path . --export-release "Windows Desktop" builds/Giera.exe
           # Z osadzona gra plik musi byc wiekszy od samego szablonu.
           template="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/windows_release_x86_64.exe"
           test "$(stat -c %s builds/Giera.exe)" -gt "$(stat -c %s "$template")"
+          # Biblioteki musza lezec obok gry, wiec wydanie na Windows to ZIP.
+          test -f builds/steam_api64.dll
+          test -f builds/libgodotsteam.windows.template_release.x86_64.dll
+          cp addons/godotsteam/license.md builds/GodotSteam-license.md
+          (cd builds && zip -q Giera-Windows.zip Giera.exe steam_api64.dll libgodotsteam.windows.template_release.x86_64.dll GodotSteam-license.md)
+          rm builds/Giera.exe builds/steam_api64.dll builds/libgodotsteam.windows.template_release.x86_64.dll builds/GodotSteam-license.md
+          test -s builds/Giera-Windows.zip
 
       - name: Zbuduj wersje na macOS
         run: |
@@ -129,27 +139,27 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          windows_sha="$(sha256sum builds/Giera.exe | cut -d' ' -f1)"
+          windows_sha="$(sha256sum builds/Giera-Windows.zip | cut -d' ' -f1)"
           macos_sha="$(sha256sum builds/Giera-macOS.zip | cut -d' ' -f1)"
           cat > notes.md <<EOF
           Wersja $TAG na Windows i macOS.
 
-          **Windows:** pobierz \`Giera.exe\` i uruchom. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
+          **Windows:** pobierz \`Giera-Windows.zip\`, rozpakuj do jednego folderu i uruchom \`Giera.exe\`. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
 
           **macOS:** pobierz \`Giera-macOS.zip\`, rozpakuj i uruchom \`Giera.app\`. Aplikacja nie ma podpisu Apple, więc system ją zablokuje. Wtedy otwórz **Ustawienia systemowe → Prywatność i ochrona** i wybierz **Otwórz mimo to**.
 
-          Potem wpisz nick i adres serwera podany przez hosta, a następnie kliknij **Dołącz**.
+          Na Windows z uruchomionym Steamem gra sama użyje nazwy i zdjęcia z konta. W pozostałych przypadkach wpisz nick. Potem podaj adres serwera od hosta i kliknij **Dołącz**.
 
           Sterowanie: WASD, mysz, LPM strzał, R przeładowanie, 1–4 lub scroll zmiana broni, Shift sprint, spacja skok, Tab wyniki, Esc pauza.
 
-          SHA-256 \`Giera.exe\`: \`$windows_sha\`
+          SHA-256 \`Giera-Windows.zip\`: \`$windows_sha\`
 
           SHA-256 \`Giera-macOS.zip\`: \`$macos_sha\`
           EOF
           # Tag z myslnikiem (np. v0.3.0-rc1) to wersja probna: nie zostanie oznaczona jako najnowsza.
           flags=()
           case "$TAG" in *-*) flags+=(--prerelease) ;; esac
-          gh release create "$TAG" builds/Giera.exe builds/Giera-macOS.zip \
+          gh release create "$TAG" builds/Giera-Windows.zip builds/Giera-macOS.zip \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --title "Giera $TAG" \

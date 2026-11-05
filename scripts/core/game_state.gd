@@ -16,7 +16,7 @@ signal pings_updated
 
 const MAX_HEALTH := 100
 const RESPAWN_SECONDS := 3.0
-const MAX_NAME_LENGTH := 16
+const MAX_NAME_LENGTH := 32
 const PING_INTERVAL := 1.0
 const REJECT_FLUSH_SECONDS := 0.5
 
@@ -53,6 +53,16 @@ func _process(delta: float) -> void:
 	_sync_pings.rpc(fresh)
 
 
+## Nazwa od klienta: bez znakow sterujacych i nie dluzsza niz limit.
+static func clean_name(raw: String) -> String:
+	var kept := ""
+	for character in raw.substr(0, MAX_NAME_LENGTH * 4):
+		var code := character.unicode_at(0)
+		if code >= 32 and code != 127:
+			kept += character
+	return kept.strip_edges().substr(0, MAX_NAME_LENGTH)
+
+
 ## Czysci stan lokalny przy wyjsciu z sesji.
 func reset() -> void:
 	pings.clear()
@@ -70,15 +80,23 @@ func display_name(id: int) -> String:
 	return info.get("name", "Gracz")
 
 
+## SteamID gracza albo 0, gdy nie ma konta Steam lub juz wyszedl z gry.
+func steam_id_of(id: int) -> int:
+	var info: Dictionary = players.get(id, {})
+	return info.get("steam_id", 0)
+
+
 # --- Serwer -----------------------------------------------------------------
 
 ## Dodaje gracza i informuje wszystkich. Wywolywane tylko na serwerze.
-func server_add_player(id: int, player_name: String, character := "") -> void:
-	var clean := player_name.strip_edges().substr(0, MAX_NAME_LENGTH)
+func server_add_player(id: int, player_name: String, character := "", steam_id := 0) -> void:
+	var clean := clean_name(player_name)
 	if clean.is_empty():
 		clean = "Gracz %d" % (players.size() + 1)
 	players[id] = {
 		"name": clean,
+		# Podaje je klient i nikt tego nie sprawdza, wiec sluzy tylko do pokazania awatara.
+		"steam_id": steam_id if SteamAccount.is_valid_id(steam_id) else 0,
 		"character": CharacterAssets.resolve(character, id),
 		"health": MAX_HEALTH,
 		"alive": true,
@@ -304,7 +322,7 @@ func _on_peer_disconnected(id: int) -> void:
 # --- RPC --------------------------------------------------------------------
 
 @rpc("any_peer", "call_remote", "reliable")
-func request_join(player_name: String, version: int, character: String) -> void:
+func request_join(player_name: String, version: int, character: String, steam_id: int) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
@@ -316,7 +334,7 @@ func request_join(player_name: String, version: int, character: String) -> void:
 			multiplayer.multiplayer_peer.disconnect_peer(sender)
 		return
 	if not players.has(sender):
-		server_add_player(sender, player_name, character)
+		server_add_player(sender, player_name, character, steam_id)
 
 
 @rpc("authority", "call_remote", "reliable")

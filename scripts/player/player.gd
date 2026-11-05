@@ -3,6 +3,8 @@ extends CharacterBody3D
 ## Postac gracza. Wezel nalezy do serwera, a wezel Input do klienta. Ruch dziala
 ## w petli rollbacku: klient przewiduje go od razu, a serwer ma ostatnie slowo.
 
+## Nad nazwa gracza, liczone od jej srodka.
+const AVATAR_TAG_HEIGHT := 0.34
 const SPEED := 6.5
 const GROUND_ACCEL := 70.0
 const AIR_ACCEL := 18.0
@@ -112,6 +114,10 @@ func _ready() -> void:
 	model.visible = not local
 	name_label.visible = not local
 	name_label.text = info.name
+	if not local and not Net.is_headless:
+		var tag := AvatarTag.new(info.get("steam_id", 0))
+		tag.position = name_label.position + Vector3.UP * AVATAR_TAG_HEIGHT
+		add_child(tag)
 	if not Net.is_headless:
 		_switch_audio = AudioStreamPlayer.new()
 		_switch_audio.stream = Sfx.switch_item()

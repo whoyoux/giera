@@ -1,11 +1,14 @@
 class_name Menu
 extends CanvasLayer
-## Ekran startowy: nick, adres serwera, dolaczanie i hostowanie.
+## Ekran startowy: konto gracza, adres serwera, dolaczanie i hostowanie.
+## Ze Steamem nazwy nie da sie zmienic, a bez niego gracz wpisuje nick.
 
 signal settings_requested
 
 const PICKER_LEFT := 520.0
 const TITLE_COLORS: Array[Color] = [UiStyle.CORAL, UiStyle.SUN, UiStyle.TEAL, UiStyle.BLUE, Color("9b7bff")]
+const ACCOUNT_AVATAR_SIDE := 68.0
+const ACCOUNT_AVATAR_TILT := -4.0
 ## Literki tytulu sa strojone pentatonicznie, wiec kazde przejechanie kursorem brzmi ladnie.
 const TITLE_NOTES: Array[float] = [1.0, 1.122, 1.26, 1.498, 1.682]
 const LETTER_POP_SCALE := 1.16
@@ -13,6 +16,7 @@ const LETTER_POP_SECONDS := 0.32
 const INTRO_STAGGER_SECONDS := 0.05
 
 var _name_field: LineEdit
+var _account_name: Label
 var _address_field: LineEdit
 var _status: Label
 var _join_button: Button
@@ -54,10 +58,13 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 10)
 	margin.add_child(column)
 
-	column.add_child(UiStyle.label("Twój nick", 17, UiStyle.INK, false))
-	_name_field = UiStyle.field(Settings.player_value("name", "Gracz"), "Nick")
-	_name_field.max_length = GameState.MAX_NAME_LENGTH
-	column.add_child(_name_field)
+	if SteamAccount.active:
+		column.add_child(_build_account_card())
+	else:
+		column.add_child(UiStyle.label("Twój nick", 17, UiStyle.INK, false))
+		_name_field = UiStyle.field(Settings.player_value("name", "Gracz"), "Nick")
+		_name_field.max_length = GameState.MAX_NAME_LENGTH
+		column.add_child(_name_field)
 
 	column.add_child(UiStyle.label("Adres serwera", 17, UiStyle.INK, false))
 	_address_field = UiStyle.field(Settings.player_value("address", ""), "np. 203.0.113.10")
@@ -91,6 +98,41 @@ func _ready() -> void:
 
 	if not Net.is_headless:
 		_play_intro.call_deferred()
+
+
+## Awatar lekko przechylony, jak litery tytulu, a obok nazwa konta.
+func _build_account_card() -> Control:
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("f3ecdd")
+	style.set_corner_radius_all(16)
+	style.set_content_margin_all(10)
+	style.content_margin_right = 16
+	card.add_theme_stylebox_override("panel", style)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	card.add_child(row)
+
+	# Kontener prostuje swoje dzieci, wiec przechylona naklejka lezy w zwyklym wezle.
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2.ONE * ACCOUNT_AVATAR_SIDE
+	row.add_child(holder)
+	var avatar := AvatarView.new(SteamAccount.steam_id, SteamAccount.persona_name, ACCOUNT_AVATAR_SIDE)
+	avatar.rotation_degrees = ACCOUNT_AVATAR_TILT
+	holder.add_child(avatar)
+
+	var texts := VBoxContainer.new()
+	texts.alignment = BoxContainer.ALIGNMENT_CENTER
+	texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	texts.add_theme_constant_override("separation", -2)
+	row.add_child(texts)
+	texts.add_child(UiStyle.label("Grasz jako", 16, Color(UiStyle.INK, 0.65), false))
+	_account_name = UiStyle.label(SteamAccount.persona_name, 28)
+	_account_name.clip_text = true
+	_account_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	texts.add_child(_account_name)
+	return card
 
 
 ## Postac stoi po prawej stronie, obok nicku i adresu.
@@ -203,10 +245,11 @@ func _fail(message: String, culprit: Control) -> void:
 
 
 func _apply_settings() -> void:
-	Net.player_name = _name_field.text
+	if _name_field != null:
+		Net.player_name = _name_field.text
+		Settings.set_player_value("name", _name_field.text)
 	if _picker != null:
 		Net.player_character = _picker.selected_id()
-	Settings.set_player_value("name", _name_field.text)
 	Settings.set_player_value("address", _address_field.text)
 
 

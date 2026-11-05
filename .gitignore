@@ -8,3 +8,6 @@ builds/
 
 # Logi testow
 tools/logs/
+
+# GodotSteam: pobierany skryptem, biblioteki Steama nie trafiaja do publicznego repo
+addons/godotsteam/

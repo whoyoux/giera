@@ -3,6 +3,7 @@
 builds
 tools
 docs
+addons/godotsteam
 Dockerfile
 .dockerignore
 *.md

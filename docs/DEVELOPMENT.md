@@ -10,6 +10,14 @@ powershell -ExecutionPolicy Bypass -File tools\run_local.ps1 -Bots 2 -Shooters 1
 
 Serwer dedykowany: `godot --path . --headless -- --server --port=7777`, z otwartym portem 7777/UDP. Gotowy obraz buduje `Dockerfile`. Restart serwera rozłącza graczy i zeruje wyniki.
 
+## Konto Steam
+
+`bash tools/fetch_godotsteam.sh` pobiera wtyczkę do `addons/godotsteam/`. Nie ma jej w repo, bo zawiera biblioteki Steama. Bez niej gra działa z wpisanym nickiem. Po pierwszym pobraniu uruchom `godot --headless --path . --import`.
+
+Gra używa testowej aplikacji Spacewar (`APP_ID` w `steam_account.gd`). Do testów służą `--fake-steam=Nazwa:ID` i `--no-steam`. Konta Steam nie ma też w trybie bez okna, z `--server`, `--bot` i `--name`.
+
+SteamID podaje klient i nikt go nie weryfikuje, więc służy tylko do pokazania awatara. Nie opieraj na nim banów ani statystyk. Biblioteka Steama wypisuje SteamID do logu klienta, więc nie publikuj logów z prawdziwego konta.
+
 ## Publikowanie wersji
 
 Wydanie powstaje po wypchnięciu tagu `v*` z `main`, np. `git tag v0.6.0`, a potem `git push origin v0.6.0`. Workflow `.github/workflows/release.yml` buduje grę na Windows i macOS, uruchamia wersję na macOS na Macu z Apple Silicon i publikuje obie. Tag z myślnikiem, np. `v0.6.0-rc1`, tworzy wersję próbną.
@@ -34,13 +42,13 @@ Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
 
 ## Testy
 
-Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `weapons_test`, `feel_test`, `flow_test`, `ui_feel_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie). `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh`, `tools/weapons_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
+Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `weapons_test`, `feel_test`, `flow_test`, `ui_feel_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie), `steam_account_test` z `--fake-steam=Kapitan:76561197960265729` albo `--no-steam`. `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh`, `tools/steam_net_test.sh`, `tools/weapons_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
 
 ## Zasoby wizualne
 
 - Ikony: `tools/render_icons.gd`, a potem `godot --headless --path . --import`.
 - Ikona aplikacji: `tools/render_app_icon.gd` zapisuje `assets/app_icon.png` i `assets/app_icon.ico`.
-- Zrzuty do README: `tools/readme_shots.gd` z `--dir=<ścieżka do docs/screenshots>`. Odśwież je po każdej zmianie wyglądu.
+- Zrzuty do README: `tools/readme_shots.gd` z `--dir=<ścieżka do docs/screenshots>` i `--fake-steam=Kapitan:76561197960265729`. Odśwież je po każdej zmianie wyglądu.
 
 ## Architektura
 
@@ -53,5 +61,6 @@ Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA
 - **Przedmioty na ziemi** są w `world_items.gd`. Klient tylko prosi o podniesienie lub wyrzucenie, a serwer sprawdza zasięg i egzemplarz. Wygląd jest w `pickup_field.gd` i `pickup_view.gd`.
 - **Skrzynki** są w `chests.gd`. Klient trzyma klawisz i pokazuje pasek, a serwer sam odlicza czas i losuje z `data/loot/chest.tres`. Miejsca to węzły `Marker3D` w grupie `chest_spots` w `world.tscn`. Kolizja skrzynek powstaje też na serwerze, bo ruch jest przewidywany.
 - **Postacie** są w liście `ROSTER` w `character_assets.gd`. Szkielety to sam model, więc biorą animacje z `Knight.glb`, bo ich kości mają te same nazwy.
+- **Awatary:** `steam_account.gd` pobiera każdy raz i trzyma w pamięci. W interfejsie pokazuje je `avatar_view.gd`, a nad graczami `avatar_tag.gd`.
 - **Przedmioty:** `ItemDefinition` opisuje rodzaj, `ItemVisual` wygląd, `ItemStack` egzemplarz, a `ItemBehavior` działanie. Nowy rodzaj przedmiotu nie wymaga zmian w kodzie sieciowym: apteczka to własna definicja i zachowanie. Efekty użycia, np. smugi, są w `ItemBehavior.show_fired`.
 - **Animacje** nie idą przez sieć. Każdy klient wylicza je z ruchu gracza.
