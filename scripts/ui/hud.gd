@@ -5,6 +5,7 @@ extends CanvasLayer
 signal settings_requested
 
 const FEED_SECONDS := 5.0
+const FEED_NAME_LENGTH := 18
 const LOW_HEALTH := 35
 const KILL_SHAKE := 0.28
 const ITEM_NAME_SECONDS := 1.4
@@ -300,15 +301,21 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 	row.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 8)
-	line.add_child(UiStyle.label(GameState.display_name(killer_id), 17, UiStyle.BLUE))
+	line.add_child(UiStyle.label(_short_name(killer_id), 17, UiStyle.BLUE))
 	line.add_child(UiStyle.label("✦", 15, UiStyle.CORAL))
-	line.add_child(UiStyle.label(GameState.display_name(victim_id), 17, UiStyle.CORAL))
+	line.add_child(UiStyle.label(_short_name(victim_id), 17, UiStyle.CORAL))
 	row.add_child(line)
 	_feed.add_child(row)
 	var tween := row.create_tween()
 	tween.tween_interval(FEED_SECONDS)
 	tween.tween_property(row, "modulate:a", 0.0, 0.4)
 	tween.tween_callback(row.queue_free)
+
+
+## Nazwy ze Steama bywaja dlugie, a lista zabojstw musi sie zmiescic przy krawedzi ekranu.
+func _short_name(id: int) -> String:
+	var full := GameState.display_name(id)
+	return full if full.length() <= FEED_NAME_LENGTH else full.left(FEED_NAME_LENGTH - 1) + "…"
 
 
 func _refresh_scoreboard() -> void:
@@ -341,6 +348,8 @@ func _score_row(player_name: String, kills: String, deaths: String, ping: String
 	var row := HBoxContainer.new()
 	var name_label := UiStyle.label(player_name, 21, color)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(name_label)
 	for value in [kills, deaths]:
 		var cell := UiStyle.label(value, 21, color)

@@ -5,7 +5,7 @@ extends Node
 ##   --server              serwer dedykowany (bez gracza)
 ##   --connect=ADRES       od razu dolacz do serwera
 ##   --port=7777           port UDP
-##   --name=Nick           nazwa gracza
+##   --name=Nick           nazwa gracza, bez konta Steam
 ##   --character=knight    postac gracza, np. skeleton_warrior
 ##   --bot=runner|shooter|headhunter  sterowanie automatyczne, np. cel do cwiczen
 ##   --tool=res://sciezka  dodatkowy skrypt testowy
@@ -20,7 +20,7 @@ const MAX_CLIENTS := 32
 const CONNECT_TIMEOUT_SECONDS := 8.0
 const DEDICATED_MAX_FPS := 60
 ## Podnies przy kazdej zmianie, po ktorej stary build nie dogada sie z serwerem.
-const PROTOCOL_VERSION := 13
+const PROTOCOL_VERSION := 14
 const JOIN_ANSWER_SECONDS := 6.0
 const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Pobierz najnowszy build."
 
@@ -37,6 +37,8 @@ func _ready() -> void:
 	_parse_args()
 	is_headless = DisplayServer.get_name() == "headless"
 	bot_mode = args.get("bot", "")
+	if SteamAccount.active:
+		player_name = SteamAccount.persona_name
 	player_name = args.get("name", player_name)
 	player_character = args.get("character", player_character)
 	multiplayer.connected_to_server.connect(_on_connected)
@@ -109,7 +111,7 @@ func _on_connected() -> void:
 	await NetworkTime.after_sync
 	if multiplayer.multiplayer_peer == peer:
 		var version := int(args.get("protocol", PROTOCOL_VERSION))
-		GameState.request_join.rpc_id(1, player_name, version, player_character)
+		GameState.request_join.rpc_id(1, player_name, version, player_character, SteamAccount.steam_id)
 		# Starszy serwer nie zrozumie zgloszenia i nie odpowie.
 		get_tree().create_timer(JOIN_ANSWER_SECONDS).timeout.connect(_on_join_answer_timeout.bind(peer))
 
@@ -119,7 +121,7 @@ func _on_connected() -> void:
 func _add_host_player(peer: MultiplayerPeer) -> void:
 	await NetworkTime.after_sync
 	if multiplayer.multiplayer_peer == peer:
-		GameState.server_add_player(1, player_name, player_character)
+		GameState.server_add_player(1, player_name, player_character, SteamAccount.steam_id)
 
 
 func _on_join_answer_timeout(peer: MultiplayerPeer) -> void:

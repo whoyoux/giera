@@ -1,6 +1,7 @@
 extends Node
 ## Narzedzie: robi zrzuty do README z przykladowymi nazwami i adresem.
-## Uzycie: -- --tool=res://tools/readme_shots.gd --dir=C:/folder
+## Uzycie: -- --tool=res://tools/readme_shots.gd --dir=C:/folder --fake-steam=Kapitan:76561197960287930
+## Udawane konto jest wymagane, zeby na zrzut nie trafilo prawdziwe konto Steam.
 ## Nie zapisuje ustawien gracza, wiec nie zmienia nicku ani adresu w menu.
 
 const EXAMPLE_NICK := "Kapitan"
@@ -12,10 +13,13 @@ var _bots: Array[Dictionary] = []
 
 
 func _ready() -> void:
+	if not Net.args.has("fake-steam"):
+		push_error("Uruchom z --fake-steam=%s:76561197960287930" % EXAMPLE_NICK)
+		get_tree().quit(1)
+		return
 	_dir = Net.args.get("dir", "user://")
 	var main := get_node("/root/Main")
 	var menu := main.get_node("Menu") as Menu
-	menu._name_field.text = EXAMPLE_NICK
 	menu._address_field.text = EXAMPLE_ADDRESS
 	menu._status.text = ""
 	menu._picker.select("skeleton_warrior", false)
