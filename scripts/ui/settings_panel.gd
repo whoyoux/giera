@@ -84,6 +84,7 @@ func _build() -> void:
 	_add_toggle("Synchronizacja pionowa", "vsync")
 	_add_toggle("Wysoka jakość cieni", "high_quality")
 	_add_toggle("Licznik FPS", "show_fps")
+	_add_toggle("Wykres sieci (debug)", "show_net_graph")
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 12)

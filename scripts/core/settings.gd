@@ -23,6 +23,7 @@ const DEFAULTS := {
 	"vsync": true,
 	"high_quality": true,
 	"show_fps": true,
+	"show_net_graph": false,
 }
 
 var path := DEFAULT_PATH
