@@ -4,6 +4,7 @@ extends CanvasLayer
 
 signal settings_requested
 
+const PICKER_LEFT := 520.0
 const TITLE_COLORS: Array[Color] = [UiStyle.CORAL, UiStyle.SUN, UiStyle.TEAL, UiStyle.BLUE, Color("9b7bff")]
 
 var _name_field: LineEdit
@@ -11,6 +12,7 @@ var _address_field: LineEdit
 var _status: Label
 var _join_button: Button
 var _host_button: Button
+var _picker: CharacterPicker
 var _letters: Array[Control] = []
 var _time := 0.0
 
@@ -73,10 +75,24 @@ func _ready() -> void:
 	settings_button.pressed.connect(func() -> void: settings_requested.emit())
 	column.add_child(settings_button)
 
+	if not Net.is_headless:
+		_build_picker()
+
 	_status = UiStyle.label("", 17, UiStyle.CORAL, false)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_status)
+
+
+## Postac stoi po prawej stronie, obok nicku i adresu.
+func _build_picker() -> void:
+	var anchor := CenterContainer.new()
+	anchor.set_anchors_preset(Control.PRESET_FULL_RECT)
+	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anchor.offset_left = PICKER_LEFT
+	add_child(anchor)
+	_picker = CharacterPicker.new()
+	anchor.add_child(_picker)
 
 
 func _process(delta: float) -> void:
@@ -135,6 +151,8 @@ func _on_host() -> void:
 
 func _apply_settings() -> void:
 	Net.player_name = _name_field.text
+	if _picker != null:
+		Net.player_character = _picker.selected_id()
 	Settings.set_player_value("name", _name_field.text)
 	Settings.set_player_value("address", _address_field.text)
 

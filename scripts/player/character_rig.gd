@@ -24,8 +24,8 @@ var _gun_holder: Node3D
 var _visual: ItemVisual
 
 
-func setup(peer_id: int) -> void:
-	var character := CharacterAssets.character_for(peer_id)
+func setup(character_id: String) -> void:
+	var character := CharacterAssets.character_for(character_id)
 	character.scale = Vector3.ONE * CharacterAssets.MODEL_SCALE
 	character.rotation.y = PI
 	add_child(character)

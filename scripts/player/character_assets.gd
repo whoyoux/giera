@@ -2,22 +2,81 @@ class_name CharacterAssets
 extends RefCounted
 ## Wczytywanie modeli postaci i broni. Serwer bez ekranu ich nie uzywa.
 
-const CHARACTERS: Array[String] = ["Knight", "Barbarian", "Mage", "Rogue", "Rogue_Hooded"]
+## Lista postaci do wyboru. "id" idzie przez siec, wiec nie zmieniaj go po wydaniu gry.
+const ROSTER: Array[Dictionary] = [
+	{ "id": "knight", "name": "Rycerz", "file": "Knight", "sleeve": Color("5b8def") },
+	{ "id": "barbarian", "name": "Barbarzyńca", "file": "Barbarian", "sleeve": Color("ef6f6c") },
+	{ "id": "mage", "name": "Mag", "file": "Mage", "sleeve": Color("9b7bff") },
+	{ "id": "rogue", "name": "Łotrzyk", "file": "Rogue", "sleeve": Color("2ec4b6") },
+	{ "id": "rogue_hooded", "name": "Zakapturzony", "file": "Rogue_Hooded", "sleeve": Color("f9a03f") },
+	{ "id": "skeleton_warrior", "name": "Szkielet wojownik", "file": "Skeleton_Warrior", "sleeve": BONE, "bare_rig": true },
+	{ "id": "skeleton_rogue", "name": "Szkielet łotr", "file": "Skeleton_Rogue", "sleeve": BONE, "bare_rig": true },
+	{ "id": "skeleton_mage", "name": "Szkielet mag", "file": "Skeleton_Mage", "sleeve": BONE, "bare_rig": true },
+	{ "id": "skeleton_minion", "name": "Szkielet sługa", "file": "Skeleton_Minion", "sleeve": BONE, "bare_rig": true },
+]
+const BONE := Color("e8e2d0")
+## Szkielety nie maja wlasnych animacji, ale ich kosci nazywaja sie tak samo jak u tej postaci.
+const ANIMATION_SOURCE := "res://assets/characters/Knight.glb"
 ## Paczka ma postac wysoka na 2,3 m, a kapsula gracza ma 1,8 m.
 const MODEL_SCALE := 0.78
 ## Punkt uchwytu, w ktorym dlon postaci i rekawica trzymaja kazda bron.
 const HAND_POINT := Vector3(0.0, -0.17, 0.11)
-const SLEEVES: Array[Color] = [Color("5b8def"), Color("ef6f6c"), Color("2ec4b6"), Color("9b7bff"), Color("f9a03f")]
+
+static var _shared_animations: AnimationLibrary
 
 
-static func color_for(peer_id: int) -> Color:
-	return SLEEVES[absi(hash(peer_id)) % SLEEVES.size()]
+static func index_of(id: String) -> int:
+	for index in ROSTER.size():
+		if ROSTER[index].id == id:
+			return index
+	return -1
 
 
-static func character_for(peer_id: int) -> Node3D:
-	var character_name := CHARACTERS[absi(hash(peer_id)) % CHARACTERS.size()]
-	var path := "res://assets/characters/%s.glb" % character_name
-	return (load(path) as PackedScene).instantiate() as Node3D
+## Poprawna postac gracza. Bez wyboru, np. u bota, wynika ona z numeru gracza.
+static func resolve(id: String, peer_id: int) -> String:
+	return id if index_of(id) >= 0 else ROSTER[absi(hash(peer_id)) % ROSTER.size()].id
+
+
+static func sleeve_of(id: String) -> Color:
+	return ROSTER[maxi(index_of(id), 0)].sleeve
+
+
+static func character_for(id: String) -> Node3D:
+	var entry: Dictionary = ROSTER[maxi(index_of(id), 0)]
+	var character := (load("res://assets/characters/%s.glb" % entry.file) as PackedScene).instantiate() as Node3D
+	if entry.get("bare_rig", false):
+		_equip_bare_rig(character)
+	return character
+
+
+## Szkielety to sam model, wiec dostaja wspolne animacje i miejsca na bron w dloniach.
+static func _equip_bare_rig(character: Node3D) -> void:
+	character.get_node("Rig_Medium").name = "Rig"
+	var player := AnimationPlayer.new()
+	player.name = "AnimationPlayer"
+	player.add_animation_library(&"", _bare_rig_animations(skeleton_of(character)))
+	character.add_child(player)
+	for side: String in ["r", "l"]:
+		var slot := BoneAttachment3D.new()
+		slot.name = "handslot_" + side
+		slot.bone_name = "handslot." + side
+		skeleton_of(character).add_child(slot)
+
+
+## Animacje bez torow dla kosci pomocniczych, ktorych nie ma w tych modelach.
+static func _bare_rig_animations(skeleton: Skeleton3D) -> AnimationLibrary:
+	if _shared_animations != null:
+		return _shared_animations
+	var source := (load(ANIMATION_SOURCE) as PackedScene).instantiate()
+	var library := source.get_node("AnimationPlayer").get_animation_library(&"").duplicate(true) as AnimationLibrary
+	source.free()
+	for clip in library.get_animation_list():
+		var animation := library.get_animation(clip)
+		for track in range(animation.get_track_count() - 1, -1, -1):
+			if skeleton.find_bone(animation.track_get_path(track).get_concatenated_subnames()) < 0:
+				animation.remove_track(track)
+	_shared_animations = library
+	return library
 
 
 static func skeleton_of(character: Node3D) -> Skeleton3D:

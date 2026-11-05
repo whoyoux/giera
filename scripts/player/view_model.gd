@@ -47,11 +47,11 @@ var _aim_target := false
 var _pose_callbacks: Array[Callable] = []
 
 
-func setup(peer_id: int) -> void:
+func setup(character_id: String) -> void:
 	_gun = Node3D.new()
 	_gun.scale = Vector3.ONE * GUN_SCALE
 	add_child(_gun)
-	var sleeve := CharacterAssets.color_for(peer_id)
+	var sleeve := CharacterAssets.sleeve_of(character_id)
 	_add_hand(_gun, RIGHT_HAND, Vector3(-28, 0, 0), sleeve, Vector3(0.05, -0.2, 0.3))
 	_left = _add_hand(_gun, RIGHT_HAND, Vector3(12, 0, 0), sleeve, Vector3(-0.2, -0.22, 0.28))
 

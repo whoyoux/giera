@@ -73,12 +73,13 @@ func display_name(id: int) -> String:
 # --- Serwer -----------------------------------------------------------------
 
 ## Dodaje gracza i informuje wszystkich. Wywolywane tylko na serwerze.
-func server_add_player(id: int, player_name: String) -> void:
+func server_add_player(id: int, player_name: String, character := "") -> void:
 	var clean := player_name.strip_edges().substr(0, MAX_NAME_LENGTH)
 	if clean.is_empty():
 		clean = "Gracz %d" % (players.size() + 1)
 	players[id] = {
 		"name": clean,
+		"character": CharacterAssets.resolve(character, id),
 		"health": MAX_HEALTH,
 		"alive": true,
 		"kills": 0,
@@ -297,7 +298,7 @@ func _on_peer_disconnected(id: int) -> void:
 # --- RPC --------------------------------------------------------------------
 
 @rpc("any_peer", "call_remote", "reliable")
-func request_join(player_name: String, version: int) -> void:
+func request_join(player_name: String, version: int, character: String) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
@@ -309,7 +310,7 @@ func request_join(player_name: String, version: int) -> void:
 			multiplayer.multiplayer_peer.disconnect_peer(sender)
 		return
 	if not players.has(sender):
-		server_add_player(sender, player_name)
+		server_add_player(sender, player_name, character)
 
 
 @rpc("authority", "call_remote", "reliable")
