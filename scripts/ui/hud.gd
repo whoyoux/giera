@@ -54,6 +54,9 @@ var _status_panel: PanelContainer
 var _hit_amount := 0.0
 var _pulse_time := 0.0
 var _score_center: CenterContainer
+var _score_card: PanelContainer
+var _pause_card: PanelContainer
+var _resume_button: Button
 var _score_rows: VBoxContainer
 var _pause: CenterContainer
 var _audio: AudioStreamPlayer
@@ -118,7 +121,12 @@ func _process(delta: float) -> void:
 	if not info.alive:
 		var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
 		_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
-	_score_center.visible = Input.is_action_pressed("scoreboard")
+	var show_scores := Input.is_action_pressed("scoreboard")
+	if show_scores != _score_center.visible:
+		_score_center.visible = show_scores
+		if show_scores:
+			UiStyle.pop_in(_score_card)
+			UiSound.play(Sfx.UiCue.PRESS)
 
 
 ## Celownik strzelby pokazuje, gdzie naprawde poleci srut.
@@ -255,6 +263,11 @@ func _unhandled_input(event: InputEvent) -> void:
 func _set_paused(paused: bool) -> void:
 	_pause.visible = paused
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if paused else Input.MOUSE_MODE_CAPTURED
+	UiSound.play(Sfx.UiCue.OPEN if paused else Sfx.UiCue.CLOSE)
+	if paused:
+		UiStyle.pop_in(_pause_card)
+		# Fokus bez obwodki: Enter wraca do gry, a obwodka pojawi sie dopiero przy strzalkach.
+		_resume_button.grab_focus(true)
 
 
 func _on_focus_lost() -> void:
@@ -471,35 +484,35 @@ func _build() -> void:
 	_score_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_score_center.visible = false
 	add_child(_score_center)
-	var scoreboard := PanelContainer.new()
-	scoreboard.custom_minimum_size = Vector2(700, 0)
-	scoreboard.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
-	_score_center.add_child(scoreboard)
+	_score_card = PanelContainer.new()
+	_score_card.custom_minimum_size = Vector2(700, 0)
+	_score_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
+	_score_center.add_child(_score_card)
 	_score_rows = VBoxContainer.new()
 	_score_rows.add_theme_constant_override("separation", 8)
-	scoreboard.add_child(_score_rows)
+	_score_card.add_child(_score_rows)
 
 	_pause = CenterContainer.new()
 	_pause.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_pause.visible = false
 	add_child(_pause)
-	var pause_card := PanelContainer.new()
-	pause_card.custom_minimum_size = Vector2(360, 0)
-	pause_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
-	_pause.add_child(pause_card)
+	_pause_card = PanelContainer.new()
+	_pause_card.custom_minimum_size = Vector2(360, 0)
+	_pause_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
+	_pause.add_child(_pause_card)
 	var pause_box := VBoxContainer.new()
 	pause_box.add_theme_constant_override("separation", 12)
-	pause_card.add_child(pause_box)
+	_pause_card.add_child(pause_box)
 	var pause_title := UiStyle.label("Pauza", 40, UiStyle.BLUE)
 	pause_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_box.add_child(pause_title)
-	var resume := UiStyle.button("Wróć do gry", UiStyle.TEAL)
-	resume.pressed.connect(_set_paused.bind(false))
-	pause_box.add_child(resume)
-	var settings_button := UiStyle.button("Ustawienia", UiStyle.BLUE)
+	_resume_button = UiStyle.button("Wróć do gry", UiStyle.TEAL, Color.WHITE, Sfx.UiCue.NONE)
+	_resume_button.pressed.connect(_set_paused.bind(false))
+	pause_box.add_child(_resume_button)
+	var settings_button := UiStyle.button("Ustawienia", UiStyle.BLUE, Color.WHITE, Sfx.UiCue.NONE)
 	settings_button.pressed.connect(func() -> void: settings_requested.emit())
 	pause_box.add_child(settings_button)
-	var disconnect_button := UiStyle.button("Rozłącz", UiStyle.CORAL)
+	var disconnect_button := UiStyle.button("Rozłącz", UiStyle.CORAL, Color.WHITE, Sfx.UiCue.BACK)
 	disconnect_button.pressed.connect(func() -> void: Net.leave())
 	pause_box.add_child(disconnect_button)
 

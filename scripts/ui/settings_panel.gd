@@ -6,6 +6,11 @@ signal closed
 
 var _rows: VBoxContainer
 var _refreshers: Array[Callable] = []
+var _shade: ColorRect
+var _card: PanelContainer
+var _done: Button
+## Co mialo fokus przed otwarciem. Po zamknieciu klawiatura wraca w to samo miejsce.
+var _focus_before: Control
 
 
 func _ready() -> void:
@@ -17,14 +22,23 @@ func _ready() -> void:
 
 func open() -> void:
 	_refresh()
+	_focus_before = get_viewport().gui_get_focus_owner()
 	visible = true
+	UiSound.play(Sfx.UiCue.OPEN)
+	UiStyle.pop_in(_card)
+	_shade.modulate.a = 0.0
+	_shade.create_tween().tween_property(_shade, "modulate:a", 1.0, UiStyle.POP_SECONDS)
+	_done.grab_focus(true)
 
 
 func close() -> void:
 	if not visible:
 		return
 	visible = false
+	UiSound.play(Sfx.UiCue.CLOSE)
 	Settings.save()
+	if is_instance_valid(_focus_before) and _focus_before.is_visible_in_tree():
+		_focus_before.grab_focus(true)
 	closed.emit()
 
 
@@ -35,23 +49,23 @@ func _input(event: InputEvent) -> void:
 
 
 func _build() -> void:
-	var shade := ColorRect.new()
-	shade.color = Color(UiStyle.INK, 0.35)
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(shade)
+	_shade = ColorRect.new()
+	_shade.color = Color(UiStyle.INK, 0.35)
+	_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_shade)
 
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 
-	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(560, 0)
-	card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
-	center.add_child(card)
+	_card = PanelContainer.new()
+	_card.custom_minimum_size = Vector2(560, 0)
+	_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
+	center.add_child(_card)
 
 	_rows = VBoxContainer.new()
-	_rows.add_theme_constant_override("separation", 11)
-	card.add_child(_rows)
+	_rows.add_theme_constant_override("separation", 8)
+	_card.add_child(_rows)
 
 	var title := UiStyle.label("Ustawienia", 36, UiStyle.BLUE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -59,6 +73,7 @@ func _build() -> void:
 
 	_add_slider("Głośność", "volume", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Dźwięki otoczenia", "ambience", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
+	_add_slider("Dźwięki interfejsu", "ui_sounds", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Czułość myszy", "sensitivity", 0.1, 3.0, 0.05, func(v: float) -> String: return "%.2f" % v)
 	_add_slider("Czułość przy celowaniu", "aim_sensitivity", 0.3, 1.5, 0.05, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Pole widzenia", "fov", 65.0, 110.0, 1.0, func(v: float) -> String: return "%d°" % roundi(v))
@@ -76,10 +91,10 @@ func _build() -> void:
 	reset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	reset.pressed.connect(Settings.reset_to_defaults)
 	buttons.add_child(reset)
-	var done := UiStyle.button("Gotowe", UiStyle.CORAL)
-	done.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	done.pressed.connect(close)
-	buttons.add_child(done)
+	_done = UiStyle.button("Gotowe", UiStyle.CORAL, Color.WHITE, Sfx.UiCue.NONE)
+	_done.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_done.pressed.connect(close)
+	buttons.add_child(_done)
 
 
 func _add_slider(text: String, key: String, min_value: float, max_value: float, step: float, format: Callable) -> void:
@@ -109,7 +124,9 @@ func _add_slider(text: String, key: String, min_value: float, max_value: float, 
 	slider.value_changed.connect(func(new_value: float) -> void:
 		shown.text = format.call(new_value)
 		if not is_equal_approx(Settings.value(key), new_value):
-			Settings.set_value(key, new_value))
+			Settings.set_value(key, new_value)
+		# Gra juz z nowa glosnoscia, wiec suwak od razu pokazuje, jak glosno bedzie.
+		UiSound.slider(inverse_lerp(min_value, max_value, new_value)))
 	_refreshers.append(func() -> void:
 		slider.set_value_no_signal(Settings.value(key))
 		shown.text = format.call(slider.value))
@@ -127,10 +144,16 @@ func _add_toggle(text: String, key: String) -> void:
 	off.set_corner_radius_all(17)
 	var on_style := off.duplicate() as StyleBoxFlat
 	on_style.bg_color = UiStyle.TEAL
-	for state in ["normal", "hover", "focus"]:
-		toggle.add_theme_stylebox_override(state, off)
-	for state in ["pressed", "hover_pressed"]:
-		toggle.add_theme_stylebox_override(state, on_style)
+	var off_hover := off.duplicate() as StyleBoxFlat
+	off_hover.bg_color = Color(UiStyle.INK, 0.26)
+	var on_hover := on_style.duplicate() as StyleBoxFlat
+	on_hover.bg_color = UiStyle.TEAL.lightened(0.15)
+	toggle.add_theme_stylebox_override("normal", off)
+	toggle.add_theme_stylebox_override("hover", off_hover)
+	toggle.add_theme_stylebox_override("pressed", on_style)
+	toggle.add_theme_stylebox_override("hover_pressed", on_hover)
+	toggle.add_theme_stylebox_override("focus", UiStyle.focus_ring(17))
+	ButtonFeel.attach(toggle, Sfx.UiCue.NONE, false)
 	toggle.add_theme_color_override("font_color", UiStyle.INK)
 	toggle.add_theme_color_override("font_hover_color", UiStyle.INK)
 	toggle.add_theme_color_override("font_focus_color", UiStyle.INK)

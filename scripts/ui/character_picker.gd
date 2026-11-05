@@ -23,7 +23,6 @@ var _rig: CharacterRig
 var _name_label: Label
 var _index := 0
 var _time := 0.0
-var _switch_audio: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -58,7 +57,7 @@ func select(id: String, save := true) -> void:
 
 func step(direction: int) -> void:
 	select(CharacterAssets.ROSTER[posmod(_index + direction, CharacterAssets.ROSTER.size())].id)
-	_switch_audio.play()
+	UiSound.play(Sfx.UiCue.SWITCH)
 
 
 func _show_current() -> void:
@@ -67,6 +66,7 @@ func _show_current() -> void:
 		_rig.queue_free()
 	var entry: Dictionary = CharacterAssets.ROSTER[_index]
 	_name_label.text = entry.name
+	UiStyle.pop_in(_name_label)
 	# Ten sam wezel postaci co w grze, wiec poza i chwyt broni sa takie jak u innych graczy.
 	_rig = CharacterRig.new()
 	_rig.scale = Vector3.ONE * POP_SCALE
@@ -120,13 +120,10 @@ func _build() -> void:
 	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_name_label)
 	row.add_child(_arrow(">", 1))
-	_switch_audio = AudioStreamPlayer.new()
-	_switch_audio.stream = Sfx.switch_item()
-	add_child(_switch_audio)
 
 
 func _arrow(text: String, direction: int) -> Button:
-	var button := UiStyle.button(text, UiStyle.TEAL)
+	var button := UiStyle.button(text, UiStyle.TEAL, Color.WHITE, Sfx.UiCue.NONE)
 	button.name = "Next" if direction > 0 else "Previous"
 	button.custom_minimum_size = ARROW_SIZE
 	button.pressed.connect(step.bind(direction))
