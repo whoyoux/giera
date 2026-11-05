@@ -13,6 +13,10 @@ const SHADOW := Color(0.18, 0.13, 0.25, 0.28)
 
 const FONT_PATH := "res://assets/fonts/Fredoka.ttf"
 const AMMO_ICON_PATH := "res://assets/icons/ammo.png"
+const POP_FROM := 0.92
+const POP_SECONDS := 0.18
+const SHAKE_PIXELS := 9.0
+const SHAKE_STEP_SECONDS := 0.045
 
 static var _bold: FontVariation
 static var _regular: FontVariation
@@ -56,7 +60,9 @@ static func label(text: String, size := 20, color := INK, bold := true) -> Label
 	return node
 
 
-static func button(text: String, fill := CORAL, text_color := Color.WHITE) -> Button:
+## Dzwiek mowi, co przycisk robi. Przycisk, ktorego skutek ma wlasny dzwiek, np. otwarcie
+## okna, dostaje NONE, zeby jedno klikniecie nie gralo dwoch rzeczy naraz.
+static func button(text: String, fill := CORAL, text_color := Color.WHITE, sound := Sfx.UiCue.CONFIRM) -> Button:
 	var node := Button.new()
 	node.text = text
 	node.custom_minimum_size = Vector2(0, 58)
@@ -68,14 +74,41 @@ static func button(text: String, fill := CORAL, text_color := Color.WHITE) -> Bu
 	node.add_theme_stylebox_override("normal", sticker(fill, 20))
 	node.add_theme_stylebox_override("hover", sticker(fill.lightened(0.12), 20))
 	node.add_theme_stylebox_override("pressed", sticker(fill.darkened(0.12), 20))
-	node.add_theme_stylebox_override("focus", sticker(fill.lightened(0.12), 20))
+	node.add_theme_stylebox_override("focus", focus_ring(20))
 	node.add_theme_stylebox_override("disabled", sticker(fill.lerp(Color.WHITE, 0.45), 20))
-	node.pivot_offset = Vector2(150, 29)
-	node.mouse_entered.connect(func() -> void:
-		node.create_tween().tween_property(node, "rotation_degrees", -1.2, 0.08))
-	node.mouse_exited.connect(func() -> void:
-		node.create_tween().tween_property(node, "rotation_degrees", 0.0, 0.08))
+	ButtonFeel.attach(node, sound)
 	return node
+
+
+## Obwodka widoczna tylko przy sterowaniu klawiatura. Inna niz najechanie, zeby bylo wiadomo,
+## co zadziala po nacisnieciu Entera, gdy kursor stoi gdzie indziej.
+static func focus_ring(radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.draw_center = false
+	style.border_color = INK
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(radius)
+	style.set_expand_margin_all(3)
+	style.anti_aliasing = true
+	return style
+
+
+## Wyskok okna lub napisu. Skala wraca do 1, wiec uklad wokol sie nie przesuwa.
+static func pop_in(control: Control, delay := 0.0) -> void:
+	control.pivot_offset_ratio = Vector2(0.5, 0.5)
+	control.scale = Vector2.ONE * POP_FROM
+	control.modulate.a = 0.0
+	var tween := control.create_tween().set_parallel()
+	tween.tween_property(control, "scale", Vector2.ONE, POP_SECONDS).set_delay(delay).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(control, "modulate:a", 1.0, POP_SECONDS * 0.6).set_delay(delay)
+
+
+## Potrzasniecie na boki: "nie, popraw to".
+static func shake(control: Control) -> void:
+	var home := control.position.x
+	var tween := control.create_tween()
+	for offset: float in [-SHAKE_PIXELS, SHAKE_PIXELS, -SHAKE_PIXELS * 0.5, SHAKE_PIXELS * 0.5, 0.0]:
+		tween.tween_property(control, "position:x", home + offset, SHAKE_STEP_SECONDS)
 
 
 static func field(text: String, placeholder: String) -> LineEdit:
@@ -98,6 +131,7 @@ static func field(text: String, placeholder: String) -> LineEdit:
 	focus.set_border_width_all(3)
 	node.add_theme_stylebox_override("normal", normal)
 	node.add_theme_stylebox_override("focus", focus)
+	node.focus_entered.connect(UiSound.play.bind(Sfx.UiCue.PRESS))
 	return node
 
 
