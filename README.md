@@ -19,8 +19,8 @@ powershell -ExecutionPolicy Bypass -File tools\run_local.ps1 -Bots 2 -Shooters 1
 
 `-Bots` to biegające cele, a `-Shooters` to boty, które strzelają do Ciebie.
 
-Sterowanie: **WASD** ruch, **mysz** celowanie, **LPM** strzał, **spacja** skok,
-**Tab** wyniki, **Esc** pauza.
+Sterowanie: **WASD** ruch, **mysz** celowanie, **LPM** strzał, **R** przeładowanie,
+**Shift** sprint, **spacja** skok, **Tab** wyniki, **Esc** pauza.
 
 ## Serwer dedykowany
 
@@ -46,7 +46,8 @@ potrzebują nowego pliku `Giera.exe`.
 
 - **Serwer decyduje o wszystkim.** Klient wysyła tylko klawisze, kąt patrzenia i przycisk strzału.
 - **Ruch** działa w pętli rollbacku netfox: klient przewiduje go od razu, a serwer ewentualnie koryguje.
-- **Strzały** są rozliczane na serwerze w ticku, w którym gracz strzelił, z pozycjami graczy z tego ticku.
+- **Strzały** są rozliczane na serwerze. Klient widzi innych graczy z opóźnieniem, więc serwer cofa ich do chwili widocznej na ekranie strzelca, najwyżej o 0,3 s.
+- **Sprint** zużywa pasek przez 4 s, a pasek odnawia się w 5 s po 1 s przerwy. Stan paska liczy serwer.
 - **Zdrowie i wyniki** nie są stanem rollbacku. Serwer rozsyła je niezawodnym RPC z `game_state.gd`.
 - **Animacje** nie idą przez sieć. Każdy klient wylicza je z ruchu gracza.
 
@@ -61,8 +62,11 @@ potrzebują nowego pliku `Giera.exe`.
 | `scripts/player/hitscan.gd` | Sprawdzanie trafień i rozmiary hitboksów |
 | `scripts/core/game_state.gd` | Lista graczy, zdrowie, wyniki |
 | `scripts/core/net.gd` | Serwer, łączenie, parametry startowe |
-| `scripts/world/` | Klocki mapy, dekoracje, efekty |
-| `shaders/` | Kreskówkowe światło i kontury |
+| `scripts/player/character_rig.gd` | Model i animacje innych graczy |
+| `scripts/player/view_model.gd` | Broń i rękawice w pierwszej osobie |
+| `scripts/world/` | Klocki mapy, zabawki, efekty |
+| `scripts/ui/` | Menu, HUD i styl naklejek |
+| `assets/` | Modele, broń i czcionka |
 
 Klocki mapy zmieniasz polami **Size** i **Color** w inspektorze. Uwaga:
 `tools/generate_world.py` nadpisuje `world.tscn`, więc po ręcznej edycji mapy
@@ -89,4 +93,6 @@ oraz ponowne hostowanie. `tools/lag_proxy.py` pozwala dodać opóźnienie i utra
 ## Licencje
 
 Addon [netfox](https://github.com/foxssake/netfox) jest na licencji MIT, a jego
-tekst znajduje się w `addons/netfox/LICENSE`.
+tekst znajduje się w `addons/netfox/LICENSE`. Postacie [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers)
+i [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) są na licencji CC0.
+Czcionka Fredoka jest na licencji SIL OFL. Pliki licencji leżą przy zasobach w `assets/`.

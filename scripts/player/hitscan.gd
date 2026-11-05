@@ -8,11 +8,11 @@ extends RefCounted
 
 const RANGE := 250.0
 const WORLD_MASK := 1
-const BODY_RADIUS := 0.42
-const BODY_BOTTOM := 0.35
-const BODY_TOP := 1.25
-const HEAD_RADIUS := 0.3
-const HEAD_CENTER := 1.57
+const BODY_RADIUS := 0.36
+const BODY_BOTTOM := 0.2
+const BODY_TOP := 0.95
+const HEAD_RADIUS := 0.42
+const HEAD_CENTER := 1.38
 
 
 static func direction(yaw: float, pitch: float) -> Vector3:
@@ -20,7 +20,8 @@ static func direction(yaw: float, pitch: float) -> Vector3:
 
 
 ## Zwraca { position, player, headshot, hit_world }. "player" jest null przy pudle.
-static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, tree: SceneTree) -> Dictionary:
+## Z view_tick >= 0 cele sa ustawiane tam, gdzie strzelec widzial je w tym ticku.
+static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, tree: SceneTree, view_tick := -1) -> Dictionary:
 	var to := from + dir * RANGE
 	var result := { "position": to, "player": null, "headshot": false, "hit_world": false }
 	var nearest := RANGE
@@ -36,7 +37,7 @@ static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, 
 		var player := node as Player
 		if player.peer_id == shooter_id or not player.is_alive():
 			continue
-		var feet := player.position
+		var feet := player.position if view_tick < 0 else player.position_at(view_tick)
 		var head := Geometry3D.segment_intersects_sphere(from, to, feet + Vector3.UP * HEAD_CENTER, HEAD_RADIUS)
 		if not head.is_empty() and from.distance_to(head[0]) < nearest:
 			nearest = from.distance_to(head[0])

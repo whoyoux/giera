@@ -8,7 +8,18 @@ const GROUND_ACCEL := 70.0
 const AIR_ACCEL := 18.0
 const JUMP_VELOCITY := 6.2
 const GRAVITY := 16.0
-const EYE_HEIGHT := 1.6
+const EYE_HEIGHT := 1.5
+const SPRINT_MULTIPLIER := 1.5
+const STAMINA_MAX := 100.0
+## Pelny pasek starcza na 4 s sprintu i odnawia sie w 5 s, po 1 s przerwy.
+const STAMINA_DRAIN := 25.0
+const STAMINA_REGEN := 20.0
+const STAMINA_REGEN_DELAY := 1.0
+## Po calkowitym wyczerpaniu sprint wraca dopiero od tego poziomu.
+const STAMINA_UNLOCK := 20.0
+const DEFAULT_FOV := 80.0
+const SPRINT_FOV := 90.0
+const POSITION_HISTORY_TICKS := 30
 
 var peer_id := 0
 ## Referencja do wpisu w GameState (zdrowie, punkty, respawn).
@@ -18,18 +29,28 @@ var info: Dictionary
 var yaw := 0.0
 var pitch := 0.0
 var applied_respawn := 0
+var stamina := STAMINA_MAX
+var sprinting := false
+var exhausted := false
+var sprint_stop_tick := -1000
 
+## Pozycje z ostatnich tickow, potrzebne serwerowi do cofania czasu przy strzale.
+var _position_history := {}
 var _seen_respawn := 0
 var _last_position := Vector3.ZERO
-var _speed_smoothed := 0.0
+var _velocity_smoothed := Vector3.ZERO
+var _seen_health := 0
+var _punch := Vector3.ZERO
+var _view_speed := 0.0
 
 @onready var input := $Input as PlayerInput
+@onready var sync := $RollbackSynchronizer as RollbackSynchronizer
 @onready var weapon := $Weapon as Weapon
 @onready var interpolator := $TickInterpolator as TickInterpolator
 @onready var head := $Head as Node3D
 @onready var camera := $Head/Camera3D as Camera3D
 @onready var view_model := $Head/Camera3D/ViewModel as ViewModel
-@onready var model := $Model as PlayerModel
+@onready var model := $Model as CharacterRig
 @onready var name_label := $NameLabel as Label3D
 @onready var shot_audio := $ShotAudio as AudioStreamPlayer3D
 
@@ -40,6 +61,8 @@ func _ready() -> void:
 	_last_position = position
 	NetworkTime.after_tick_loop.connect(_after_tick_loop)
 	weapon.fired.connect(_on_weapon_fired)
+	weapon.reload_started.connect(_on_reload_started)
+	_seen_health = info.health
 
 	var local := is_local()
 	camera.current = local
@@ -47,12 +70,23 @@ func _ready() -> void:
 	model.visible = not local
 	name_label.visible = not local
 	name_label.text = info.name
-	model.set_color(PlayerModel.color_for(peer_id))
 	shot_audio.stream = Sfx.shot()
+	if not Net.is_headless:
+		if local:
+			view_model.setup(peer_id)
+		else:
+			model.setup(peer_id)
 	if local:
 		# Na start patrzymy w strone srodka mapy.
 		input.look_yaw = atan2(position.x, position.z)
 		input.yaw = input.look_yaw
+
+
+## Szarpniecie kamery po trafieniu. Strzal liczy sie z kierunku wejscia, a nie z kamery.
+func punch_camera(strength: float) -> void:
+	var side := -1.0 if randf() < 0.5 else 1.0
+	_punch = Vector3(0.05 * strength, 0.0, 0.09 * strength * side)
+	view_model.add_look(Vector2(14.0 * side, -18.0) * strength)
 
 
 func is_local() -> bool:
@@ -76,6 +110,9 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		applied_respawn = info.respawn_id
 		position = get_parent().spawn_point(peer_id, applied_respawn)
 		velocity = Vector3.ZERO
+		stamina = STAMINA_MAX
+		exhausted = false
+		weapon.refill()
 
 	var dead := is_dead_at(tick)
 	if not dead:
@@ -91,9 +128,11 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	else:
 		velocity.y -= GRAVITY * delta
 
+	_update_sprint(tick, delta, dead)
 	var wish := Vector3.ZERO
 	if not dead:
-		wish = Vector3(input.move.x, 0.0, input.move.y).limit_length(1.0).rotated(Vector3.UP, yaw) * SPEED
+		var top_speed := SPEED * SPRINT_MULTIPLIER if sprinting else SPEED
+		wish = Vector3(input.move.x, 0.0, input.move.y).limit_length(1.0).rotated(Vector3.UP, yaw) * top_speed
 	var accel := (GROUND_ACCEL if on_floor else AIR_ACCEL) * delta
 	velocity.x = move_toward(velocity.x, wish.x, accel)
 	velocity.z = move_toward(velocity.z, wish.z, accel)
@@ -102,6 +141,37 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	velocity *= NetworkTime.physics_factor
 	move_and_slide()
 	velocity /= NetworkTime.physics_factor
+	if multiplayer.is_server():
+		_remember_position(tick + 1)
+
+
+func _update_sprint(tick: int, delta: float, dead: bool) -> void:
+	if exhausted and stamina >= STAMINA_UNLOCK:
+		exhausted = false
+	# Sprint dziala tylko przy biegu do przodu.
+	var wants_sprint := input.sprint and input.move.y < -0.1 and not dead
+	sprinting = wants_sprint and not exhausted and stamina > 0.0
+	# Odnawianie rusza dopiero po puszczeniu klawisza i krotkiej przerwie.
+	if wants_sprint:
+		sprint_stop_tick = tick
+	if sprinting:
+		stamina = maxf(0.0, stamina - STAMINA_DRAIN * delta)
+		exhausted = stamina <= 0.0
+	elif tick - sprint_stop_tick >= NetworkTime.seconds_to_ticks(STAMINA_REGEN_DELAY):
+		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * delta)
+
+
+## Zwraca pozycje z danego ticku albo najblizsza wczesniejsza, jesli jej nie ma.
+func position_at(tick: int) -> Vector3:
+	for past in range(tick, tick - POSITION_HISTORY_TICKS, -1):
+		if _position_history.has(past):
+			return _position_history[past]
+	return position
+
+
+func _remember_position(tick: int) -> void:
+	_position_history[tick] = position
+	_position_history.erase(tick - POSITION_HISTORY_TICKS)
 
 
 ## Po przywroceniu stanu is_on_floor bywa nieaktualne, wiec odswiezamy je pustym ruchem.
@@ -130,16 +200,27 @@ func _process(delta: float) -> void:
 		rotation.y = yaw
 		head.rotation.x = pitch
 
-	var moved := position - _last_position
-	moved.y = 0.0
+	if delta <= 0.0 or Net.is_headless:
+		return
+	var moved := (position - _last_position) / delta
 	_last_position = position
-	if delta > 0.0:
-		_speed_smoothed = lerpf(_speed_smoothed, minf(moved.length() / delta, SPEED * 1.5), minf(delta * 12.0, 1.0))
-	var speed_ratio := _speed_smoothed / SPEED
+	_velocity_smoothed = _velocity_smoothed.lerp(moved, minf(delta * 14.0, 1.0))
+	# Inni gracze nie sa symulowani u klienta, wiec is_on_floor by dla nich klamalo.
+	var grounded := absf(velocity.y) < 0.6
+	var health: int = info.health
+	if health < _seen_health and health > 0 and not is_local():
+		model.play_hit()
+	_seen_health = health
 	if is_local():
-		view_model.update_pose(delta, speed_ratio, is_on_floor(), not info.alive)
+		# Predkosc z symulacji jest rowna, a ta liczona z pozycji miedzy klatkami drzy.
+		_view_speed = lerpf(_view_speed, Vector2(velocity.x, velocity.z).length() / SPEED, minf(delta * 10.0, 1.0))
+		view_model.update_pose(delta, _view_speed, grounded, velocity.y, sprinting, weapon.is_reloading(), not info.alive)
+		camera.fov = lerpf(camera.fov, SPRINT_FOV if sprinting else DEFAULT_FOV, minf(delta * 8.0, 1.0))
+		_punch = _punch.lerp(Vector3.ZERO, minf(delta * 9.0, 1.0))
+		camera.rotation = _punch
 	else:
-		model.update_pose(delta, speed_ratio, is_on_floor(), pitch, not info.alive)
+		var local_velocity := _velocity_smoothed.rotated(Vector3.UP, -rotation.y)
+		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
 
 
 func _on_weapon_fired() -> void:
@@ -154,10 +235,15 @@ func _on_weapon_fired() -> void:
 		view_model.kick()
 		muzzle = view_model.muzzle_position()
 	else:
-		model.kick()
+		model.play_shot()
 		muzzle = model.muzzle_position()
 	var hit := Hitscan.trace(get_world_3d(), eye_position(), Hitscan.direction(aim_yaw, aim_pitch), peer_id, get_tree())
 	var fx_root := get_parent()
 	ShotFx.tracer(fx_root, muzzle, hit.position)
 	if hit.player != null or hit.hit_world:
 		ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else Color("fff3a3"))
+
+
+func _on_reload_started() -> void:
+	if not Net.is_headless and not is_local():
+		model.play_reload()

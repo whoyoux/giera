@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/player/player_input.gd" id="2_input"]
 [ext_resource type="Script" path="res://scripts/player/weapon.gd" id="3_weapon"]
-[ext_resource type="Script" path="res://scripts/player/player_model.gd" id="4_model"]
+[ext_resource type="Script" path="res://scripts/player/character_rig.gd" id="4_model"]
 [ext_resource type="Script" path="res://scripts/player/view_model.gd" id="5_view"]
 [ext_resource type="Script" path="res://addons/netfox/rollback/rollback-synchronizer.gd" id="6_sync"]
 [ext_resource type="Script" path="res://addons/netfox/tick-interpolator.gd" id="7_interp"]
@@ -26,7 +26,7 @@ shape = SubResource("capsule")
 script = ExtResource("4_model")
 
 [node name="Head" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Head"]
 near = 0.03
@@ -37,7 +37,7 @@ script = ExtResource("5_view")
 
 [node name="NameLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.15, 0)
-pixel_size = 0.007
+pixel_size = 0.006
 billboard = 1
 no_depth_test = true
 font_size = 48
@@ -56,8 +56,8 @@ script = ExtResource("3_weapon")
 [node name="RollbackSynchronizer" type="Node" parent="." node_paths=PackedStringArray("root")]
 script = ExtResource("6_sync")
 root = NodePath("..")
-state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", "Weapon:last_fire"])
-input_properties = Array[String](["Input:move", "Input:jump", "Input:fire", "Input:yaw", "Input:pitch"])
+state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", ":stamina", ":sprinting", ":exhausted", ":sprint_stop_tick", "Weapon:last_fire", "Weapon:ammo", "Weapon:reload_end"])
+input_properties = Array[String](["Input:move", "Input:jump", "Input:fire", "Input:sprint", "Input:reload", "Input:yaw", "Input:pitch", "Input:view_tick"])
 enable_input_broadcast = false
 
 [node name="TickInterpolator" type="Node" parent="." node_paths=PackedStringArray("root")]

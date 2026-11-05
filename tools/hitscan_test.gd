@@ -24,10 +24,10 @@ func _ready() -> void:
 		_check("droga wolna z %s" % node.name, world.direct_space_state.intersect_ray(query).is_empty())
 
 	# Otwarta przestrzen na zachod od wiezy.
-	target.position = Vector3(-10, 0, 20)
-	var eye := Vector3(-10, 1.6, 26)
+	target.position = Vector3(-16, 0, 22)
+	var eye := Vector3(-16, 1.6, 28)
 	_expect("trafienie w tulow", _trace(world, eye, target.position + Vector3.UP * 0.9), target, false)
-	_expect("trafienie w glowe", _trace(world, eye, target.position + Vector3.UP * 1.57), target, true)
+	_expect("trafienie w glowe", _trace(world, eye, target.position + Vector3.UP * Hitscan.HEAD_CENTER), target, true)
 	var miss := Hitscan.trace(world, eye, Vector3.FORWARD.rotated(Vector3.UP, 0.3), 2, get_tree())
 	_expect("pudlo obok celu", miss, null, false)
 
@@ -39,8 +39,8 @@ func _ready() -> void:
 
 	# Strzelec nie moze trafic sam siebie.
 	var shooter := players.get_node("2") as Player
-	shooter.position = Vector3(-10, 0, 26)
-	target.position = Vector3(-10, 0, 20)
+	shooter.position = Vector3(-16, 0, 28)
+	target.position = Vector3(-16, 0, 22)
 	_expect("wlasne cialo nie blokuje strzalu", _trace(world, shooter.eye_position(), target.position + Vector3.UP * 0.9), target, false)
 
 	# Martwy gracz nie przyjmuje trafien.

@@ -39,7 +39,7 @@ func _after_loop() -> void:
 		return
 	var moved := _player.position - _before
 	moved.y = 0.0
-	var allowed := Player.SPEED * NetworkTime.ticktime * _ticks_in_loop
+	var allowed := Player.SPEED * Player.SPRINT_MULTIPLIER * NetworkTime.ticktime * _ticks_in_loop
 	var excess := maxf(0.0, moved.length() - allowed)
 	_worst = maxf(_worst, excess)
 	_ticks += 1

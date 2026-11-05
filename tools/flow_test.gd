@@ -55,6 +55,44 @@ func _ready() -> void:
 	_check("spacja podskakuje", player.position.y > jump_start + 0.3)
 	await _wait(1.0)
 
+	# Bron: strzal zuzywa amunicje, R przeladowuje.
+	_check("strzaly zuzyly amunicje", player.weapon.ammo < Weapon.MAGAZINE)
+	Input.action_press("reload")
+	await _wait(0.2)
+	Input.action_release("reload")
+	_check("R zaczyna przeladowanie", player.weapon.is_reloading())
+	await _wait(Weapon.RELOAD_SECONDS + 0.2)
+	_check("przeladowanie uzupelnia magazynek", player.weapon.ammo == Weapon.MAGAZINE and not player.weapon.is_reloading())
+
+	# Sprint: limit, blokada po wyczerpaniu i odnawianie.
+	await _wait(1.0)
+	_check("pasek jest pelny przed sprintem", player.stamina >= Player.STAMINA_MAX - 1.0)
+	Input.action_press("move_forward")
+	Input.action_press("sprint")
+	await _wait(1.0)
+	_check("Shift wlacza sprint", player.sprinting)
+	print("[test] pasek po 1 s sprintu: %.0f" % player.stamina)
+	_check("sprint zuzywa pasek w tempie 4 s", player.stamina > 65.0 and player.stamina < 85.0)
+	Input.action_press("fire")
+	var ammo_before := player.weapon.ammo
+	await _wait(0.5)
+	Input.action_release("fire")
+	_check("w sprincie nie mozna strzelac", player.weapon.ammo == ammo_before)
+	await _wait(3.0)
+	print("[test] pasek po 4,5 s sprintu: %.0f" % player.stamina)
+	_check("pasek konczy sie po okolo 4 s", player.stamina < 5.0 and player.exhausted)
+	_check("wyczerpanie wylacza sprint", not player.sprinting)
+	await _wait(0.5)
+	Input.action_release("sprint")
+	Input.action_release("move_forward")
+	await _wait(0.7)
+	_check("pasek nie odnawia sie od razu", player.stamina < 5.0)
+	await _wait(1.5)
+	print("[test] pasek po przerwie: %.0f" % player.stamina)
+	_check("pasek sie odnawia", player.stamina > 15.0)
+	await _wait(4.0)
+	_check("pasek odnawia sie do pelna", player.stamina >= Player.STAMINA_MAX - 1.0)
+
 	var pause := InputEventAction.new()
 	pause.action = &"pause"
 	pause.pressed = true

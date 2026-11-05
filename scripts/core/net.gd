@@ -6,7 +6,7 @@ extends Node
 ##   --connect=ADRES       od razu dolacz do serwera
 ##   --port=7777           port UDP
 ##   --name=Nick           nazwa gracza
-##   --bot=runner|shooter  sterowanie automatyczne, np. cel do cwiczen
+##   --bot=runner|shooter|headhunter  sterowanie automatyczne, np. cel do cwiczen
 ##   --tool=res://sciezka  dodatkowy skrypt testowy
 
 signal session_started

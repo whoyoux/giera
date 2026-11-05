@@ -11,7 +11,7 @@ signal player_removed(id: int)
 signal player_changed(id: int)
 signal kill_announced(killer_id: int, victim_id: int)
 signal hit_confirmed(killed: bool)
-signal damaged(amount: int)
+signal damaged(amount: int, attacker_id: int)
 
 const MAX_HEALTH := 100
 const RESPAWN_SECONDS := 3.0
@@ -83,7 +83,7 @@ func server_damage(victim_id: int, amount: int, attacker_id: int) -> void:
 		print("[serwer] %s zabil %s" % [display_name(attacker_id), display_name(victim_id)])
 		_announce_kill.rpc(attacker_id, victim_id)
 	_broadcast(victim_id)
-	_notify_damage(victim_id, amount)
+	_notify_damage(victim_id, amount, attacker_id)
 	_notify_hit(attacker_id, killed)
 
 
@@ -103,11 +103,11 @@ func _broadcast(id: int) -> void:
 	_sync_player.rpc(id, players[id])
 
 
-func _notify_damage(victim_id: int, amount: int) -> void:
+func _notify_damage(victim_id: int, amount: int, attacker_id: int) -> void:
 	if victim_id == multiplayer.get_unique_id():
-		damaged.emit(amount)
+		damaged.emit(amount, attacker_id)
 	elif players.has(victim_id):
-		_receive_damage.rpc_id(victim_id, amount)
+		_receive_damage.rpc_id(victim_id, amount, attacker_id)
 
 
 func _notify_hit(attacker_id: int, killed: bool) -> void:
@@ -165,8 +165,8 @@ func _confirm_hit(killed: bool) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
-func _receive_damage(amount: int) -> void:
-	damaged.emit(amount)
+func _receive_damage(amount: int, attacker_id: int) -> void:
+	damaged.emit(amount, attacker_id)
 
 
 ## Aktualizuje slownik w miejscu, bo wezel gracza trzyma do niego referencje.

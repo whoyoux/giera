@@ -1,20 +1,35 @@
 class_name Hud
 extends CanvasLayer
-## Interfejs w grze: zdrowie, celownik, komunikaty o zabojstwach, wyniki i pauza.
+## Interfejs w grze: zdrowie, speed, amunicja, celownik, zabojstwa, wyniki i pauza.
 
 const FEED_SECONDS := 5.0
+const LOW_HEALTH := 35
+const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
 
 var _player: Player
 var _crosshair: Crosshair
 var _health_bar: ProgressBar
 var _health_label: Label
+var _speed_bar: ProgressBar
+var _speed_fill: StyleBoxFlat
+var _ammo_label: Label
+var _ammo_hint: Label
+var _ammo_panel: PanelContainer
 var _feed: VBoxContainer
-var _death_panel: Label
-var _damage_flash: ColorRect
-var _scoreboard: PanelContainer
+var _death_panel: PanelContainer
+var _death_label: Label
+var _vignette: ColorRect
+var _vignette_material: ShaderMaterial
+var _indicator: DamageIndicator
+var _status_panel: PanelContainer
+var _hit_amount := 0.0
+var _pulse_time := 0.0
+var _score_center: CenterContainer
 var _score_rows: VBoxContainer
 var _pause: CenterContainer
 var _audio: AudioStreamPlayer
+var _hurt_audio: AudioStreamPlayer
+var _last_ammo := -1
 
 
 func _ready() -> void:
@@ -31,6 +46,8 @@ func _ready() -> void:
 
 func bind(player: Player) -> void:
 	_player = player
+	_indicator.bind(player)
+	_hit_amount = 0.0
 	_pause.visible = false
 	_refresh_scoreboard()
 
@@ -39,19 +56,39 @@ func unbind() -> void:
 	_player = null
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
 	var info := _player.info
-	_health_bar.value = info.health
+	_update_vignette(delta, info)
+	_health_bar.value = lerpf(_health_bar.value, info.health, 0.25)
 	_health_label.text = str(info.health)
-	var bar_fill := _health_bar.get_theme_stylebox("fill") as StyleBoxFlat
-	bar_fill.bg_color = UiStyle.TEAL if info.health > 35 else UiStyle.DANGER
+	var fill := _health_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	fill.bg_color = UiStyle.TEAL if info.health > LOW_HEALTH else UiStyle.CORAL
+
+	_speed_bar.value = _player.stamina
+	_speed_fill.bg_color = UiStyle.CORAL if _player.exhausted else UiStyle.SUN
+
+	var weapon := _player.weapon
+	_ammo_label.text = "%d" % weapon.ammo
+	if weapon.is_reloading():
+		_ammo_hint.text = "ładuję…"
+	elif weapon.ammo == 0:
+		_ammo_hint.text = "naciśnij R"
+	else:
+		_ammo_hint.text = "/ %d" % Weapon.MAGAZINE
+	if weapon.ammo != _last_ammo:
+		if weapon.ammo < _last_ammo:
+			_crosshair.kick()
+			_bump(_ammo_panel)
+		_last_ammo = weapon.ammo
+
+	_crosshair.hidden_for_sprint = _player.sprinting
 	_death_panel.visible = not info.alive
 	if not info.alive:
 		var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
-		_death_panel.text = "Trafiony!\nPowrót za %d…" % ceili(seconds)
-	_scoreboard.visible = Input.is_action_pressed("scoreboard")
+		_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
+	_score_center.visible = Input.is_action_pressed("scoreboard")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -80,15 +117,46 @@ func _on_hit_confirmed(killed: bool) -> void:
 	_audio.play()
 
 
-func _on_damaged(_amount: int) -> void:
-	_damage_flash.modulate.a = 1.0
-	var tween := create_tween()
-	tween.tween_property(_damage_flash, "modulate:a", 0.0, 0.35)
+func _on_damaged(amount: int, attacker_id: int) -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var strength := clampf(float(amount) / Weapon.HEADSHOT_DAMAGE, 0.5, 1.0)
+	_hit_amount = maxf(_hit_amount, 0.55 + strength * 0.45)
+	_player.punch_camera(strength)
+	_bump(_status_panel)
+	_hurt_audio.stream = Sfx.hurt()
+	_hurt_audio.play()
+	var attacker := _player.get_parent().get_node_or_null(str(attacker_id)) as Player
+	if attacker != null:
+		_indicator.add_hit(attacker.position)
+
+
+func _update_vignette(delta: float, info: Dictionary) -> void:
+	_hit_amount = move_toward(_hit_amount, 0.0, delta * 1.6)
+	_pulse_time += delta * 5.0
+	var low := 0.0
+	if info.alive and info.health <= LOW_HEALTH:
+		# Im mniej zdrowia, tym mocniejszy rytm "bicia serca".
+		var danger := 1.0 - float(info.health) / LOW_HEALTH
+		low = (0.45 + danger * 0.3) * (0.75 + sin(_pulse_time) * 0.25)
+	_vignette_material.set_shader_parameter("hit", _hit_amount)
+	_vignette_material.set_shader_parameter("low_health", low)
 
 
 func _on_kill(killer_id: int, victim_id: int) -> void:
-	var row := UiStyle.label("%s  ▸  %s" % [GameState.display_name(killer_id), GameState.display_name(victim_id)], 18)
-	row.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var row := PanelContainer.new()
+	var style := UiStyle.sticker(UiStyle.PAPER, 14, 3)
+	style.set_content_margin_all(8)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	row.add_theme_stylebox_override("panel", style)
+	row.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 8)
+	line.add_child(UiStyle.label(GameState.display_name(killer_id), 17, UiStyle.BLUE))
+	line.add_child(UiStyle.label("✦", 15, UiStyle.CORAL))
+	line.add_child(UiStyle.label(GameState.display_name(victim_id), 17, UiStyle.CORAL))
+	row.add_child(line)
 	_feed.add_child(row)
 	var tween := row.create_tween()
 	tween.tween_interval(FEED_SECONDS)
@@ -104,99 +172,179 @@ func _refresh_scoreboard() -> void:
 	var ids := GameState.players.keys()
 	ids.sort_custom(func(a: int, b: int) -> bool:
 		return GameState.players[a].kills > GameState.players[b].kills)
-	_score_rows.add_child(_score_row("Gracz", "Zabójstwa", "Śmierci", UiStyle.ACCENT))
+	_score_rows.add_child(_score_row("Gracz", "Zabójstwa", "Śmierci", UiStyle.CORAL))
 	for id: int in ids:
 		var info: Dictionary = GameState.players[id]
-		var color := PlayerModel.color_for(id).lightened(0.25)
-		_score_rows.add_child(_score_row(info.name, str(info.kills), str(info.deaths), color))
+		_score_rows.add_child(_score_row(info.name, str(info.kills), str(info.deaths), UiStyle.INK))
 
 
 func _score_row(player_name: String, kills: String, deaths: String, color: Color) -> HBoxContainer:
 	var row := HBoxContainer.new()
-	var name_label := UiStyle.label(player_name, 20, color)
+	var name_label := UiStyle.label(player_name, 21, color)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
 	for value in [kills, deaths]:
-		var cell := UiStyle.label(value, 20)
-		cell.custom_minimum_size = Vector2(110, 0)
+		var cell := UiStyle.label(value, 21, color)
+		cell.custom_minimum_size = Vector2(120, 0)
 		cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		row.add_child(cell)
 	return row
 
 
+func _bump(control: Control) -> void:
+	control.pivot_offset = control.size * 0.5
+	control.scale = Vector2.ONE * 1.08
+	control.create_tween().tween_property(control, "scale", Vector2.ONE, 0.12)
+
+
+func _anchored(preset: Control.LayoutPreset, offset: Vector2, grow_h: Control.GrowDirection, grow_v: Control.GrowDirection) -> Control:
+	var node := Control.new()
+	node.set_anchors_and_offsets_preset(preset)
+	node.position += offset
+	node.grow_horizontal = grow_h
+	node.grow_vertical = grow_v
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(node)
+	return node
+
+
 func _build() -> void:
-	_damage_flash = ColorRect.new()
-	_damage_flash.color = Color(UiStyle.DANGER, 0.35)
-	_damage_flash.modulate.a = 0.0
-	_damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_damage_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_damage_flash)
+	_vignette = ColorRect.new()
+	_vignette_material = ShaderMaterial.new()
+	_vignette_material.shader = VIGNETTE_SHADER
+	_vignette.material = _vignette_material
+	_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_vignette)
+
+	_indicator = DamageIndicator.new()
+	_indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_indicator.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_indicator)
 
 	_crosshair = Crosshair.new()
 	_crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_crosshair.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_crosshair)
 
-	var health_box := Control.new()
-	health_box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	health_box.position = Vector2(24, -70)
-	add_child(health_box)
-	_health_bar = ProgressBar.new()
-	_health_bar.max_value = GameState.MAX_HEALTH
-	_health_bar.show_percentage = false
-	_health_bar.size = Vector2(280, 40)
-	_health_bar.add_theme_stylebox_override("background", UiStyle.panel(UiStyle.INK, 4, 12))
-	_health_bar.add_theme_stylebox_override("fill", UiStyle.panel(UiStyle.TEAL, 4, 12))
-	health_box.add_child(_health_bar)
-	_health_label = UiStyle.label("100", 24)
-	_health_label.size = Vector2(280, 40)
-	_health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_health_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	health_box.add_child(_health_label)
+	_build_status_sticker()
+	_build_ammo_sticker()
 
 	_feed = VBoxContainer.new()
 	_feed.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	_feed.position += Vector2(-340, 20)
-	_feed.custom_minimum_size = Vector2(320, 0)
+	_feed.position += Vector2(-24, 22)
+	_feed.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_feed.add_theme_constant_override("separation", 6)
 	_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_feed)
 
-	_death_panel = UiStyle.label("", 42, UiStyle.PAPER, 10)
-	_death_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_death_panel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_death_panel.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var death_center := CenterContainer.new()
+	death_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	death_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(death_center)
+	_death_panel = PanelContainer.new()
+	_death_panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.CORAL, 26, 7))
+	_death_panel.rotation_degrees = -3.0
 	_death_panel.visible = false
-	add_child(_death_panel)
+	death_center.add_child(_death_panel)
+	_death_label = UiStyle.label("", 38, Color.WHITE)
+	_death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_death_panel.add_child(_death_label)
 
-	var score_center := CenterContainer.new()
-	score_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	score_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(score_center)
-	_scoreboard = PanelContainer.new()
-	_scoreboard.custom_minimum_size = Vector2(560, 0)
-	_scoreboard.add_theme_stylebox_override("panel", UiStyle.panel(Color(UiStyle.INK, 0.9), 5, 18))
-	_scoreboard.visible = false
-	score_center.add_child(_scoreboard)
+	_score_center = CenterContainer.new()
+	_score_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_score_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_score_center.visible = false
+	add_child(_score_center)
+	var scoreboard := PanelContainer.new()
+	scoreboard.custom_minimum_size = Vector2(620, 0)
+	scoreboard.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
+	_score_center.add_child(scoreboard)
 	_score_rows = VBoxContainer.new()
-	_scoreboard.add_child(_score_rows)
+	_score_rows.add_theme_constant_override("separation", 8)
+	scoreboard.add_child(_score_rows)
 
 	_pause = CenterContainer.new()
 	_pause.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_pause.visible = false
 	add_child(_pause)
+	var pause_card := PanelContainer.new()
+	pause_card.custom_minimum_size = Vector2(360, 0)
+	pause_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
+	_pause.add_child(pause_card)
 	var pause_box := VBoxContainer.new()
-	pause_box.custom_minimum_size = Vector2(320, 0)
 	pause_box.add_theme_constant_override("separation", 12)
-	_pause.add_child(pause_box)
-	var pause_title := UiStyle.label("Pauza", 42, UiStyle.ACCENT, 10)
+	pause_card.add_child(pause_box)
+	var pause_title := UiStyle.label("Pauza", 40, UiStyle.BLUE)
 	pause_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_box.add_child(pause_title)
 	var resume := UiStyle.button("Wróć do gry", UiStyle.TEAL)
 	resume.pressed.connect(_set_paused.bind(false))
 	pause_box.add_child(resume)
-	var disconnect_button := UiStyle.button("Rozłącz", UiStyle.DANGER)
+	var disconnect_button := UiStyle.button("Rozłącz", UiStyle.CORAL)
 	disconnect_button.pressed.connect(func() -> void: Net.leave())
 	pause_box.add_child(disconnect_button)
 
 	_audio = AudioStreamPlayer.new()
 	add_child(_audio)
+	_hurt_audio = AudioStreamPlayer.new()
+	add_child(_hurt_audio)
+
+
+func _build_status_sticker() -> void:
+	var anchor := _anchored(Control.PRESET_BOTTOM_LEFT, Vector2(28, -28), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_BEGIN)
+	var panel := PanelContainer.new()
+	_status_panel = panel
+	panel.custom_minimum_size = Vector2(320, 0)
+	panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 22, 6))
+	panel.rotation_degrees = -1.2
+	panel.position = Vector2(0, -112)
+	anchor.add_child(panel)
+
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 8)
+	panel.add_child(rows)
+
+	var health_row := HBoxContainer.new()
+	health_row.add_theme_constant_override("separation", 10)
+	rows.add_child(health_row)
+	_health_label = UiStyle.label("100", 30, UiStyle.INK)
+	_health_label.custom_minimum_size = Vector2(62, 0)
+	health_row.add_child(_health_label)
+	_health_bar = UiStyle.bar(UiStyle.TEAL, 22)
+	_health_bar.max_value = GameState.MAX_HEALTH
+	_health_bar.value = GameState.MAX_HEALTH
+	_health_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_health_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	health_row.add_child(_health_bar)
+
+	var speed_row := HBoxContainer.new()
+	speed_row.add_theme_constant_override("separation", 10)
+	rows.add_child(speed_row)
+	var speed_name := UiStyle.label("speed", 16, UiStyle.INK)
+	speed_name.custom_minimum_size = Vector2(62, 0)
+	speed_row.add_child(speed_name)
+	_speed_bar = UiStyle.bar(UiStyle.SUN, 14)
+	_speed_bar.max_value = Player.STAMINA_MAX
+	_speed_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_speed_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_speed_fill = _speed_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	speed_row.add_child(_speed_bar)
+
+
+func _build_ammo_sticker() -> void:
+	var anchor := _anchored(Control.PRESET_BOTTOM_RIGHT, Vector2(-28, -28), Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BEGIN)
+	_ammo_panel = PanelContainer.new()
+	_ammo_panel.custom_minimum_size = Vector2(170, 84)
+	_ammo_panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 22, 6))
+	_ammo_panel.rotation_degrees = 1.5
+	_ammo_panel.position = Vector2(-170, -88)
+	anchor.add_child(_ammo_panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_ammo_panel.add_child(row)
+	_ammo_label = UiStyle.label("12", 40, UiStyle.BLUE)
+	row.add_child(_ammo_label)
+	_ammo_hint = UiStyle.label("/ 12", 18, UiStyle.INK, false)
+	row.add_child(_ammo_hint)

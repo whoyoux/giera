@@ -21,6 +21,13 @@ static func hit() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 1500.0)
 
 
+static func hurt() -> AudioStreamWAV:
+	return _make("hurt", 0.24, func(t: float, phase: float) -> float:
+		var envelope := pow(1.0 - t / 0.24, 1.5)
+		return (sin(TAU * phase) * 0.8 + randf_range(-0.25, 0.25)) * envelope
+	, func(t: float) -> float: return lerpf(240.0, 70.0, t / 0.24))
+
+
 static func kill() -> AudioStreamWAV:
 	return _make("kill", 0.26, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.26)
