@@ -92,7 +92,7 @@ jobs:
           godot --headless --path . --import || true
           test -f .godot/global_script_class_cache.cfg
           godot --headless --path launcher --import || true
-          test -f launcher/.godot/global_script_class_cache.cfg
+          test -d launcher/.godot/imported
 
       - name: Sprawdz logike launchera
         run: godot --headless --path launcher --script res://tests/update_plan_test.gd
@@ -117,6 +117,7 @@ jobs:
           mkdir -p "$launcher"
           godot --headless --path launcher --export-release "Windows Desktop" "$launcher/Giera.exe"
           test -s "$launcher/Giera.pck"
+          cp "$launcher/Giera.pck" builds/Giera-Windows-launcher.pck
           cp "$windows"/*.dll "$windows/GodotSteam-license.md" "$launcher/"
           (cd "$launcher" && zip -q "$GITHUB_WORKSPACE/builds/Giera-Windows.zip" Giera.exe Giera.pck steam_api64.dll libgodotsteam.windows.template_release.x86_64.dll GodotSteam-license.md)
 
@@ -131,6 +132,8 @@ jobs:
           # Gracz pobiera sam launcher. Gre doinstaluje launcher.
           godot --headless --path launcher --export-release "macOS" "$GITHUB_WORKSPACE/builds/Giera-macOS.zip"
           test -s builds/Giera-macOS.zip
+          unzip -q -j builds/Giera-macOS.zip Giera.app/Contents/Resources/Giera.pck -d "$RUNNER_TEMP/launcher-macos"
+          cp "$RUNNER_TEMP/launcher-macos/Giera.pck" builds/Giera-macOS-launcher.pck
 
       - name: Utworz manifest i zapis importu
         env:
@@ -208,6 +211,26 @@ jobs:
         with:
           name: buildy
           path: builds
+
+      - name: Pobierz klucz publiczny z kodu
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+          persist-credentials: false
+
+      - name: Podpisz manifest
+        # Klucz jest tylko w tym kroku, a nie przy budowaniu gry. Launcher odrzuci wydanie bez podpisu.
+        env:
+          SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/signing.pem"
+          printf '%s\n' "$SIGNING_KEY" > "$key"
+          openssl dgst -sha256 -sign "$key" -out builds/manifest.json.sig builds/manifest.json
+          rm -f "$key"
+          sed -n '/BEGIN PUBLIC KEY/,/END PUBLIC KEY/p' source/launcher/scripts/update_key.gd > "$RUNNER_TEMP/public.pem"
+          openssl dgst -sha256 -verify "$RUNNER_TEMP/public.pem" -signature builds/manifest.json.sig builds/manifest.json
 
       - name: Opublikuj wydanie
         env:

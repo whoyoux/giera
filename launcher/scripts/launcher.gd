@@ -5,11 +5,18 @@ extends Control
 ## Parametry po "--" w linii polecen. Pozostale trafiaja do gry:
 ##   --no-update             bez sprawdzania aktualizacji
 ##   --update-tag=v1.0.0-rc1 konkretne wydanie zamiast najnowszego, np. wersja probna
+##   --wait-for-game         najpierw czeka na zamkniecie gry, gdy uruchomila go gra
 ##   --update-base=URL       inny adres wydan, do testow
+##   --update-key=PLIK       inny klucz publiczny, do testow
 ##   --game-dir=SCIEZKA      inny folder gry, do testow
 
+const UpdatePlan := preload("res://scripts/update_plan.gd")
+const GameInstall := preload("res://scripts/game_install.gd")
+const Downloader := preload("res://scripts/downloader.gd")
+const UpdateKey := preload("res://scripts/update_key.gd")
 const RELEASES := "https://github.com/whoyoux/giera/releases/"
 const MANIFEST_TIMEOUT := 5.0
+const GAME_EXIT_TIMEOUT := 15.0
 ## Tyle nowa wersja ma na zgloszenie startu. Wolny komputer tez musi zdazyc skompilowac shadery.
 const START_TIMEOUT := 60.0
 const START_POLL := 0.25
@@ -24,6 +31,8 @@ const TEAL := Color("2bc4b6")
 var _base := RELEASES
 var _tag := ""
 var _no_update := false
+var _wait_for_game := false
+var _public_key: String = UpdateKey.PUBLIC_PEM
 var _game_dir := ""
 var _game_args := PackedStringArray()
 var _headless := false
@@ -58,6 +67,10 @@ func _read_args() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--no-update":
 			_no_update = true
+		elif arg == "--wait-for-game":
+			_wait_for_game = true
+		elif arg.begins_with("--update-key="):
+			_public_key = FileAccess.get_file_as_string(arg.trim_prefix("--update-key="))
 		elif arg.begins_with("--update-tag="):
 			_tag = arg.trim_prefix("--update-tag=")
 		elif arg.begins_with("--update-base="):
@@ -72,6 +85,13 @@ func _run() -> void:
 	_buttons.visible = false
 	var failure := ""
 	var updated := false
+	if _wait_for_game:
+		_wait_for_game = false
+		_show("Czekam na zamknięcie gry…")
+		var left := GAME_EXIT_TIMEOUT
+		while left > 0.0 and _install.is_game_running():
+			await get_tree().create_timer(START_POLL).timeout
+			left -= START_POLL
 	# Gra czyta PCK przez caly czas dzialania, wiec nie wolno go podmieniac pod dzialajaca gra.
 	if not _no_update and not _install.is_game_running():
 		_show("Sprawdzam aktualizacje…")
@@ -97,9 +117,19 @@ func _fetch_entry() -> Dictionary:
 	var platform := "windows" if OS.has_feature("windows") else "macos" if OS.has_feature("macos") else ""
 	if platform.is_empty():
 		return {}
+	var data := await _downloader.fetch_bytes(_manifest_url(), MANIFEST_TIMEOUT)
+	if data.is_empty():
+		return {}
+	var signature := await _downloader.fetch_bytes(_manifest_url() + ".sig", MANIFEST_TIMEOUT)
+	if not UpdatePlan.is_signed(data, signature, _public_key):
+		print("[launcher] manifest bez poprawnego podpisu, pomijam aktualizacje")
+		return {}
+	return UpdatePlan.read_manifest(data.get_string_from_utf8(), platform)
+
+
+func _manifest_url() -> String:
 	var folder := "download/%s/" % _tag if not _tag.is_empty() else "latest/download/"
-	var text := await _downloader.fetch_text(_base + folder + "manifest.json", MANIFEST_TIMEOUT)
-	return UpdatePlan.read_manifest(text, platform) if not text.is_empty() else {}
+	return _base + folder + "manifest.json"
 
 
 ## Instaluje to, czego brakuje. Blad nie cofa tego, co juz sie udalo.
@@ -110,6 +140,8 @@ func _update(entry: Dictionary) -> Dictionary:
 	if not _has_space_for(entry, plan):
 		return _outcome("Za mało miejsca na dysku.")
 
+	if plan.launcher:
+		await _update_launcher(tag, entry.launcher)
 	if plan.runtime == UpdatePlan.Runtime.COPY_SELF:
 		_show("Przygotowuję grę…")
 		await get_tree().process_frame
@@ -138,6 +170,14 @@ func _update(entry: Dictionary) -> Dictionary:
 		DirAccess.remove_absolute(pack)
 		return _outcome("Nie udało się zaktualizować. Zamknij grę i spróbuj ponownie.")
 	return _outcome("", true)
+
+
+## Blad launchera nie moze zatrzymac gry, a nowa logika ma jeszcze szanse przy nastepnym starcie.
+func _update_launcher(tag: String, file: Dictionary) -> void:
+	_download_label = "Pobieram launcher"
+	var temp := await _download(tag, file)
+	if not temp.is_empty() and not _install.stage_launcher(temp, str(file.sha256)):
+		DirAccess.remove_absolute(temp)
 
 
 func _outcome(failure: String, updated := false) -> Dictionary:
@@ -173,6 +213,7 @@ func _download(tag: String, file: Dictionary) -> String:
 
 
 func _play(just_updated: bool) -> void:
+	_install.confirm_launcher()
 	_buttons.visible = false
 	_show("Uruchamiam grę…")
 	var pid := _start_game()
@@ -202,6 +243,8 @@ func _start_game() -> int:
 		args.append("--headless")
 	args.append("--")
 	args.append("--launcher-marker=" + _install.marker_path())
+	args.append("--launcher-path=" + OS.get_executable_path())
+	args.append("--update-manifest=" + _manifest_url())
 	args.append_array(_game_args)
 	var pid := _install.start_game(args)
 	print("[launcher] gra uruchomiona, pid %d" % pid)
@@ -222,6 +265,7 @@ func _started_properly(pid: int) -> bool:
 
 
 func _show_failure(message: String) -> void:
+	_install.confirm_launcher()
 	print("[launcher] %s" % message)
 	_show(message)
 	if _headless:

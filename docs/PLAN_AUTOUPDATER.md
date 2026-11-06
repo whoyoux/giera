@@ -132,9 +132,9 @@ Każdy etap to osobny PR.
 
 ### Etap 4: wygoda i bezpieczeństwo
 
-- **Podpis manifestu.** RSA przez `Crypto.verify`, klucz prywatny w GitHub Secrets, publiczny w launcherze. Bez podpisu przejęcie konta lub tokenu GitHuba pozwala podmienić grę wszystkim graczom.
+- **Podpis manifestu.** RSA przez `Crypto.verify`, klucz prywatny w GitHub Secrets, publiczny w launcherze, plik `manifest.json.sig` w wydaniu. Bez podpisu przejęcie konta lub tokenu GitHuba pozwala podmienić grę wszystkim graczom.
 - **Sprawdzanie w grze.** Menu pokazuje informację o nowej wersji i przycisk restartu.
-- **Aktualizacja launchera.** Niewielki, niezmienny starter montuje nową logikę launchera z danych użytkownika. Tu `load_resource_pack` wystarcza, bo launcher nie ma autoloadów.
+- **Aktualizacja launchera.** Niewielki, niezmienny starter montuje nową logikę launchera z danych użytkownika. Tu `load_resource_pack` wystarcza, bo launcher nie ma autoloadów. Logika jest skompilowana dla konkretnego silnika, więc instaluje się tylko przy zgodnym `runtime_id`. Jeśli nowa logika nie dojdzie do startu gry, przy kolejnym uruchomieniu starter ją wyłącza.
 
 ### Etap 5: pobieranie tylko zmienionych części
 

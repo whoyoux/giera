@@ -1,6 +1,7 @@
 extends SceneTree
 ## Uzycie: godot --headless --path launcher --script res://tests/update_plan_test.gd
 
+const UpdatePlan := preload("res://scripts/update_plan.gd")
 const SHA := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 var _errors := 0
@@ -9,6 +10,8 @@ var _errors := 0
 func _init() -> void:
 	_test_manifest()
 	_test_decisions()
+	_test_launcher_entry()
+	_test_signature()
 	print("[test] %s" % ("BLEDY: %d" % _errors if _errors > 0 else "wszystko OK"))
 	quit(1 if _errors > 0 else 0)
 
@@ -73,6 +76,37 @@ func _test_decisions() -> void:
 	_check("zla wersja nie instaluje sie ponownie", plan.runtime == UpdatePlan.Runtime.KEEP and not plan.pack)
 	plan = UpdatePlan.decide(entry, { "version": "1.1.0", "runtime_id": "r1", "bad_version": "1.0.0" }, "r1", true, true)
 	_check("nowsza wersja po zlej instaluje sie", plan.pack)
+
+
+func _test_launcher_entry() -> void:
+	var data := _manifest()
+	data.windows["launcher"] = { "file": "Giera-Windows-launcher.pck", "size": 5, "sha256": SHA, "id": "r1" }
+	var entry := _read(data)
+	_check("wpis launchera", entry.has("launcher"))
+	var state := { "version": "1.2.0", "runtime_id": "r1" }
+	_check("nowy launcher sie instaluje", UpdatePlan.decide(entry, state, "r1", true, true).launcher)
+	_check("launcher na inny silnik nie instaluje sie", not UpdatePlan.decide(entry, state, "r0", true, true).launcher)
+	state["launcher_sha"] = SHA
+	_check("ten sam launcher nie instaluje sie", not UpdatePlan.decide(entry, state, "r1", true, true).launcher)
+	data.windows.launcher.file = "../x"
+	_check("zly wpis launchera odrzuca manifest", _read(data).is_empty())
+
+
+func _test_signature() -> void:
+	var crypto := Crypto.new()
+	var key := crypto.generate_rsa(2048)
+	var other := crypto.generate_rsa(2048)
+	var data := "manifest".to_utf8_buffer()
+	var context := HashingContext.new()
+	context.start(HashingContext.HASH_SHA256)
+	context.update(data)
+	var signature := crypto.sign(HashingContext.HASH_SHA256, context.finish(), key)
+	var pem := key.save_to_string(true)
+	_check("poprawny podpis", UpdatePlan.is_signed(data, signature, pem))
+	_check("zmieniona tresc", not UpdatePlan.is_signed("inny".to_utf8_buffer(), signature, pem))
+	_check("inny klucz", not UpdatePlan.is_signed(data, signature, other.save_to_string(true)))
+	_check("brak podpisu", not UpdatePlan.is_signed(data, PackedByteArray(), pem))
+	_check("zepsuty klucz", not UpdatePlan.is_signed(data, signature, "nie klucz"))
 
 
 func _check(label: String, passed: bool) -> void:

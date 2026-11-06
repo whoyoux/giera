@@ -43,6 +43,7 @@ func _ready() -> void:
 	root.add_theme_constant_override("margin_bottom", 32)
 	add_child(root)
 	_build_version_label()
+	add_child(UpdateNotice.new())
 
 	var side := VBoxContainer.new()
 	side.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN

@@ -1,4 +1,3 @@
-class_name Downloader
 extends Node
 ## Pobieranie z GitHuba przez przekierowania. Limit czasu pilnuje braku postepu,
 ## a nie calego pobierania, bo wolne lacze tez ma prawo skonczyc.
@@ -11,19 +10,19 @@ const CHUNK_SIZE := 1 << 18
 const MANIFEST_LIMIT := 1 << 20
 
 
-## Zwraca tresc albo pusty tekst. Brak pliku, sieci i odpowiedzi znacza to samo: nie aktualizuj.
-func fetch_text(url: String, timeout: float) -> String:
+## Zwraca tresc albo nic. Brak pliku, sieci i odpowiedzi znacza to samo: nie aktualizuj.
+func fetch_bytes(url: String, timeout: float) -> PackedByteArray:
 	var request := _new_request()
 	request.timeout = timeout
 	request.body_size_limit = MANIFEST_LIMIT
 	if request.request(url) != OK:
 		request.queue_free()
-		return ""
+		return PackedByteArray()
 	var result: Array = await request.request_completed
 	request.queue_free()
 	if result[0] != HTTPRequest.RESULT_SUCCESS or result[1] != 200:
-		return ""
-	return (result[3] as PackedByteArray).get_string_from_utf8()
+		return PackedByteArray()
+	return result[3]
 
 
 func fetch_file(url: String, path: String, expected_size: int) -> bool:
