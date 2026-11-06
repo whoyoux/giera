@@ -3,10 +3,14 @@
 param(
 	[int]$Bots = 1,
 	[int]$Shooters = 0,
-	[int]$Port = 7777,
+	[int]$Port = 0,
+	[ValidateSet("deathmatch", "battle_royale")]
+	[string]$Mode = "deathmatch",
 	[switch]$DebugItems,
 	[switch]$DebugWeapons
 )
+
+if ($Port -eq 0) { $Port = if ($Mode -eq "battle_royale") { 7778 } else { 7777 } }
 
 $project = Split-Path -Parent $PSScriptRoot
 $godot = $env:GODOT
@@ -18,7 +22,7 @@ if (-not (Test-Path $godot)) {
 }
 
 $running = @()
-$running += Start-Process $godot -ArgumentList "--path `"$project`" --headless -- --server --port=$Port $(if ($DebugItems) { '--debug-items' }) $(if ($DebugWeapons) { '--debug-weapons' })" -WindowStyle Minimized -PassThru
+$running += Start-Process $godot -ArgumentList "--path `"$project`" --headless -- --server --port=$Port --mode=$Mode $(if ($DebugItems) { '--debug-items' }) $(if ($DebugWeapons) { '--debug-weapons' })" -WindowStyle Minimized -PassThru
 Start-Sleep -Seconds 2
 
 for ($i = 1; $i -le $Bots; $i++) {

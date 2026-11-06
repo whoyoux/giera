@@ -4,7 +4,8 @@ extends Node
 ## Parametry po "--" w linii polecen:
 ##   --server              serwer dedykowany (bez gracza)
 ##   --connect=ADRES       od razu dolacz do serwera
-##   --port=7777           port UDP
+##   --port=7777           port UDP, domyslnie ten przypisany do trybu
+##   --mode=battle_royale  tryb serwera: deathmatch albo battle_royale
 ##   --name=Nick           nazwa gracza, bez konta Steam
 ##   --character=knight    postac gracza, np. skeleton_warrior
 ##   --bot=runner|shooter|headhunter|brawler|pumper  sterowanie automatyczne, np. cel do cwiczen
@@ -21,7 +22,7 @@ const MAX_CLIENTS := 32
 const CONNECT_TIMEOUT_SECONDS := 8.0
 const DEDICATED_MAX_FPS := 60
 ## Podnies przy kazdej zmianie, po ktorej stary build nie dogada sie z serwerem.
-const PROTOCOL_VERSION := 17
+const PROTOCOL_VERSION := 18
 const JOIN_ANSWER_SECONDS := 6.0
 const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Pobierz najnowszy build."
 
@@ -49,14 +50,20 @@ func _ready() -> void:
 	await get_tree().process_frame
 	if args.has("tool"):
 		add_child((load(args.tool) as GDScript).new())
+	var mode := GameMode.from_key(args.get("mode", GameMode.key_of(GameMode.Id.DEATHMATCH)))
+	if mode < 0:
+		push_error("Nieznany tryb: %s" % args.mode)
+		get_tree().quit(1)
+		return
+	var port := int(args.get("port", GameMode.port_of(mode)))
 	if args.has("server"):
-		start_server(_port_arg(), true)
+		start_server(port, true, mode)
 	elif args.has("connect"):
-		join(args.connect, _port_arg())
+		join(args.connect, port)
 
 
 ## Zwraca opis bledu albo pusty tekst, gdy serwer dziala.
-func start_server(port := DEFAULT_PORT, dedicated := false) -> String:
+func start_server(port := DEFAULT_PORT, dedicated := false, mode := GameMode.Id.DEATHMATCH) -> String:
 	var peer := ENetMultiplayerPeer.new()
 	var error := peer.create_server(port, MAX_CLIENTS)
 	if error != OK:
@@ -69,9 +76,10 @@ func start_server(port := DEFAULT_PORT, dedicated := false) -> String:
 	if dedicated:
 		# Bez limitu petla silnika zajmowalaby caly rdzen procesora.
 		Engine.max_fps = DEDICATED_MAX_FPS
+	Match.server_begin(mode)
 	multiplayer.multiplayer_peer = peer
 	in_session = true
-	print("[serwer] nasluch na porcie UDP %d (%s)" % [port, "dedykowany" if dedicated else "z graczem"])
+	print("[serwer] nasluch na porcie UDP %d (%s, %s)" % [port, "dedykowany" if dedicated else "z graczem", GameMode.key_of(mode)])
 	session_started.emit()
 	if not dedicated:
 		_add_host_player(peer)
@@ -151,7 +159,3 @@ func _parse_args() -> void:
 			args[key] = true
 		else:
 			args[key.substr(0, separator)] = key.substr(separator + 1)
-
-
-func _port_arg() -> int:
-	return int(args.get("port", DEFAULT_PORT))

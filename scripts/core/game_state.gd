@@ -114,6 +114,7 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 	print("[serwer] dolaczyl %s (%d), graczy: %d" % [clean, id, players.size()])
 	player_added.emit(id)
 	if id != 1:
+		Match.server_send_state(id)
 		_sync_roster.rpc_id(id, players)
 	_broadcast(id)
 

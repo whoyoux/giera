@@ -18,6 +18,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 ## Co jest w grze
 
+- **Dwa tryby:** Deathmatch z odradzaniem i Battle Royale z jednym życiem. Tryb wybierasz w menu głównym.
 - **Multiplayer na żywo:** serwer dedykowany albo hostowanie z menu. Ruch reaguje od razu, a strzały liczą się tam, gdzie gracz widział cel na ekranie.
 - **Trzy klasy broni:** zwykła, epicka i legendarna, każda z własnym modelem, parametrami, smugą i dźwiękiem.
 - **Rozrzut:** najcelniej strzela się w miejscu i pierwszym pociskiem. Rośnie w ruchu, w skoku i w długiej serii, ale tylko do limitu, a lepsza broń ma go mniej. Celownik pokazuje go na żywo, a celowanie go zmniejsza.
@@ -43,7 +44,9 @@ Pobierz najnowszą wersję z zakładki [Releases](../../releases/latest):
 - **Windows:** rozpakuj `Giera-Windows.zip` do jednego folderu i uruchom `Giera.exe`. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
 - **macOS:** rozpakuj `Giera-macOS.zip` i uruchom `Giera.app`. Aplikacja nie ma podpisu Apple, więc przy pierwszym uruchomieniu wybierz **Otwórz mimo to** w **Ustawienia systemowe → Prywatność i ochrona**.
 
-Jeśli Steam jest włączony, gra zaloguje Cię sama. W innym wypadku wpisz nick. Potem podaj adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu 7777/UDP.
+Jeśli Steam jest włączony, gra zaloguje Cię sama. W innym wypadku wpisz nick. Potem podaj adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu UDP: 7777 dla Deathmatchu, 7778 dla Battle Royale.
+
+Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d --build`.
 
 ## Sterowanie
 
