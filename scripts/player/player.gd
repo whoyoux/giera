@@ -58,6 +58,8 @@ var exhausted := false
 var sprint_stop_tick := -1000
 ## Numer tanca z DanceCatalog albo zero.
 var dance_id := DanceCatalog.NONE
+## Czy poprzedni tick skonczyl sie na ziemi. Sam CharacterBody3D pamieta to tylko z ostatniej symulacji.
+var on_ground := true
 
 ## Pozycje z ostatnich tickow, potrzebne serwerowi do cofania czasu przy strzale.
 var _position_history := {}
@@ -242,6 +244,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		applied_respawn = info.respawn_id
 		position = get_parent().spawn_point(peer_id, applied_respawn)
 		velocity = Vector3.ZERO
+		on_ground = false
 		stamina = STAMINA_MAX
 		exhausted = false
 		equipment.on_respawn()
@@ -280,6 +283,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	velocity *= NetworkTime.physics_factor
 	move_and_slide()
 	velocity /= NetworkTime.physics_factor
+	on_ground = is_on_floor()
 	if multiplayer.is_server():
 		_remember_position(tick + 1)
 
@@ -328,9 +332,14 @@ func _remember_position(tick: int) -> void:
 ## Po przywroceniu stanu is_on_floor bywa nieaktualne, wiec odswiezamy je pustym ruchem.
 func _update_floor_state() -> void:
 	var saved := velocity
+	var saved_snap := floor_snap_length
 	velocity = Vector3.ZERO
+	floor_snap_length = 0.0
 	move_and_slide()
+	floor_snap_length = saved_snap
 	velocity = saved
+	if on_ground and not is_on_floor():
+		apply_floor_snap()
 
 
 func _after_tick_loop() -> void:
