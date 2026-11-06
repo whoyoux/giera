@@ -3,6 +3,7 @@ extends Node
 ## Opcje w sekundach od startu: --ready-at, --unready-at, --ready-again-at.
 ## --auto-ready klika Gotowe przy kazdym powrocie do lobby. --quit-after-live=2 wychodzi z gry
 ## w trakcie meczu. --kill-all-at=3 na serwerze zabija wszystkich w jednej klatce, co jest remisem.
+## --kill-name=Ty --kill-name-at=4 na serwerze zabija jednego gracza w trakcie meczu.
 
 const RESET_REPORT_DELAY := 2.0
 
@@ -40,6 +41,11 @@ func _update_scenarios() -> void:
 	_live_time += get_process_delta_time()
 	if Net.args.has("quit-after-live") and _live_time >= float(Net.args["quit-after-live"]):
 		get_tree().quit()
+	if Net.args.has("kill-name-at") and _live_time >= float(Net.args["kill-name-at"]):
+		Net.args.erase("kill-name-at")
+		for id: int in GameState.players.keys():
+			if GameState.display_name(id) == Net.args.get("kill-name", ""):
+				GameState.server_damage(id, GameState.MAX_HEALTH, id)
 	if Net.args.has("kill-all-at") and _live_time >= float(Net.args["kill-all-at"]):
 		Net.args.erase("kill-all-at")
 		for id: int in GameState.players.keys():
@@ -54,6 +60,8 @@ func _on_phase_changed() -> void:
 		_report_clean_state.call_deferred()
 	if Match.phase == Match.Phase.LIVE:
 		_matches += 1
+		var state := Match.zone.state_at(10000.0)
+		print("[strefa] ziarno=%d koniec=%s" % [Match.zone_seed, str(state.center)])
 
 
 ## Po powrocie do lobby nic z meczu nie moze zostac. Czekamy na dotarcie stanu graczy.

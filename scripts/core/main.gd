@@ -26,6 +26,7 @@ func _ready() -> void:
 	add_child(ChestField.new())
 	if not Net.is_headless:
 		add_child(SpectatorCamera.new())
+		add_child(ZoneView.new())
 	if not Net.is_headless:
 		add_child(PickupField.new())
 		add_child(ExplosionPool.new())

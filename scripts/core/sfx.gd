@@ -203,6 +203,12 @@ static func creek_loop() -> AudioStreamWAV:
 		return 0.8 + 0.2 * sin(TAU * t / LOOP_SECONDS * 11.0))
 
 
+## Niskie, pulsujace buczenie poza strefa.
+static func zone_hum() -> AudioStreamWAV:
+	return _noise_loop("zone", 0.03, func(t: float) -> float:
+		return 0.7 + 0.3 * sin(TAU * t / LOOP_SECONDS * 8.0))
+
+
 ## Kilka nut ptaka. Kazdy wariant ma inny rytm i wysokosc.
 static func bird(variant: int) -> AudioStreamWAV:
 	var songs: Array[Array] = [

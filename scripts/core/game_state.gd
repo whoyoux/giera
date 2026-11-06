@@ -17,6 +17,8 @@ signal pings_updated
 const MAX_HEALTH := 100
 const RESPAWN_SECONDS := 3.0
 const MAX_NAME_LENGTH := 32
+## Numer atakujacego przy obrazeniach od strefy. Zaden gracz nie ma takiego numeru.
+const ZONE_ATTACKER := 0
 const PING_INTERVAL := 1.0
 const REJECT_FLUSH_SECONDS := 0.5
 
@@ -76,6 +78,8 @@ func is_player(id: int) -> bool:
 
 
 func display_name(id: int) -> String:
+	if id == ZONE_ATTACKER:
+		return "Strefa"
 	var info: Dictionary = players.get(id, {})
 	return info.get("name", "Gracz")
 

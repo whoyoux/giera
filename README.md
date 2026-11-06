@@ -18,7 +18,8 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 ## Co jest w grze
 
-- **Dwa tryby:** Deathmatch z odradzaniem i Battle Royale z jednym życiem. Tryb wybierasz w menu głównym.
+- **Dwa tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, a w Battle Royale masz jedno życie.
+- **Battle Royale:** gracze czekają w lobby, aż wszyscy klikną Gotowe. Każdy startuje w innym miejscu i bez broni, więc pierwsze sekundy to wyścig do skrzynek. Strefa zacieśnia się w czterech fazach, a wyeliminowani oglądają mecz do końca.
 - **Multiplayer na żywo:** serwer dedykowany albo hostowanie z menu. Ruch reaguje od razu, a strzały liczą się tam, gdzie gracz widział cel na ekranie.
 - **Trzy klasy broni:** zwykła, epicka i legendarna, każda z własnym modelem, parametrami, smugą i dźwiękiem.
 - **Rozrzut:** najcelniej strzela się w miejscu i pierwszym pociskiem. Rośnie w ruchu, w skoku i w długiej serii, ale tylko do limitu, a lepsza broń ma go mniej. Celownik pokazuje go na żywo, a celowanie go zmniejsza.
@@ -52,6 +53,7 @@ Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d 
 
 | Klawisz | Akcja |
 |---|---|
+| **F** | Gotowość w lobby Battle Royale |
 | **WASD** | Ruch |
 | **Mysz** | Celowanie |
 | **LPM** | Strzał lub cios nożem. Przytrzymanie używa apteczki albo odbezpiecza granat, a puszczenie go rzuca |
