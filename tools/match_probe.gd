@@ -58,7 +58,8 @@ func _on_phase_changed() -> void:
 		print("[wyniki] %s" % str(Match.results.map(func(entry: Dictionary) -> String: return "%d:%s:%d" % [entry.place, entry.name, entry.kills])))
 	elif Match.phase == Match.Phase.LOBBY and _matches > 0:
 		_report_clean_state.call_deferred()
-	if Match.phase == Match.Phase.LIVE:
+	# Deathmatch tez ma etap LIVE, ale nie ma meczow ani strefy.
+	if Match.phase == Match.Phase.LIVE and Match.zone != null:
 		_matches += 1
 		var state := Match.zone.state_at(10000.0)
 		print("[strefa] ziarno=%d koniec=%s" % [Match.zone_seed, str(state.center)])

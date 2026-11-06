@@ -27,7 +27,8 @@ wait
 check "$LOGS/out_server.log" 'start meczu, graczy: 3' "mecz startuje z 3 graczami"
 check "$LOGS/out_server.log" 'wyszedl C' "C wychodzi w trakcie meczu"
 check "$LOGS/out_server.log" 'koniec meczu, zywych: 1' "serwer widzi zwyciezce"
-grep -q 'wraca do gry' "$LOGS/out_server.log" && { echo "ktos sie odrodzil w trakcie meczu"; FAILED=1; }
+# Po powrocie do lobby odrodzenie jest prawidlowe, wiec liczy sie tylko czas do konca meczu.
+sed '/koniec meczu/q' "$LOGS/out_server.log" | grep -q 'wraca do gry' && { echo "ktos sie odrodzil w trakcie meczu"; FAILED=1; }
 
 timeout 26 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$((PORT + 1)) --tool=res://tools/match_probe.gd --kill-all-at=1 > "$LOGS/draw_server.log" 2>&1 &
 sleep 2
