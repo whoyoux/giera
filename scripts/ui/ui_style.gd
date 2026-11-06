@@ -60,6 +60,30 @@ static func label(text: String, size := 20, color := INK, bold := true) -> Label
 	return node
 
 
+## Tekst w kilku kolorach, zawijany do szerokosci. Tresc dodaje sie przez add_text.
+static func rich_label(size := 20) -> RichTextLabel:
+	var node := RichTextLabel.new()
+	node.fit_content = true
+	node.scroll_active = false
+	node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.add_theme_font_size_override("normal_font_size", size)
+	node.add_theme_font_size_override("bold_font_size", size)
+	node.add_theme_color_override("default_color", INK)
+	if _regular != null:
+		node.add_theme_font_override("normal_font", _regular)
+		node.add_theme_font_override("bold_font", _bold)
+	return node
+
+
+## Szerokosc tekstu w jednej linii.
+static func text_width(text: String, size: int, bold: bool) -> float:
+	var font: Font = _bold if bold else _regular
+	if font == null:
+		font = ThemeDB.fallback_font
+	return font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+
+
 ## Dzwiek mowi, co przycisk robi. Przycisk, ktorego skutek ma wlasny dzwiek, np. otwarcie
 ## okna, dostaje NONE, zeby jedno klikniecie nie gralo dwoch rzeczy naraz.
 static func button(text: String, fill := CORAL, text_color := Color.WHITE, sound := Sfx.UiCue.CONFIRM) -> Button:

@@ -175,10 +175,11 @@ func _row(info: Dictionary) -> HBoxContainer:
 
 func _build_roster() -> void:
 	var anchor := CenterContainer.new()
-	anchor.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-	anchor.grow_horizontal = Control.GROW_DIRECTION_END
+	# Po prawej, bo lewa strona nad paskiem zdrowia nalezy do czatu.
+	anchor.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	anchor.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	anchor.grow_vertical = Control.GROW_DIRECTION_BOTH
-	anchor.position.x = 24.0
+	anchor.position.x -= 24.0
 	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(anchor)
 	_roster_card = PanelContainer.new()
