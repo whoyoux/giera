@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Test eliminacji: A i B maja noze, a C wychodzi z gry w trakcie meczu. Spozniony D ma ogladac.
+# Test eliminacji: C wychodzi z gry w trakcie meczu, serwer zabija A, wiec wygrywa B.
+# Spozniony D ma ogladac. Boty nie omijaja drzew, wiec walka nozami nie zawsze sie konczy.
 # Drugi przebieg zabija wszystkich w jednej klatce, co ma dac remis.
 # Uzycie: tools/br_out_test.sh
 set -u
@@ -16,10 +17,10 @@ check() {
 	if grep -qE "$2" "$1"; then echo "ok: $3"; else echo "BRAK: $3"; FAILED=1; fi
 }
 
-timeout 75 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$PORT --debug-weapons --tool=res://tools/match_probe.gd > "$LOGS/out_server.log" 2>&1 &
+timeout 75 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$PORT --tool=res://tools/match_probe.gd --kill-name=A --kill-name-at=6 > "$LOGS/out_server.log" 2>&1 &
 sleep 2
-timeout 70 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=A --bot=brawler --debug-weapons $PROBE > "$LOGS/out_a.log" 2>&1 &
-timeout 70 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=B --bot=brawler --debug-weapons $PROBE > "$LOGS/out_b.log" 2>&1 &
+timeout 70 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=A --bot=runner $PROBE > "$LOGS/out_a.log" 2>&1 &
+timeout 70 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=B --bot=runner $PROBE > "$LOGS/out_b.log" 2>&1 &
 timeout 70 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=C --bot=runner $PROBE --quit-after-live=2 > "$LOGS/out_c.log" 2>&1 &
 sleep 16
 timeout 55 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=D > "$LOGS/out_d.log" 2>&1 &
@@ -27,7 +28,8 @@ wait
 check "$LOGS/out_server.log" 'start meczu, graczy: 3' "mecz startuje z 3 graczami"
 check "$LOGS/out_server.log" 'wyszedl C' "C wychodzi w trakcie meczu"
 check "$LOGS/out_server.log" 'koniec meczu, zywych: 1' "serwer widzi zwyciezce"
-grep -q 'wraca do gry' "$LOGS/out_server.log" && { echo "ktos sie odrodzil w trakcie meczu"; FAILED=1; }
+# Po powrocie do lobby odrodzenie jest prawidlowe, wiec liczy sie tylko czas do konca meczu.
+sed '/koniec meczu/q' "$LOGS/out_server.log" | grep -q 'wraca do gry' && { echo "ktos sie odrodzil w trakcie meczu"; FAILED=1; }
 
 timeout 26 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$((PORT + 1)) --tool=res://tools/match_probe.gd --kill-all-at=1 > "$LOGS/draw_server.log" 2>&1 &
 sleep 2

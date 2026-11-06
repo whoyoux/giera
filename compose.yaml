@@ -8,6 +8,9 @@ x-game-server: &game-server
   build: .
   restart: unless-stopped
   stop_signal: SIGTERM
+  # Limit dla kazdego serwera osobno, zeby jeden nie zabral zasobow reszcie VPS.
+  mem_limit: 512m
+  cpus: 1.0
 
 services:
   deathmatch:
