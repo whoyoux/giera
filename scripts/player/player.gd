@@ -277,9 +277,10 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 func _update_dance(dead: bool) -> void:
 	var busy := dead or input.move != Vector2.ZERO or input.jump or input.use_primary or input.aim or input.reload
 	var wanted := input.dance if not busy and DanceCatalog.is_valid(input.dance) else DanceCatalog.NONE
-	# Na poczatku kazdego tanca postac staje przodem do kamery, takze gdy gracz obrocil ja w poprzednim.
+	# Na poczatku kazdego tanca postac patrzy tam, gdzie kamera, takze gdy gracz obrocil kamere w poprzednim.
+	# Dzieki temu pokazuje przod tym, na ktorych gracz patrzy.
 	if wanted != DanceCatalog.NONE and wanted != dance_id:
-		yaw = wrapf(input.yaw + PI, -PI, PI)
+		yaw = input.yaw
 		pitch = 0.0
 	dance_id = wanted
 
