@@ -128,7 +128,7 @@ func _server_spawn(stack: Dictionary, from: Vector3, landing: Vector3) -> void:
 		"stack": stack,
 		"position": landing,
 		"from": from,
-		"expires_tick": NetworkTime.tick + NetworkTime.seconds_to_ticks(LIFETIME_SECONDS),
+		"expires_tick": Match.respawn_tick_after_death(NetworkTime.tick, LIFETIME_SECONDS),
 	}
 	_next_id += 1
 	_add_item.rpc(entry)

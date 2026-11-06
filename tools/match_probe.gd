@@ -1,11 +1,14 @@
 extends Node
 ## Narzedzie testowe Battle Royale: klika Gotowe o podanych porach i zapisuje przebieg meczu.
 ## Opcje w sekundach od startu: --ready-at, --unready-at, --ready-again-at.
+## --auto-ready klika Gotowe przy kazdym powrocie do lobby. --quit-after-live=2 wychodzi z gry
+## w trakcie meczu. --kill-all-at=3 na serwerze zabija wszystkich w jednej klatce, co jest remisem.
 
 var _elapsed := 0.0
 var _plan := []
 var _freeze_start := Vector3.INF
 var _freeze_checked := false
+var _live_time := 0.0
 
 
 func _ready() -> void:
@@ -21,6 +24,23 @@ func _process(delta: float) -> void:
 		_plan.pop_front()
 		Match.toggle_ready()
 	_check_freeze()
+	_update_scenarios()
+
+
+func _update_scenarios() -> void:
+	var me: Dictionary = GameState.players.get(multiplayer.get_unique_id(), {})
+	if Net.args.has("auto-ready") and Match.phase == Match.Phase.LOBBY and not me.is_empty() and not me.ready and Engine.get_process_frames() % 60 == 0:
+		Match.toggle_ready()
+	if Match.phase != Match.Phase.LIVE:
+		_live_time = 0.0
+		return
+	_live_time += get_process_delta_time()
+	if Net.args.has("quit-after-live") and _live_time >= float(Net.args["quit-after-live"]):
+		get_tree().quit()
+	if Net.args.has("kill-all-at") and _live_time >= float(Net.args["kill-all-at"]):
+		Net.args.erase("kill-all-at")
+		for id: int in GameState.players.keys():
+			GameState.server_damage(id, GameState.MAX_HEALTH, id)
 
 
 ## Postac ma stac w miejscu przez cale unieruchomienie, a konczyc je na wlasnym punkcie.

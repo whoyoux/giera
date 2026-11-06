@@ -186,7 +186,7 @@ func _finish_opening(chest: Dictionary, player: Player) -> void:
 	for peer: int in _openings.keys():
 		if _openings[peer].chest == chest.id:
 			_openings.erase(peer)
-	chest.reopen_tick = NetworkTime.tick + NetworkTime.seconds_to_ticks(RESPAWN_SECONDS)
+	chest.reopen_tick = Match.respawn_tick_after_death(NetworkTime.tick, RESPAWN_SECONDS)
 	var loot: Dictionary = LOOT_TABLE.roll(_rng)
 	print("[serwer] %s otworzyl skrzynke %d: %s %s" % [player.info.name, chest.id, loot.item, Rarity.display_name(loot.tier)])
 	_chest_opened.rpc(chest.id, player.peer_id, loot.tier)

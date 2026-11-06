@@ -110,7 +110,11 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		"ready": false,
 		# Miejsce startu przydzielone przez serwer. -1 oznacza zwykle losowanie.
 		"spawn_index": -1,
+		"in_match": true,
+		"place": 0,
 	}
+	if not Match.accepts_new_players():
+		_set_spectator(players[id], NetworkTime.tick)
 	_adding_player = true
 	_give_starting_items(id)
 	_adding_player = false
@@ -135,8 +139,9 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		victim.deaths += 1
 		victim.respawn_id += 1
 		victim.death_tick = NetworkTime.tick
-		victim.respawn_tick = NetworkTime.tick + NetworkTime.seconds_to_ticks(RESPAWN_SECONDS)
+		victim.respawn_tick = Match.respawn_tick_after_death(NetworkTime.tick, RESPAWN_SECONDS)
 		_drop_loot_on_death(victim_id)
+		Match.server_on_player_out(victim_id)
 		# Wlasny granat to smierc, ale nie punkt.
 		if players.has(attacker_id) and attacker_id != victim_id:
 			players[attacker_id].kills += 1
@@ -156,7 +161,8 @@ func server_finish_respawn(id: int) -> void:
 		return
 	info.alive = true
 	info.health = MAX_HEALTH
-	_give_debug_items(id)
+	if not Match.is_elimination():
+		_give_debug_items(id)
 	print("[serwer] %s wraca do gry" % display_name(id))
 	_broadcast(id)
 
@@ -173,6 +179,8 @@ func server_set_ready(id: int, value: bool) -> void:
 func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
 	var info: Dictionary = players[id]
 	info.ready = false
+	info.in_match = true
+	info.place = 0
 	info.spawn_index = spawn_index
 	info.health = MAX_HEALTH
 	info.kills = 0
@@ -187,6 +195,31 @@ func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
 	_give_starting_items(id)
 	_adding_player = false
 	_broadcast(id)
+
+
+## Gracz ponad limit meczu oglada go razem z tymi, ktorzy dolaczyli za pozno.
+func server_make_spectator(id: int, tick: int) -> void:
+	var info: Dictionary = players[id]
+	info.ready = false
+	info.slots = Inventory.empty_slots()
+	info.inventory_tick = tick
+	_set_spectator(info, tick)
+	_broadcast(id)
+
+
+func server_set_place(id: int, place: int) -> void:
+	var info: Dictionary = players.get(id, {})
+	if not info.is_empty():
+		info.place = place
+		_broadcast(id)
+
+
+func _set_spectator(info: Dictionary, tick: int) -> void:
+	info.in_match = false
+	info.alive = false
+	info.respawn_id += 1
+	info.death_tick = tick
+	info.respawn_tick = Match.NEVER_TICK
 
 
 ## Dodaje przedmiot do pierwszego wolnego slotu. Zwraca numer slotu albo -1, gdy brak miejsca.
@@ -297,6 +330,9 @@ func _give_debug_items(id: int) -> void:
 ## Zwykly zdobyty przedmiot zostaje na ziemi, a jeden startowy blaster przy graczu.
 ## Kto swoj wyrzucil, dostaje nowy, zeby nikt nie wracal do gry z pustymi rekami.
 func _drop_loot_on_death(id: int) -> void:
+	if Match.is_elimination():
+		_scatter_loot(id, false)
+		return
 	var kept_starter := _scatter_loot(id, true)
 	if not kept_starter:
 		_give_starter(id)
@@ -347,6 +383,8 @@ func _on_peer_disconnected(id: int) -> void:
 		return
 	print("[serwer] wyszedl %s (%d)" % [display_name(id), id])
 	_scatter_loot(id, false)
+	if players[id].alive and players[id].in_match:
+		Match.server_on_player_out(id)
 	players.erase(id)
 	player_removed.emit(id)
 	_remove_player.rpc(id)

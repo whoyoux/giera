@@ -12,6 +12,9 @@ const COUNTDOWN_SECONDS := 5.0
 ## Tyle czasu klienci maja na odebranie wiadomosci o przeniesieniu, zanim do niego dojdzie.
 const TELEPORT_LEAD_SECONDS := 0.5
 const FREEZE_SECONDS := 3.0
+const MAX_MATCH_PLAYERS := 10
+## Tick, ktory nigdy nie nadejdzie: wyeliminowany nie wraca sam do gry.
+const NEVER_TICK := 1 << 62
 
 var mode := GameMode.Id.DEATHMATCH
 var phase := Phase.LIVE
@@ -19,6 +22,10 @@ var phase := Phase.LIVE
 var phase_end_tick := -1
 var freeze_from_tick := -1
 var freeze_end_tick := -1
+
+## Kto odpadl od ostatniego rozliczenia. Smierci z jednego wybuchu rozliczamy razem.
+var _pending_out: Array[int] = []
+var _settle_queued := false
 
 
 func _ready() -> void:
@@ -38,6 +45,24 @@ func allows_combat() -> bool:
 
 func starts_armed() -> bool:
 	return not is_elimination()
+
+
+## Dolaczajacy po starcie meczu oglada go do konca.
+func accepts_new_players() -> bool:
+	return not is_elimination() or can_change_ready()
+
+
+func respawn_tick_after_death(tick: int, respawn_seconds: float) -> int:
+	return NEVER_TICK if is_elimination() else tick + NetworkTime.seconds_to_ticks(respawn_seconds)
+
+
+## Zywi uczestnicy meczu.
+func alive_count() -> int:
+	var count := 0
+	for id: int in GameState.players:
+		var info: Dictionary = GameState.players[id]
+		count += 1 if info.alive and info.in_match else 0
+	return count
 
 
 ## Czas tuz po przeniesieniu, gdy gracze stoja na swoich miejscach.
@@ -72,6 +97,17 @@ func server_begin(new_mode: int) -> void:
 	phase_changed.emit()
 
 
+## Gracz odpadl przez smierc albo wyjscie z gry. Wynik sprawdzamy dopiero pod koniec klatki,
+## bo granat zabija po kolei, a jednoczesna smierc ostatnich graczy to remis.
+func server_on_player_out(id: int) -> void:
+	if not is_elimination() or phase == Phase.LOBBY or phase == Phase.COUNTDOWN:
+		return
+	_pending_out.append(id)
+	if not _settle_queued:
+		_settle_queued = true
+		_settle.call_deferred()
+
+
 ## Dolaczajacy gracz musi znac etap, zanim powstanie jego postac.
 func server_send_state(id: int) -> void:
 	_sync_state.rpc_id(id, _state())
@@ -87,6 +123,7 @@ func _process(_delta: float) -> void:
 			_start_match()
 		Phase.STARTING:
 			_enter_phase(Phase.LIVE, -1)
+			_settle()
 
 
 ## Start wymaga co najmniej 2 graczy i gotowosci wszystkich. Nowy gracz nie jest gotowy,
@@ -114,9 +151,26 @@ func _start_match() -> void:
 	_enter_phase(Phase.STARTING, freeze_end_tick)
 	var index := 0
 	for id: int in GameState.players:
-		GameState.server_prepare_round(id, spots[index % spots.size()], start_tick)
+		if index < MAX_MATCH_PLAYERS:
+			GameState.server_prepare_round(id, spots[index % spots.size()], start_tick)
+		else:
+			GameState.server_make_spectator(id, start_tick)
 		index += 1
-	print("[serwer] start meczu, graczy: %d" % index)
+	print("[serwer] start meczu, graczy: %d" % mini(index, MAX_MATCH_PLAYERS))
+
+
+## Miejsce to liczba zywych plus jeden, wiec gracze zabici w tej samej chwili maja to samo.
+func _settle() -> void:
+	_settle_queued = false
+	if phase != Phase.LIVE:
+		return
+	var alive := alive_count()
+	for id: int in _pending_out:
+		GameState.server_set_place(id, alive + 1)
+	_pending_out.clear()
+	if alive > 1:
+		return
+	print("[serwer] koniec meczu, zywych: %d" % alive)
 
 
 func _enter_phase(new_phase: int, end_tick: int) -> void:
@@ -137,6 +191,7 @@ func _clear() -> void:
 	phase_end_tick = -1
 	freeze_from_tick = -1
 	freeze_end_tick = -1
+	_pending_out.clear()
 	phase_changed.emit()
 
 

@@ -13,6 +13,7 @@ const KILL_SHAKE := 0.28
 const ITEM_NAME_SECONDS := 1.4
 ## Od tylu obrazen reakcja na trafienie jest najmocniejsza.
 const HEAVY_HIT_DAMAGE := 40.0
+const ELIMINATED_SECONDS := 3.0
 const GOOD_PING := 60
 const BAD_PING := 120
 ## Jak mocno gra ciemnieje za pauza i tabela wynikow.
@@ -129,10 +130,7 @@ func _process(delta: float) -> void:
 		_player.input.set_wheel_open(_dance_wheel.is_open)
 	_crosshair.aiming = _player.aiming
 	_crosshair.spread_radius = _spread_on_screen(_player)
-	_death_panel.visible = not info.alive
-	if not info.alive:
-		var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
-		_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
+	_update_death_panel(info)
 	var show_scores := Input.is_action_pressed("scoreboard")
 	if show_scores != _score_center.visible:
 		_score_center.visible = show_scores
@@ -380,6 +378,24 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 
 func _avatar_of(id: int, side: float) -> AvatarView:
 	return AvatarView.new(GameState.steam_id_of(id), GameState.display_name(id), side)
+
+
+## Po eliminacji znika to, co dotyczy wlasnej postaci, a napis o miejscu znika po chwili.
+func _update_death_panel(info: Dictionary) -> void:
+	var watching: bool = Match.is_elimination() and not info.alive
+	_status_panel.visible = not watching
+	_hotbar.visible = not watching
+	_crosshair.visible = not watching
+	if not Match.is_elimination():
+		_death_panel.visible = not info.alive
+		if not info.alive:
+			var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
+			_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
+		return
+	var fresh: bool = NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(ELIMINATED_SECONDS)
+	_death_panel.visible = watching and info.in_match and fresh
+	if _death_panel.visible:
+		_death_label.text = "Odpadasz!\nMiejsce %d" % info.place if info.place > 0 else "Odpadasz!"
 
 
 ## Nazwy ze Steama bywaja dlugie, a lista zabojstw musi sie zmiescic przy krawedzi ekranu.
