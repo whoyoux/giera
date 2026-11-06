@@ -119,6 +119,11 @@ func set_wheel_open(open: bool) -> void:
 	_fire_blocked = true
 
 
+## Trzymany przycisk strzalu nie zadziala, dopoki gracz go nie pusci.
+func block_fire() -> void:
+	_fire_blocked = true
+
+
 func _keep_dance_valid() -> void:
 	var me := get_parent() as Player
 	if move != Vector2.ZERO or jump or use_primary or aim or reload or not me.info.alive or me.velocity.y < -DANCE_FALL_SPEED:

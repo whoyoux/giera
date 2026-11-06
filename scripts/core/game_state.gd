@@ -57,12 +57,17 @@ func _process(delta: float) -> void:
 
 ## Nazwa od klienta: bez znakow sterujacych i nie dluzsza niz limit.
 static func clean_name(raw: String) -> String:
+	return clean_text(raw, MAX_NAME_LENGTH)
+
+
+## Tekst od klienta: bez znakow sterujacych i nie dluzszy niz limit.
+static func clean_text(raw: String, limit: int) -> String:
 	var kept := ""
-	for character in raw.substr(0, MAX_NAME_LENGTH * 4):
+	for character in raw.substr(0, limit * 4):
 		var code := character.unicode_at(0)
 		if code >= 32 and code != 127:
 			kept += character
-	return kept.strip_edges().substr(0, MAX_NAME_LENGTH)
+	return kept.strip_edges().substr(0, limit)
 
 
 ## Czysci stan lokalny przy wyjsciu z sesji.
