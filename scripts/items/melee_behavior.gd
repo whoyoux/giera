@@ -16,7 +16,7 @@ func rollback_tick(equipment: Equipment, stack: Dictionary, tick: int) -> void:
 			definition.reach, definition.cone_degrees, player.peer_id, player.get_tree(), equipment.rewind_tick(tick))
 	var victim := hit.player as Player
 	if victim != null:
-		GameState.server_damage(victim.peer_id, definition.damage, player.peer_id)
+		GameState.server_damage(victim.peer_id, definition.damage, player.peer_id, Vector3.INF, stack)
 
 
 func show_fired(player: Player, stack: Dictionary) -> void:

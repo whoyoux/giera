@@ -101,7 +101,7 @@ func _apply_damage(definition: GrenadeDefinition, at: Vector3, owner_id: int) ->
 		var amount := definition.damage_at(at.distance_to(chest))
 		if amount > 0 and _can_reach(space, at, player):
 			print("[serwer] granat zadal %s obrazenia: %d" % [player.info.name, amount])
-			GameState.server_damage(player.peer_id, amount, owner_id, at)
+			GameState.server_damage(player.peer_id, amount, owner_id, at, { "item": definition.id })
 
 
 ## Mur albo pien chroni przed wybuchem, chyba ze zza oslony wystaje tulow lub glowa.

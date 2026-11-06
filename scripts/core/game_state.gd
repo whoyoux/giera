@@ -121,6 +121,8 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		"spawn_index": -1,
 		"in_match": true,
 		"place": 0,
+		# Czym gracz zginal ostatnio: { item, tier }. Pusty, gdy nie bronia, np. w strefie.
+		"death_weapon": {},
 	}
 	if not Match.accepts_new_players():
 		_set_spectator(players[id], NetworkTime.tick)
@@ -137,7 +139,8 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 
 ## Zadaje obrazenia. Wywolywane tylko na serwerze, raz na kazdy rozliczony strzal.
 ## "source" to miejsce wybuchu. Bez niego kierunek trafienia wskazuje na atakujacego.
-func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vector3.INF) -> void:
+## "weapon" to egzemplarz, ktorym zadano obrazenia, pokazywany na liscie zabojstw.
+func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vector3.INF, weapon := {}) -> void:
 	var victim: Dictionary = players.get(victim_id, {})
 	if victim.is_empty() or not victim.alive or not Match.allows_combat():
 		return
@@ -148,6 +151,7 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		victim.deaths += 1
 		victim.respawn_id += 1
 		victim.death_tick = NetworkTime.tick
+		victim.death_weapon = { "item": weapon.item, "tier": ItemStack.tier_of(weapon) } if weapon.has("item") else {}
 		victim.respawn_tick = Match.respawn_tick_after_death(NetworkTime.tick, RESPAWN_SECONDS)
 		_drop_loot_on_death(victim_id)
 		Match.server_on_player_out(victim_id)
@@ -156,8 +160,10 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 			players[attacker_id].kills += 1
 			_broadcast(attacker_id)
 		print("[serwer] %s zabil %s" % [display_name(attacker_id), display_name(victim_id)])
-		_announce_kill.rpc(attacker_id, victim_id)
+	# Najpierw stan ofiary, bo lista zabojstw czyta z niego bron.
 	_broadcast(victim_id)
+	if killed:
+		_announce_kill.rpc(attacker_id, victim_id)
 	_notify_damage(victim_id, amount, attacker_id, source)
 	if attacker_id != victim_id:
 		_notify_hit(attacker_id, killed)

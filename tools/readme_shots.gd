@@ -61,6 +61,8 @@ func _ready() -> void:
 	GameState.set_process(false)
 	GameState.pings = { 1: 0, 2: 34, 3: 87, 4: 142 }
 	GameState.pings_updated.emit()
+	GameState.players[2].death_weapon = { "item": &"shotgun", "tier": Rarity.Tier.LEGENDARY }
+	GameState.players[4].death_weapon = { "item": ItemRegistry.DEFAULT_WEAPON, "tier": Rarity.Tier.EPIC }
 	GameState.kill_announced.emit(1, 2)
 	GameState.kill_announced.emit(3, 4)
 	await _wait(1.6)

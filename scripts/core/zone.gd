@@ -28,7 +28,7 @@ func _init(seed_value: int) -> void:
 		_circles.append({ "center": center, "radius": radius })
 
 
-## Stan w danej chwili meczu: { center, radius, damage, shrinking, seconds_left }.
+## Stan w danej chwili meczu: { center, radius, target_center, target_radius, damage, shrinking, seconds_left }.
 ## "seconds_left" to czas do konca oczekiwania albo zawezania, a po wszystkim zero.
 func state_at(seconds: float) -> Dictionary:
 	var phase_start := 0.0
@@ -42,13 +42,15 @@ func state_at(seconds: float) -> Dictionary:
 			return {
 				"center": (_circles[index].center as Vector2).lerp(_circles[index + 1].center, progress),
 				"radius": lerpf(_circles[index].radius, _circles[index + 1].radius, progress),
+				"target_center": _circles[index + 1].center,
+				"target_radius": _circles[index + 1].radius,
 				"damage": phase.damage,
 				"shrinking": shrinking,
 				"seconds_left": shrink_end - seconds if shrinking else wait_end - seconds,
 			}
 		phase_start = shrink_end
 	var last: Dictionary = _circles[-1]
-	return { "center": last.center, "radius": last.radius, "damage": PHASES[-1].damage, "shrinking": false, "seconds_left": 0.0 }
+	return { "center": last.center, "radius": last.radius, "target_center": last.center, "target_radius": last.radius, "damage": PHASES[-1].damage, "shrinking": false, "seconds_left": 0.0 }
 
 
 ## Czy miejsce lezy poza strefa z podanego stanu.

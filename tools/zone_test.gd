@@ -17,6 +17,7 @@ func _ready() -> void:
 		_check_seed(seed_value, total)
 	var state := Zone.new(1).state_at(1.0)
 	_check("na poczatku strefa czeka", not state.shrinking and is_equal_approx(state.seconds_left, 59.0) and state.damage == 2)
+	_check("cel to pierwsze nastepne kolo", is_equal_approx(state.target_radius, 26.0))
 	state = Zone.new(1).state_at(80.0)
 	_check("potem sie zaciesnia", state.shrinking and is_equal_approx(state.seconds_left, 20.0))
 	state = Zone.new(1).state_at(total + 100.0)

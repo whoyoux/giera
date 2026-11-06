@@ -203,6 +203,21 @@ static func creek_loop() -> AudioStreamWAV:
 		return 0.8 + 0.2 * sin(TAU * t / LOOP_SECONDS * 11.0))
 
 
+## Dwie nuty w gore: mecz sie zaczal.
+static func match_start() -> AudioStreamWAV:
+	return _melody("match_start", [523.25, 783.99], 0.14, 7.0)
+
+
+## Radosna fanfara dla zwyciezcy.
+static func match_win() -> AudioStreamWAV:
+	return _melody("match_win", [523.25, 659.25, 783.99, 1046.5], 0.12, 5.0)
+
+
+## Spokojne zejscie w dol dla pozostalych.
+static func match_end() -> AudioStreamWAV:
+	return _melody("match_end", [659.25, 523.25, 392.0], 0.18, 6.0)
+
+
 ## Niskie, pulsujace buczenie poza strefa.
 static func zone_hum() -> AudioStreamWAV:
 	return _noise_loop("zone", 0.03, func(t: float) -> float:
@@ -468,6 +483,17 @@ static func ui_note() -> AudioStreamWAV:
 
 
 ## Nuta jak z drewnianej sztabki: ton i krotki, jasny atak.
+static func _melody(id: String, notes: Array[float], step: float, decay: float) -> AudioStreamWAV:
+	return _make(id, notes.size() * step + 0.6, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for index in notes.size():
+			var start := index * step
+			if t >= start:
+				sample += _marimba(t - start, notes[index], decay) * 0.55
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
 static func _marimba(t: float, hz: float, decay: float) -> float:
 	return sin(TAU * hz * t) * exp(-t * decay) + sin(TAU * hz * 4.0 * t) * exp(-t * decay * 3.0) * 0.25
 

@@ -20,6 +20,7 @@ func _ready() -> void:
 		if Net.args.has(key):
 			_plan.append(float(Net.args[key]))
 	Match.phase_changed.connect(_on_phase_changed)
+	GameState.kill_announced.connect(_on_kill)
 
 
 func _process(delta: float) -> void:
@@ -50,6 +51,11 @@ func _update_scenarios() -> void:
 		Net.args.erase("kill-all-at")
 		for id: int in GameState.players.keys():
 			GameState.server_damage(id, GameState.MAX_HEALTH, id)
+
+
+func _on_kill(killer_id: int, victim_id: int) -> void:
+	var weapon: Dictionary = GameState.players.get(victim_id, {}).get("death_weapon", {})
+	print("[zabojstwo] %s -> %s: %s" % [GameState.display_name(killer_id), GameState.display_name(victim_id), ItemStack.display_name_of(weapon)])
 
 
 func _on_phase_changed() -> void:
