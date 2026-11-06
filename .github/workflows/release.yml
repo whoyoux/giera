@@ -50,8 +50,38 @@ jobs:
           unzip -q -j "$templates" 'templates/windows_*_x86_64*' templates/macos.zip templates/version.txt -d "$dest"
           rm -f "$editor.zip" "$templates"
 
+      - name: Wpisz wersje z tagu
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          sed -i "s|^config/version=.*|config/version=\"${TAG#v}\"|" project.godot
+          grep -Fx "config/version=\"${TAG#v}\"" project.godot
+
       - name: Pobierz GodotSteam
         run: bash tools/fetch_godotsteam.sh
+
+      - name: Przywroc import z poprzedniego wydania
+        # Godot losuje identyfikatory wezlow przy kazdym imporcie modelu, wiec import od zera
+        # zmienia wszystkie modele w PCK. Cache GitHuba nie dziala miedzy tagami, dlatego
+        # zapis lezy w wydaniu. Brak zapisu oznacza tylko wieksza aktualizacje.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cache="ci-import-cache-godot-${GODOT_VERSION}.tar.gz"
+          if gh release download --repo "$GITHUB_REPOSITORY" --pattern "$cache" --dir "$RUNNER_TEMP"; then
+            # Archiwum moze zmienic tylko zapisany import. Lista w pliku, bo grep -q zamyka potok.
+            tar -tzf "$RUNNER_TEMP/$cache" > "$RUNNER_TEMP/cache-files.txt"
+            if grep -q -v -E '^\.godot/(imported|exported)(/|$)' "$RUNNER_TEMP/cache-files.txt"; then
+              echo "Archiwum zawiera inne pliki, pomijam"
+            else
+              tar -xzf "$RUNNER_TEMP/$cache"
+              echo "Przywrocono import"
+            fi
+          else
+            echo "Brak zapisu importu, import od zera"
+          fi
 
       - name: Zaimportuj zasoby
         # Import w trybie headless moze zwrocic blad mimo poprawnego wyniku, wiec liczy sie plik z cache.
@@ -62,22 +92,38 @@ jobs:
       - name: Zbuduj wersje na Windows
         run: |
           mkdir -p builds
-          godot --headless --path . --export-release "Windows Desktop" builds/Giera.exe
-          # Z osadzona gra plik musi byc wiekszy od samego szablonu.
-          template="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/windows_release_x86_64.exe"
-          test "$(stat -c %s builds/Giera.exe)" -gt "$(stat -c %s "$template")"
+          windows="$RUNNER_TEMP/windows"
+          mkdir -p "$windows"
+          godot --headless --path . --export-release "Windows Desktop" "$windows/Giera.exe"
+          test -s "$windows/Giera.exe"
+          test -s "$windows/Giera.pck"
           # Biblioteki musza lezec obok gry, wiec wydanie na Windows to ZIP.
-          test -f builds/steam_api64.dll
-          test -f builds/libgodotsteam.windows.template_release.x86_64.dll
-          cp addons/godotsteam/license.md builds/GodotSteam-license.md
-          (cd builds && zip -q Giera-Windows.zip Giera.exe steam_api64.dll libgodotsteam.windows.template_release.x86_64.dll GodotSteam-license.md)
-          rm builds/Giera.exe builds/steam_api64.dll builds/libgodotsteam.windows.template_release.x86_64.dll builds/GodotSteam-license.md
-          test -s builds/Giera-Windows.zip
+          test -f "$windows/steam_api64.dll"
+          test -f "$windows/libgodotsteam.windows.template_release.x86_64.dll"
+          cp addons/godotsteam/license.md "$windows/GodotSteam-license.md"
+          runtime="Giera.exe steam_api64.dll libgodotsteam.windows.template_release.x86_64.dll GodotSteam-license.md"
+          (cd "$windows" && zip -q "$GITHUB_WORKSPACE/builds/Giera-Windows.zip" Giera.pck $runtime)
+          (cd "$windows" && zip -q "$GITHUB_WORKSPACE/builds/Giera-Windows-runtime.zip" $runtime)
+          cp "$windows/Giera.pck" builds/Giera-Windows.pck
 
       - name: Zbuduj wersje na macOS
         run: |
           godot --headless --path . --export-release "macOS" builds/Giera-macOS.zip
           test -s builds/Giera-macOS.zip
+          macos="$RUNNER_TEMP/macos"
+          unzip -q builds/Giera-macOS.zip -d "$macos"
+          cp "$macos/Giera.app/Contents/Resources/Giera.pck" builds/Giera-macOS.pck
+          chmod +x "$macos/Giera.app/Contents/MacOS/Giera"
+          (cd "$macos/Giera.app/Contents/MacOS" && zip -q "$GITHUB_WORKSPACE/builds/Giera-macOS-runtime.zip" Giera)
+
+      - name: Utworz manifest i zapis importu
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          python3 -I tools/make_manifest.py --version "${TAG#v}" --godot "$GODOT_VERSION" --builds builds > builds/manifest.json
+          cat builds/manifest.json
+          tar -czf "builds/ci-import-cache-godot-${GODOT_VERSION}.tar.gz" .godot/imported .godot/exported
 
       - name: Przekaz buildy dalej
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -122,6 +168,24 @@ jobs:
           grep -q "dolaczyl TestMac" server.log
           ! grep -q "SCRIPT ERROR" server.log client.log
 
+      - name: Sprawdz gre w ukladzie aktualizacji
+        # Tak launcher uruchomi gre: sam plik binarny i PCK obok, poza pakietem aplikacji.
+        run: |
+          set -uo pipefail
+          ditto -x -k builds/Giera-macOS-runtime.zip game
+          mv game/Giera game/GieraGame
+          cp builds/Giera-macOS.pck game/GieraGame.pck
+          game/GieraGame --headless -- --server --port=8766 > game_server.log 2>&1 &
+          server=$!
+          sleep 8
+          game/GieraGame --headless -- --connect=127.0.0.1 --port=8766 --name=TestUpdate --bot=runner > game_client.log 2>&1 &
+          client=$!
+          sleep 15
+          kill "$client" "$server" 2>/dev/null
+          cat game_server.log
+          grep -q "dolaczyl TestUpdate" game_server.log
+          ! grep -q "SCRIPT ERROR" game_server.log game_client.log
+
   publish:
     needs: [build, test-macos]
     runs-on: ubuntu-24.04
@@ -150,6 +214,8 @@ jobs:
 
           Na Windows z uruchomionym Steamem gra sama użyje nazwy i zdjęcia z konta. W pozostałych przypadkach wpisz nick. Potem podaj adres serwera od hosta i kliknij **Dołącz**.
 
+          Pozostałe pliki służą do automatycznych aktualizacji i nie trzeba ich pobierać.
+
           Sterowanie: WASD, mysz, LPM strzał, R przeładowanie, 1–4 lub scroll zmiana broni, Shift sprint, spacja skok, Tab wyniki, Esc pauza.
 
           SHA-256 \`Giera-Windows.zip\`: \`$windows_sha\`
@@ -159,7 +225,8 @@ jobs:
           # Tag z myslnikiem (np. v0.3.0-rc1) to wersja probna: nie zostanie oznaczona jako najnowsza.
           flags=()
           case "$TAG" in *-*) flags+=(--prerelease) ;; esac
-          gh release create "$TAG" builds/Giera-Windows.zip builds/Giera-macOS.zip \
+          # Manifest idzie razem z plikami, a gh publikuje wydanie dopiero po wgraniu wszystkich.
+          gh release create "$TAG" builds/* \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --title "Giera $TAG" \
