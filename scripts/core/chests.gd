@@ -86,7 +86,7 @@ func update_local(player: Player, delta: float, held: bool) -> void:
 
 
 func _update_focus(player: Player) -> void:
-	if not player.is_alive():
+	if not player.is_alive() or not Match.allows_combat():
 		focused_id = 0
 	elif _local_id != 0 and _is_in_reach(player, _local_id, OPENING_MIN_DOT):
 		focused_id = _local_id
@@ -215,7 +215,7 @@ func _on_player_added(id: int) -> void:
 
 @rpc("any_peer", "call_local", "reliable")
 func _server_start(id: int) -> void:
-	if not multiplayer.is_server() or not chests.has(id) or chests[id].open:
+	if not multiplayer.is_server() or not chests.has(id) or chests[id].open or not Match.allows_combat():
 		return
 	var sender := multiplayer.get_remote_sender_id()
 	var player := GameState.player_node(sender)

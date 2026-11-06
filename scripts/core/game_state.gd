@@ -107,6 +107,9 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		"respawn_tick": -1,
 		"slots": Inventory.empty_slots(),
 		"inventory_tick": -1,
+		"ready": false,
+		# Miejsce startu przydzielone przez serwer. -1 oznacza zwykle losowanie.
+		"spawn_index": -1,
 	}
 	_adding_player = true
 	_give_starting_items(id)
@@ -123,7 +126,7 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 ## "source" to miejsce wybuchu. Bez niego kierunek trafienia wskazuje na atakujacego.
 func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vector3.INF) -> void:
 	var victim: Dictionary = players.get(victim_id, {})
-	if victim.is_empty() or not victim.alive:
+	if victim.is_empty() or not victim.alive or not Match.allows_combat():
 		return
 	victim.health = maxi(0, victim.health - amount)
 	var killed: bool = victim.health == 0
@@ -155,6 +158,34 @@ func server_finish_respawn(id: int) -> void:
 	info.health = MAX_HEALTH
 	_give_debug_items(id)
 	print("[serwer] %s wraca do gry" % display_name(id))
+	_broadcast(id)
+
+
+func server_set_ready(id: int, value: bool) -> void:
+	var info: Dictionary = players.get(id, {})
+	if not info.is_empty():
+		info.ready = value
+		_broadcast(id)
+
+
+## Przygotowuje gracza do rundy: czysty stan i przeniesienie na miejsce w podanym ticku.
+## Martwy ma juz inny respawn_id niz postac, wiec wystarczy mu nowy czas odrodzenia.
+func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
+	var info: Dictionary = players[id]
+	info.ready = false
+	info.spawn_index = spawn_index
+	info.health = MAX_HEALTH
+	info.kills = 0
+	info.deaths = 0
+	info.slots = Inventory.empty_slots()
+	info.inventory_tick = tick
+	if info.alive:
+		info.respawn_id += 1
+	info.death_tick = tick
+	info.respawn_tick = tick
+	_adding_player = true
+	_give_starting_items(id)
+	_adding_player = false
 	_broadcast(id)
 
 
@@ -247,7 +278,8 @@ func _give_starter(id: int) -> void:
 
 
 func _give_starting_items(id: int) -> void:
-	_give_starter(id)
+	if Match.starts_armed():
+		_give_starter(id)
 	_give_debug_items(id)
 
 

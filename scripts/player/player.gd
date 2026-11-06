@@ -228,6 +228,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		equipment.on_respawn()
 
 	var dead := is_dead_at(tick)
+	var locked := dead or Match.is_frozen_at(tick)
 	_update_dance(dead)
 	# Tancerz stoi w miejscu, a mysz obraca tylko kamere wokol niego.
 	if not dead and dance_id == DanceCatalog.NONE:
@@ -238,15 +239,15 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	var on_floor := is_on_floor()
 	if on_floor:
 		velocity.y = maxf(velocity.y, 0.0)
-		if input.jump and not dead:
+		if input.jump and not locked:
 			velocity.y = JUMP_VELOCITY
 	else:
 		velocity.y -= GRAVITY * delta
 
 	aiming = input.aim and not dead and equipment.can_aim()
-	_update_sprint(tick, delta, dead)
+	_update_sprint(tick, delta, locked)
 	var wish := Vector3.ZERO
-	if not dead:
+	if not locked:
 		var top_speed := SPEED * SPRINT_MULTIPLIER if sprinting else SPEED
 		if aiming:
 			top_speed *= equipment.active_stats().aim_move_scale
@@ -318,6 +319,9 @@ func _after_tick_loop() -> void:
 		interpolator.teleport()
 		if is_local():
 			input.on_respawn()
+			# Na starcie meczu gracz patrzy w strone srodka mapy, gdzie toczy sie gra.
+			if Match.is_elimination():
+				input.look_yaw = atan2(position.x, position.z)
 	if multiplayer.is_server() and not info.alive and applied_respawn == info.respawn_id:
 		GameState.server_finish_respawn(peer_id)
 
