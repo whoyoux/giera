@@ -1,6 +1,6 @@
 # Plan: autoupdater
 
-Żaden etap nie jest jeszcze zrobiony. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
+Etap 1 jest zrobiony, a z etapu 0 zostały próby na macOS i w CI. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
 
 ## Pomiary
 
@@ -95,17 +95,16 @@ Każdy etap to osobny PR.
 
 ### Etap 0: próby
 
-1. **Windows.** Czy skopiowany exe z PCK i bibliotekami obok uruchamia grę i łączy się ze Steamem. Nie potwierdzono jeszcze, skąd w tym układzie ładuje się GodotSteam.
+1. **Windows: działa.** Exe skopiowany jako `GieraGame.exe` z `GieraGame.pck` i bibliotekami obok startuje z innego folderu, także ze spacją i polskimi znakami w ścieżce, i łączy się ze Steamem.
 2. **macOS, największe ryzyko.** Czy gra ruszy poza pakietem `.app`. Podmiana PCK w środku narusza podpis, a kopia aplikacji może znów trafić na blokadę Gatekeepera. Warianty w tej kolejności: sam plik binarny z PCK obok, kopia `.app` ponownie podpisana przez `codesign -s -`, a w razie porażki pobieranie całej aplikacji przy każdej aktualizacji.
-3. **Pobieranie.** Czy `HTTPRequest` przechodzi przez przekierowania GitHuba i zachowuje nagłówek `Range`. Sam GitHub zwraca `206 Partial Content`.
+3. **Pobieranie: działa.** `HTTPRequest` przechodzi przez przekierowania GitHuba i zachowuje nagłówek `Range`, także z `download_file`. Brak pliku daje kod 404, a brak sieci błąd bez kodu.
 4. **Cache importu w CI.** Powtórzyć test z zachowanym `.godot` na Linuksie.
 
 ### Etap 1: wersja gry
 
 - CI wpisuje wersję z tagu do `application/config/version`.
-- Menu pokazuje numer wersji.
-- `OUTDATED_MESSAGE` przestaje mówić o ręcznym pobieraniu buildu.
-- Odświeżyć zrzuty do README, bo zmienia się wygląd menu.
+- Menu pokazuje numer wersji, a uruchomienie z edytora pokazuje `dev`.
+- Zrzut menu w README jest odświeżony.
 
 ### Etap 2: wydania z manifestem
 
@@ -124,6 +123,7 @@ Każdy etap to osobny PR.
 - Parametry z linii poleceń przechodzą do gry, a `--no-update` pomija sprawdzanie.
 - Launcher i gra używają tej samej ścieżki `user://`, żeby ustawienia graczy zostały.
 - Przepisać test macOS w `release.yml` pod nowy układ.
+- `OUTDATED_MESSAGE` przestaje mówić o ręcznym pobieraniu buildu.
 
 ### Etap 4: wygoda i bezpieczeństwo
 

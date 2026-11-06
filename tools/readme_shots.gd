@@ -6,6 +6,7 @@ extends Node
 
 const EXAMPLE_NICK := "Kapitan"
 const EXAMPLE_ADDRESS := "203.0.113.10"
+const EXAMPLE_VERSION := "v1.0.0"
 const EXAMPLE_STEAM_ID := 76561197960265729
 
 var _dir := ""
@@ -23,6 +24,7 @@ func _ready() -> void:
 	var menu := main.get_node("Menu") as Menu
 	menu._address_field.text = EXAMPLE_ADDRESS
 	menu._status.text = ""
+	menu._version_label.text = EXAMPLE_VERSION
 	menu._picker.select("skeleton_warrior", false)
 	await _wait(1.5)
 	await _shot("menu.png")

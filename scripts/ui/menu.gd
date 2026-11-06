@@ -16,6 +16,7 @@ const LETTER_POP_SECONDS := 0.32
 const INTRO_STAGGER_SECONDS := 0.05
 const MODE_COLORS := { GameMode.Id.DEATHMATCH: UiStyle.CORAL, GameMode.Id.BATTLE_ROYALE: Color("9b7bff") }
 const MODE_OFF_TINT := Color(1.0, 1.0, 1.0, 0.65)
+const VERSION_MARGIN := 16.0
 
 var _name_field: LineEdit
 var _account_name: Label
@@ -29,6 +30,7 @@ var _host_button: Button
 var _picker: CharacterPicker
 var _letters: Array[Control] = []
 var _card: PanelContainer
+var _version_label: Label
 var _time := 0.0
 
 
@@ -40,6 +42,7 @@ func _ready() -> void:
 	root.add_theme_constant_override("margin_top", 32)
 	root.add_theme_constant_override("margin_bottom", 32)
 	add_child(root)
+	_build_version_label()
 
 	var side := VBoxContainer.new()
 	side.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -105,6 +108,18 @@ func _ready() -> void:
 
 	if not Net.is_headless:
 		_play_intro.call_deferred()
+
+
+## Numer wpisuje CI z tagu wydania. Bez tego gra uruchomiona z edytora pokazuje "dev".
+func _build_version_label() -> void:
+	var version := str(ProjectSettings.get_setting("application/config/version", "dev"))
+	_version_label = UiStyle.label("dev" if version == "dev" else "v" + version, 17, Color.WHITE, false)
+	_version_label.add_theme_color_override("font_outline_color", UiStyle.INK)
+	_version_label.add_theme_constant_override("outline_size", 6)
+	_version_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, int(VERSION_MARGIN))
+	_version_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_version_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	add_child(_version_label)
 
 
 ## Wybrany tryb ma kolor, a drugi jest przygaszony. Oba zawsze widac, wiec wybor jest oczywisty.

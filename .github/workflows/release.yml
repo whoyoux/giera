@@ -50,6 +50,14 @@ jobs:
           unzip -q -j "$templates" 'templates/windows_*_x86_64*' templates/macos.zip templates/version.txt -d "$dest"
           rm -f "$editor.zip" "$templates"
 
+      - name: Wpisz wersje z tagu
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          sed -i "s|^config/version=.*|config/version=\"${TAG#v}\"|" project.godot
+          grep -Fx "config/version=\"${TAG#v}\"" project.godot
+
       - name: Pobierz GodotSteam
         run: bash tools/fetch_godotsteam.sh
 
