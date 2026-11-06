@@ -16,7 +16,7 @@ mkdir -p "$LOGS"
 
 timeout 44 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$SERVER_PORT > "$LOGS/lobby_server.log" 2>&1 &
 sleep 2
-python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" 32 > /dev/null 2>&1 &
+python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" 44 > /dev/null 2>&1 &
 PROXY=$!
 sleep 1
 timeout 40 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PROXY_PORT --name=A $PROBE --ready-at=3 > "$LOGS/lobby_a.log" 2>&1 &

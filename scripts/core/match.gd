@@ -5,7 +5,7 @@ extends Node
 
 signal phase_changed
 
-enum Phase { LOBBY, COUNTDOWN, STARTING, LIVE }
+enum Phase { LOBBY, COUNTDOWN, STARTING, LIVE, RESULTS }
 
 const MIN_PLAYERS := 2
 const COUNTDOWN_SECONDS := 5.0
@@ -13,6 +13,7 @@ const COUNTDOWN_SECONDS := 5.0
 const TELEPORT_LEAD_SECONDS := 0.5
 const FREEZE_SECONDS := 3.0
 const MAX_MATCH_PLAYERS := 10
+const RESULTS_SECONDS := 10.0
 ## Tick, ktory nigdy nie nadejdzie: wyeliminowany nie wraca sam do gry.
 const NEVER_TICK := 1 << 62
 
@@ -22,7 +23,11 @@ var phase := Phase.LIVE
 var phase_end_tick := -1
 var freeze_from_tick := -1
 var freeze_end_tick := -1
+## Wyniki ostatniego meczu: { id, name, kills, place } od zwyciezcy w dol.
+var results: Array = []
 
+## Gracze meczu, razem z tymi, ktorzy juz wyszli z gry: id -> { id, name, kills, place }.
+var _ranking := {}
 ## Kto odpadl od ostatniego rozliczenia. Smierci z jednego wybuchu rozliczamy razem.
 var _pending_out: Array[int] = []
 var _settle_queued := false
@@ -103,6 +108,7 @@ func server_on_player_out(id: int) -> void:
 	if not is_elimination() or phase == Phase.LOBBY or phase == Phase.COUNTDOWN:
 		return
 	_pending_out.append(id)
+	_remember_result(id)
 	if not _settle_queued:
 		_settle_queued = true
 		_settle.call_deferred()
@@ -124,6 +130,8 @@ func _process(_delta: float) -> void:
 		Phase.STARTING:
 			_enter_phase(Phase.LIVE, -1)
 			_settle()
+		Phase.RESULTS:
+			_return_to_lobby()
 
 
 ## Start wymaga co najmniej 2 graczy i gotowosci wszystkich. Nowy gracz nie jest gotowy,
@@ -150,9 +158,11 @@ func _start_match() -> void:
 	_clear_world.rpc()
 	_enter_phase(Phase.STARTING, freeze_end_tick)
 	var index := 0
+	_ranking.clear()
 	for id: int in GameState.players:
 		if index < MAX_MATCH_PLAYERS:
 			GameState.server_prepare_round(id, spots[index % spots.size()], start_tick)
+			_remember_result(id)
 		else:
 			GameState.server_make_spectator(id, start_tick)
 		index += 1
@@ -167,10 +177,48 @@ func _settle() -> void:
 	var alive := alive_count()
 	for id: int in _pending_out:
 		GameState.server_set_place(id, alive + 1)
+		_ranking[id].place = alive + 1
 	_pending_out.clear()
 	if alive > 1:
 		return
 	print("[serwer] koniec meczu, zywych: %d" % alive)
+	_finish_match()
+
+
+## Zapamietuje wynik, zanim gracz zniknie z listy. Zabojstwa zwyciezcy dochodza na koncu.
+func _remember_result(id: int) -> void:
+	var info: Dictionary = GameState.players[id]
+	var place: int = _ranking[id].place if _ranking.has(id) else 0
+	_ranking[id] = { "id": id, "name": info.name, "kills": info.kills, "place": place }
+
+
+func _finish_match() -> void:
+	for id: int in _ranking:
+		var info: Dictionary = GameState.players.get(id, {})
+		if info.is_empty():
+			continue
+		_ranking[id].kills = info.kills
+		if info.alive:
+			_ranking[id].place = 1
+			GameState.server_set_place(id, 1)
+	results = _ranking.values()
+	results.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return a.place < b.place or (a.place == b.place and a.kills > b.kills))
+	_enter_phase(Phase.RESULTS, NetworkTime.tick + NetworkTime.seconds_to_ticks(RESULTS_SECONDS))
+
+
+## Reset bez restartu serwera: wszyscy, takze widzowie, wracaja do lobby z czystym stanem.
+func _return_to_lobby() -> void:
+	var tick := NetworkTime.tick + NetworkTime.seconds_to_ticks(TELEPORT_LEAD_SECONDS)
+	freeze_from_tick = -1
+	freeze_end_tick = -1
+	results = []
+	_ranking.clear()
+	_clear_world.rpc()
+	_enter_phase(Phase.LOBBY, -1)
+	for id: int in GameState.players:
+		GameState.server_prepare_round(id, -1, tick)
+	print("[serwer] powrot do lobby")
 
 
 func _enter_phase(new_phase: int, end_tick: int) -> void:
@@ -182,7 +230,7 @@ func _enter_phase(new_phase: int, end_tick: int) -> void:
 
 
 func _state() -> Dictionary:
-	return { "mode": mode, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick }
+	return { "mode": mode, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results }
 
 
 func _clear() -> void:
@@ -191,6 +239,8 @@ func _clear() -> void:
 	phase_end_tick = -1
 	freeze_from_tick = -1
 	freeze_end_tick = -1
+	results = []
+	_ranking.clear()
 	_pending_out.clear()
 	phase_changed.emit()
 
@@ -212,6 +262,7 @@ func _sync_state(state: Dictionary) -> void:
 	phase_end_tick = state.phase_end_tick
 	freeze_from_tick = state.freeze_from_tick
 	freeze_end_tick = state.freeze_end_tick
+	results = state.results
 	phase_changed.emit()
 
 
