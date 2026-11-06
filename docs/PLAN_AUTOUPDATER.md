@@ -1,6 +1,6 @@
 # Plan: autoupdater
 
-Etapy 1 i 2 są zrobione i przeszły próbne wydanie `v0.21.0-rc1`, ale nie ma ich jeszcze na `main`. Z etapu 0 została próba na prawdziwym Macu. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
+Etapy 1 i 2 są na `main`, a etap 3 czeka na próbne wydanie i próbę na prawdziwym Macu. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
 
 ## Pomiary
 
@@ -124,6 +124,9 @@ Każdy etap to osobny PR.
 - Blokada przed podwójnym uruchomieniem.
 - Parametry z linii poleceń przechodzą do gry, a `--no-update` pomija sprawdzanie.
 - Launcher i gra używają tej samej ścieżki `user://`, żeby ustawienia graczy zostały.
+- ZIP zawiera sam launcher, a pierwsza instalacja kopiuje jego silnik, gdy zgadza się `runtime_id`. Inaczej pobiera `runtime`.
+- Gra zgłasza start plikiem podanym w `--launcher-marker`. Nowa wersja, która padnie albo nie zgłosi startu w 60 s, jest wycofywana i zapamiętana jako zła.
+- Launcher nie aktualizuje, gdy gra działa, bo Godot czyta PCK przez cały czas gry, a Windows nie blokuje jego podmiany.
 - Przepisać test macOS w `release.yml` pod nowy układ.
 - `OUTDATED_MESSAGE` przestaje mówić o ręcznym pobieraniu buildu.
 

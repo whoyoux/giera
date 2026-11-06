@@ -48,6 +48,8 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 Pobierz najnowszą wersję z zakładki [Releases](../../releases/latest):
 
+Pobierasz ją tylko raz: przy każdym uruchomieniu gra sama sprawdza i instaluje aktualizacje.
+
 - **Windows:** rozpakuj `Giera-Windows.zip` do jednego folderu i uruchom `Giera.exe`. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
 - **macOS:** rozpakuj `Giera-macOS.zip` i uruchom `Giera.app`. Aplikacja nie ma podpisu Apple, więc przy pierwszym uruchomieniu wybierz **Otwórz mimo to** w **Ustawienia systemowe → Prywatność i ochrona**.
 
