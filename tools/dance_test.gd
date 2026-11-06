@@ -123,7 +123,7 @@ func _test_camera_and_music() -> void:
 	_me.input.request_dance(1)
 	await _wait(0.7)
 	var yaw_before := _me.yaw
-	_check("postac staje przodem do kamery", absf(angle_difference(_me.yaw, _me.input.look_yaw + PI)) < 0.1)
+	_check("postac patrzy tam, gdzie kamera", absf(angle_difference(_me.yaw, _me.input.look_yaw)) < 0.1)
 	_check("taniec wlacza stan", _me.dance_id == 1)
 	_check("kamera odjezdza za postac", _me.camera.top_level and _me.camera.global_position.distance_to(_me.eye_position()) > 0.5)
 	_check("widac wlasny model", _me.model.visible)
@@ -144,7 +144,7 @@ func _test_camera_and_music() -> void:
 	_me.input.request_dance(2)
 	await _wait(0.2)
 	_check("zmiana tanca zmienia muzyke", _me.dance_id == 2 and _me._dance_music.stream() == DanceCatalog.music_of(2))
-	_check("zmiana tanca po obrocie kamery stawia postac przodem", absf(angle_difference(_me.yaw, _me.input.look_yaw + PI)) < 0.1)
+	_check("zmiana tanca po obrocie kamery obraca postac jak kamere", absf(angle_difference(_me.yaw, _me.input.look_yaw)) < 0.1)
 	await _stop_by_walking()
 	await _wait(0.6)
 	_check("po tancu kamera wraca do oczu", not _me.camera.top_level and _me.camera.position == Vector3.ZERO)
