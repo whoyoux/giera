@@ -42,6 +42,8 @@ const STEP_VOLUME_REMOTE := -2.0
 const CORPSE_SECONDS := 5.0
 
 var peer_id := 0
+## Bufor ruchu tego gracza, gdy klient oglada go z zewnatrz. Serwer ma stan od razu.
+var remote_motion: RemoteMotion
 ## Referencja do wpisu w GameState (zdrowie, punkty, respawn).
 var info: Dictionary
 
@@ -56,6 +58,8 @@ var exhausted := false
 var sprint_stop_tick := -1000
 ## Numer tanca z DanceCatalog albo zero.
 var dance_id := DanceCatalog.NONE
+## Czy poprzedni tick skonczyl sie na ziemi. Sam CharacterBody3D pamieta to tylko z ostatniej symulacji.
+var on_ground := true
 
 ## Pozycje z ostatnich tickow, potrzebne serwerowi do cofania czasu przy strzale.
 var _position_history := {}
@@ -118,6 +122,10 @@ func _ready() -> void:
 	equipment.initialize()
 
 	var local := is_local()
+	if not local and not multiplayer.is_server():
+		remote_motion = RemoteMotion.new()
+		interpolator.enabled = false
+		interpolator.enable_recording = false
 	camera.current = local
 	view_model.visible = local
 	model.visible = not local
@@ -222,6 +230,11 @@ func is_dead_at(tick: int) -> bool:
 	return applied_respawn != info.respawn_id and tick >= info.death_tick
 
 
+## Tam klient widzi gracza. W czasie rollbacku "position" trzyma inny, nowszy stan.
+func shown_position() -> Vector3:
+	return remote_motion.shown_position if remote_motion != null and remote_motion.has_samples() else position
+
+
 func eye_position() -> Vector3:
 	return position + Vector3.UP * EYE_HEIGHT
 
@@ -231,6 +244,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		applied_respawn = info.respawn_id
 		position = get_parent().spawn_point(peer_id, applied_respawn)
 		velocity = Vector3.ZERO
+		on_ground = false
 		stamina = STAMINA_MAX
 		exhausted = false
 		equipment.on_respawn()
@@ -269,6 +283,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	velocity *= NetworkTime.physics_factor
 	move_and_slide()
 	velocity /= NetworkTime.physics_factor
+	on_ground = is_on_floor()
 	if multiplayer.is_server():
 		_remember_position(tick + 1)
 
@@ -317,9 +332,14 @@ func _remember_position(tick: int) -> void:
 ## Po przywroceniu stanu is_on_floor bywa nieaktualne, wiec odswiezamy je pustym ruchem.
 func _update_floor_state() -> void:
 	var saved := velocity
+	var saved_snap := floor_snap_length
 	velocity = Vector3.ZERO
+	floor_snap_length = 0.0
 	move_and_slide()
+	floor_snap_length = saved_snap
 	velocity = saved
+	if on_ground and not is_on_floor():
+		apply_floor_snap()
 
 
 func _after_tick_loop() -> void:
@@ -336,6 +356,10 @@ func _after_tick_loop() -> void:
 
 
 func _process(delta: float) -> void:
+	if not multiplayer.is_server():
+		RemoteMotion.advance_clock(delta, get_tree())
+	if remote_motion != null:
+		_show_remote_motion(delta)
 	if is_local():
 		rotation.y = yaw if dance_id != DanceCatalog.NONE else input.look_yaw
 		head.rotation.x = input.look_pitch
@@ -406,6 +430,19 @@ func _update_presence() -> void:
 	name_label.visible = present
 	if _tag_root != null:
 		_tag_root.visible = present
+
+
+func _show_remote_motion(delta: float) -> void:
+	var tick := sync.get_last_known_state()
+	if tick > remote_motion.newest_tick and sync._states.has(tick):
+		var state := sync._states.get_snapshot(tick)
+		remote_motion.add_sample(tick, state.get_value(":position"), state.get_value(":yaw"), state.get_value(":pitch"))
+	if not remote_motion.has_samples():
+		return
+	remote_motion.advance(delta, RemoteMotion.shown_tick)
+	position = remote_motion.shown_position
+	yaw = remote_motion.shown_yaw
+	pitch = remote_motion.shown_pitch
 
 
 ## Kazdy klient sam wlacza animacje i muzyke, gdy zobaczy zmiane stanu tanca.

@@ -44,7 +44,7 @@ Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
 
 ## Testy
 
-Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `weapons_test`, `feel_test`, `flow_test`, `chat_test`, `ui_feel_test`, `dance_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie), `net_graph_test` z połączeniem do serwera (opis w pliku), `steam_account_test` z `--fake-steam=Kapitan:76561197960265729` albo `--no-steam`. `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh`, `tools/steam_net_test.sh`, `tools/weapons_net_test.sh`, `tools/dance_net_test.sh`, `tools/chat_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
+Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `weapons_test`, `feel_test`, `flow_test`, `chat_test`, `ui_feel_test`, `dance_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie), `net_graph_test` z połączeniem do serwera (opis w pliku), `steam_account_test` z `--fake-steam=Kapitan:76561197960265729` albo `--no-steam`. `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh`, `tools/steam_net_test.sh`, `tools/weapons_net_test.sh`, `tools/dance_net_test.sh`, `tools/chat_net_test.sh`, `tools/prediction_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
 
 ## Zasoby wizualne
 
@@ -58,7 +58,7 @@ Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA
 ## Architektura
 
 - **Serwer decyduje o wszystkim.** Klient wysyła klawisze, kąt patrzenia i przycisk strzału.
-- **Ruch i broń w ręku** działają w pętli rollbacku netfox: klient przewiduje je od razu, a serwer ewentualnie koryguje.
+- **Ruch i broń w ręku** działają w pętli rollbacku netfox: klient przewiduje je od razu, a serwer ewentualnie koryguje. Kontakt z ziemią jest stanem rollbacku (`Player.on_ground`), bo `CharacterBody3D` pamięta go tylko z ostatniej symulacji, a nie z ticku, do którego wracamy.
 - **Strzały i ciosy** rozlicza serwer. Klient widzi innych graczy z opóźnieniem, więc serwer cofa ich do chwili widocznej na ekranie atakującego, najwyżej o 0,3 s.
 - **Strzelba** to zwykła `WeaponDefinition` z `pellets` i `spread_degrees` w `WeaponStats`. Układ śrucin liczy `Hitscan.pellet_directions`. Śruciny jednego strzału dają jedno trafienie z sumą obrażeń.
 - **Rozrzut** ustawiają pola z grupy „Rozrzut” w `WeaponStats`. Narost z serii (`spread_bloom`) i rozrzut ostatniego strzału (`shot_spread`) są stanem rollbacku w `Equipment`, a kierunek pocisku wynika z numeru ticku, więc serwer i klienci liczą to samo.

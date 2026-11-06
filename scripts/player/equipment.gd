@@ -14,7 +14,7 @@ signal active_item_changed
 
 const ACTION_CORRECTION_TICKS := 8
 ## Granica cofania czasu, zeby gracz z bardzo slabym laczem nie trafial "przez sciany".
-const MAX_REWIND_SECONDS := 0.3
+const MAX_REWIND_SECONDS := 0.4
 ## Rozrzut z serii zaczyna opadac chwile po tym, jak mogl pasc kolejny strzal.
 const SPREAD_HOLD_TICKS := 3
 ## W powietrzu strzela sie gorzej niz w pelnym biegu.
