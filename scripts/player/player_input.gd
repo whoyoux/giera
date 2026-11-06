@@ -27,7 +27,7 @@ var yaw := 0.0
 var pitch := 0.0
 ## Bot trzyma klawisz otwierania. Gracz ma go w Input.
 var bot_interact := false
-## Tick stanu innych graczy widoczny teraz na ekranie. -1 oznacza stan biezacy.
+## Tick innych graczy widoczny teraz na ekranie. -1 oznacza stan biezacy.
 var view_tick := -1
 ## Taniec, o ktory prosi gracz. Zero oznacza brak.
 var dance := DanceCatalog.NONE
@@ -45,13 +45,11 @@ var _bot_step := 0
 var _wanted_slot := 0
 var _wanted_uid := 0
 var _fire_blocked := false
-var _displayed_state_tick := -1
 var _wanted_dance := DanceCatalog.NONE
 
 
 func _ready() -> void:
 	NetworkTime.before_tick_loop.connect(_gather)
-	NetworkTime.after_tick_loop.connect(_on_after_tick_loop)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -176,25 +174,7 @@ func _gather() -> void:
 	slot = _wanted_slot
 	yaw = look_yaw
 	pitch = look_pitch
-	view_tick = _displayed_state_tick
-
-
-## Stan odebrany w trakcie ticku trafia na ekran dopiero po kolejnej petli, wiec gracz
-## celuje w ten, ktory byl najnowszy pod koniec poprzedniej.
-func _on_after_tick_loop() -> void:
-	if is_multiplayer_authority():
-		_displayed_state_tick = _newest_state_tick()
-
-
-func _newest_state_tick() -> int:
-	if multiplayer.is_server():
-		return -1
-	var newest := -1
-	for node in get_tree().get_nodes_in_group(&"players"):
-		var other := node as Player
-		if not other.is_local():
-			newest = maxi(newest, other.sync.get_last_known_state())
-	return newest
+	view_tick = -1 if multiplayer.is_server() else RemoteMotion.view_tick()
 
 
 ## Prosty bot do testow i cwiczen w pojedynke.
