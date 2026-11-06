@@ -68,6 +68,7 @@ func _ready() -> void:
 	_check("ze skrzynki wypada jeden przedmiot", dropped == 1)
 	var entry: Dictionary = WorldItems.items.values()[0]
 	_check("lup wypada blisko gracza", _player.position.distance_to(entry.position) < 4.0)
+	_check_prompt_after_item(entry.id)
 	await _wait(0.1)
 	_check("otwarta skrzynka nie jest celem", Chests.focused_id == 0)
 	await _hold_key(1.3)
@@ -145,6 +146,20 @@ func _check_loot_table() -> void:
 	_check("epickie okolo 35%", absi(counts[Rarity.Tier.EPIC] - 3500) < 300)
 	_check("legendarne okolo 10%", absi(counts[Rarity.Tier.LEGENDARY] - 1000) < 150)
 	_check("wypada istniejacy przedmiot", ItemRegistry.get_definition(Chests.LOOT_TABLE.roll(rng).item) != null)
+
+
+## Po przedmiocie i chwili bez celu pierwsza skrzynka musi pokazac swoj napis, nie przedmiotu.
+func _check_prompt_after_item(item_id: int) -> void:
+	var hud := get_node("/root/Main/Hud") as Hud
+	WorldItems.focused_id = item_id
+	Chests.focused_id = 0
+	hud._update_prompt()
+	WorldItems.focused_id = 0
+	hud._update_prompt()
+	Chests.focused_id = 1
+	hud._update_prompt()
+	_check("skrzynka 1 ma wlasny napis po przedmiocie", hud._prompt_name.text == "skrzynkę")
+	Chests.focused_id = 0
 
 
 ## Kazda skrzynka ma stac na podlodze, nie w scianie i nie na punkcie odrodzenia.
