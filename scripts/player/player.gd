@@ -4,7 +4,7 @@ extends CharacterBody3D
 ## w petli rollbacku: klient przewiduje go od razu, a serwer ma ostatnie slowo.
 
 ## Nad nazwa gracza, liczone od jej srodka.
-const AVATAR_TAG_HEIGHT := 0.34
+const AVATAR_TAG_GAP := 0.05
 const SPEED := 6.5
 const GROUND_ACCEL := 70.0
 const AIR_ACCEL := 18.0
@@ -125,11 +125,12 @@ func _ready() -> void:
 	name_label.text = info.name
 	if not local and not Net.is_headless:
 		var tag := AvatarTag.new(info.get("steam_id", 0))
-		tag.position = name_label.position + Vector3.UP * AVATAR_TAG_HEIGHT
+		tag.position = name_label.position
 		# Zdjecie samo decyduje o swojej widocznosci, wiec ukrywamy je przez rodzica.
 		_tag_root = Node3D.new()
 		add_child(_tag_root)
 		_tag_root.add_child(tag)
+		_place_avatar_tag.call_deferred(tag)
 	if not Net.is_headless:
 		_switch_audio = AudioStreamPlayer.new()
 		_switch_audio.stream = Sfx.switch_item()
@@ -378,6 +379,11 @@ func _process(delta: float) -> void:
 	else:
 		var local_velocity := _velocity_smoothed.rotated(Vector3.UP, -rotation.y)
 		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
+
+
+## Szerokosc nazwy znamy dopiero po jej ulozeniu, a to Label3D robi z opoznieniem.
+func _place_avatar_tag(tag: AvatarTag) -> void:
+	tag.set_side_offset(name_label.get_aabb().position.x - AVATAR_TAG_GAP - AvatarTag.SIDE / 2.0)
 
 
 ## Widz patrzy z bliska, wiec nazwa ogladanego gracza zaslanialaby mu pol ekranu.

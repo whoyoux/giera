@@ -1,6 +1,6 @@
 class_name AvatarTag
 extends MeshInstance3D
-## Zdjecie gracza nad jego nazwa. Bez zdjecia jest ukryte, bo sama nazwa wystarczy.
+## Zdjecie gracza na lewo od jego nazwy. Bez zdjecia jest ukryte, bo sama nazwa wystarczy.
 
 const SHADER := preload("res://shaders/avatar_tag.gdshader")
 const SIDE := 0.36
@@ -19,6 +19,11 @@ func _init(steam_id: int) -> void:
 	material_override = _material
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	visible = false
+
+
+## Shader obraca zdjecie przodem do kamery, wiec przesuwamy sam kwadrat, a nie wezel.
+func set_side_offset(offset: float) -> void:
+	(mesh as QuadMesh).center_offset = Vector3.RIGHT * offset
 
 
 func _ready() -> void:
