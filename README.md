@@ -8,6 +8,10 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 |---|---|---|---|
 | ![Otwieranie skrzynki](docs/screenshots/chest_open.png) | ![Bronie na ziemi](docs/screenshots/loot.png) | ![Celowanie](docs/screenshots/aim.png) | ![Wybuch granatu](docs/screenshots/grenade.png) |
 
+| Lobby Battle Royale | Poza strefą | Wyniki meczu |
+|---|---|---|
+| ![Lobby Battle Royale](docs/screenshots/br_lobby.png) | ![Gracz poza strefą](docs/screenshots/br_zone.png) | ![Wyniki meczu](docs/screenshots/br_results.png) |
+
 | Koło tańców | Taniec |
 |---|---|
 | ![Koło tańców](docs/screenshots/dance_wheel.png) | ![Taniec](docs/screenshots/dance.png) |
@@ -19,7 +23,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 ## Co jest w grze
 
 - **Dwa tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, a w Battle Royale masz jedno życie.
-- **Battle Royale:** gracze czekają w lobby, aż wszyscy klikną Gotowe. Każdy startuje w innym miejscu i bez broni, więc pierwsze sekundy to wyścig do skrzynek. Strefa zacieśnia się w czterech fazach, a wyeliminowani oglądają mecz do końca.
+- **Battle Royale:** gracze czekają w lobby, aż wszyscy klikną Gotowe. Każdy startuje w innym miejscu i bez broni, więc pierwsze sekundy to wyścig do skrzynek. Strefa zacieśnia się w czterech fazach, a mapka pokazuje, dokąd uciekać. Wyeliminowani oglądają mecz do końca.
 - **Multiplayer na żywo:** serwer dedykowany albo hostowanie z menu. Ruch reaguje od razu, a strzały liczą się tam, gdzie gracz widział cel na ekranie.
 - **Trzy klasy broni:** zwykła, epicka i legendarna, każda z własnym modelem, parametrami, smugą i dźwiękiem.
 - **Rozrzut:** najcelniej strzela się w miejscu i pierwszym pociskiem. Rośnie w ruchu, w skoku i w długiej serii, ale tylko do limitu, a lepsza broń ma go mniej. Celownik pokazuje go na żywo, a celowanie go zmniejsza.
@@ -28,6 +32,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Ekwipunek na 4 sloty:** szybka zmiana broni klawiszami lub scrollem, osobna amunicja w każdej broni.
 - **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Każda daje jeden przedmiot: blaster, strzelbę, nóż, apteczkę albo granat, a po minucie wraca. Wśród broni z klasami 55% to zwykłe, 35% epickie i 10% legendarne.
 - **Tańce:** przytrzymanie klawisza otwiera koło z 6 tańcami, każdy z własnym ruchem i muzyką, którą słyszą też gracze obok. Kamera odjeżdża wtedy za postać, a każdy ruch przerywa taniec.
+- **Lista zabójstw:** pokazuje, kto kogo zabił i jaką bronią.
 - **Podnoszenie i wyrzucanie:** bronie leżą na ziemi, a po śmierci wypadają dla innych.
 - **Apteczki:** przytrzymanie strzału przez 2,5 s leczy o 50 punktów.
 - **Granaty:** przytrzymanie odbezpiecza, a puszczenie rzuca, więc można skrócić czas do wybuchu. Im bliżej wybuchu, tym większe obrażenia, a tuż obok giniesz od razu.

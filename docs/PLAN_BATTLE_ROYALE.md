@@ -1,6 +1,6 @@
 # Plan: battle royale
 
-Kroki 1–4 są zrobione. Battle Royale to osobny tryb obok Deathmatchu: każdy tryb ma własny serwer i port (`compose.yaml`), a gracz wybiera tryb w menu głównym.
+Kroki 1–5 są zrobione. Battle Royale to osobny tryb obok Deathmatchu: każdy tryb ma własny serwer i port (`compose.yaml`), a gracz wybiera tryb w menu głównym.
 
 ## Zasady
 

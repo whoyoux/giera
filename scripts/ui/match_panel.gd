@@ -8,6 +8,9 @@ const ZONE_TINT := Color(0.45, 0.33, 1.0)
 const ZONE_TINT_ALPHA := 0.2
 const ZONE_TINT_PULSE := 0.07
 const ZONE_HUM_VOLUME := -8.0
+## Mapka stoi nad naklejka z amunicja.
+const MAP_MARGIN_RIGHT := 28.0
+const MAP_MARGIN_BOTTOM := 136.0
 
 var _roster_card: PanelContainer
 var _roster_rows: VBoxContainer
@@ -21,6 +24,8 @@ var _info_label: Label
 var _outside_panel: PanelContainer
 var _zone_tint: ColorRect
 var _zone_audio: AudioStreamPlayer
+var _phase_audio: AudioStreamPlayer
+var _shown_phase := -1
 var _results_center: CenterContainer
 var _results_card: PanelContainer
 var _results_title: Label
@@ -39,6 +44,8 @@ func _ready() -> void:
 	_build_big_label()
 	_build_watch_hint()
 	_build_results()
+	_build_map()
+	_build_phase_audio()
 	Match.phase_changed.connect(_refresh)
 	GameState.player_changed.connect(func(_id: int) -> void: _refresh())
 	GameState.player_added.connect(func(_id: int) -> void: _refresh())
@@ -106,6 +113,7 @@ func _update_watch_hint() -> void:
 
 
 func _refresh() -> void:
+	_play_phase_sound()
 	_refresh_results()
 	_roster_card.visible = Match.can_change_ready()
 	if not _roster_card.visible:
@@ -126,12 +134,31 @@ func _refresh() -> void:
 	_ready_action.text = "cofnij gotowość" if mine.get("ready", false) else "jestem gotowy"
 
 
+func _play_phase_sound() -> void:
+	if Match.phase == _shown_phase or not Match.is_elimination() or Net.is_headless:
+		_shown_phase = Match.phase
+		return
+	_shown_phase = Match.phase
+	if Match.phase == Match.Phase.LIVE:
+		_phase_audio.stream = Sfx.match_start()
+		_phase_audio.play()
+	elif Match.phase == Match.Phase.RESULTS:
+		_phase_audio.stream = Sfx.match_win() if _i_won() else Sfx.match_end()
+		_phase_audio.play()
+
+
+func _i_won() -> bool:
+	for entry: Dictionary in Match.results:
+		if entry.id == multiplayer.get_unique_id():
+			return entry.place == 1
+	return false
+
+
 func _refresh_results() -> void:
 	var showing := Match.phase == Match.Phase.RESULTS
 	if showing and not _results_center.visible:
 		_fill_results()
 		UiStyle.pop_in(_results_card)
-		UiSound.play(Sfx.UiCue.OPEN)
 	_results_center.visible = showing
 
 
@@ -246,6 +273,25 @@ func _build_zone_feedback() -> void:
 	_outside_panel.visible = false
 	outside_center.add_child(_outside_panel)
 	_outside_panel.add_child(UiStyle.label("Jesteś poza strefą!", 26, Color.WHITE))
+
+
+func _build_map() -> void:
+	var map := ZoneMap.new()
+	map.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	map.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	map.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	map.position += Vector2(-MAP_MARGIN_RIGHT - ZoneMap.SIDE, -MAP_MARGIN_BOTTOM - ZoneMap.SIDE)
+	add_child(map)
+
+
+## Dzwieki powstaja teraz, zeby koniec meczu nie przycial obrazu.
+func _build_phase_audio() -> void:
+	_phase_audio = AudioStreamPlayer.new()
+	add_child(_phase_audio)
+	if not Net.is_headless:
+		Sfx.match_start()
+		Sfx.match_win()
+		Sfx.match_end()
 
 
 func _build_results() -> void:

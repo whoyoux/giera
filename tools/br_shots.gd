@@ -38,6 +38,10 @@ func _on_phase_changed() -> void:
 		Match.Phase.LIVE:
 			await _wait(1.0)
 			await _shot("live.png")
+			Input.action_press("scoreboard")
+			await _wait(0.4)
+			await _shot("scoreboard.png")
+			Input.action_release("scoreboard")
 			_watch_and_shoot()
 		Match.Phase.RESULTS:
 			await _wait(1.5)
@@ -53,7 +57,8 @@ func _watch_and_shoot() -> void:
 	var local := GameState.player_node(multiplayer.get_unique_id())
 	while Match.phase == Match.Phase.LIVE:
 		await get_tree().process_frame
-		if local.is_alive() and Zone.is_outside(Match.zone_state(), local.position):
+		var state := Match.zone_state()
+		if not state.is_empty() and local.is_alive() and Zone.is_outside(state, local.position):
 			await _shot("outside.png")
 		if not local.is_alive() and not _taken.has("dead.png"):
 			await _wait(0.8)

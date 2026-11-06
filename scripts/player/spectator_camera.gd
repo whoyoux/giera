@@ -26,6 +26,11 @@ func target_name() -> String:
 	return GameState.display_name(_target_id) if current and _target_id != 0 else ""
 
 
+## Ogladany gracz albo null, gdy kamera nie dziala.
+func target_player() -> Player:
+	return GameState.player_node(_target_id) if current and _target_id != 0 else null
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if current and event.is_action_pressed("fire") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_select_next()

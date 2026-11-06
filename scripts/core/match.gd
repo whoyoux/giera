@@ -68,12 +68,13 @@ func respawn_tick_after_death(tick: int, respawn_seconds: float) -> int:
 	return NEVER_TICK if is_elimination() else tick + NetworkTime.seconds_to_ticks(respawn_seconds)
 
 
-## Zywi uczestnicy meczu.
-func alive_count() -> int:
+## Zywi uczestnicy meczu. Wiadomosc o zabojstwie przychodzi przed nowym stanem ofiary,
+## wiec lista zabojstw pomija ja przez "excluded".
+func alive_count(excluded := 0) -> int:
 	var count := 0
 	for id: int in GameState.players:
 		var info: Dictionary = GameState.players[id]
-		count += 1 if info.alive and info.in_match else 0
+		count += 1 if info.alive and info.in_match and id != excluded else 0
 	return count
 
 

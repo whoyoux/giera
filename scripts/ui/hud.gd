@@ -7,6 +7,7 @@ signal settings_requested
 const FEED_SECONDS := 5.0
 const FEED_NAME_LENGTH := 18
 const FEED_AVATAR_SIDE := 26.0
+const FEED_WEAPON_ICON_SIDE := 30.0
 const SCORE_AVATAR_SIDE := 34.0
 const LOW_HEALTH := 35
 const KILL_SHAKE := 0.28
@@ -365,15 +366,38 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 	line.add_theme_constant_override("separation", 8)
 	line.add_child(_avatar_of(killer_id, FEED_AVATAR_SIDE))
 	line.add_child(UiStyle.label(_short_name(killer_id), 17, UiStyle.BLUE))
-	line.add_child(UiStyle.label("✦", 15, UiStyle.CORAL))
+	line.add_child(_kill_cause(victim_id))
 	line.add_child(_avatar_of(victim_id, FEED_AVATAR_SIDE))
 	line.add_child(UiStyle.label(_short_name(victim_id), 17, UiStyle.CORAL))
+	if Match.is_elimination():
+		line.add_child(UiStyle.label("· zostało %d" % Match.alive_count(victim_id), 15, Color(UiStyle.INK, 0.65), false))
 	row.add_child(line)
 	_feed.add_child(row)
 	var tween := row.create_tween()
 	tween.tween_interval(FEED_SECONDS)
 	tween.tween_property(row, "modulate:a", 0.0, 0.4)
 	tween.tween_callback(row.queue_free)
+
+
+## Bron z ikona i nazwa w kolorze klasy. Smierc w strefie ma tylko znaczek.
+func _kill_cause(victim_id: int) -> Control:
+	var info: Dictionary = GameState.players.get(victim_id, {})
+	var weapon: Dictionary = info.get("death_weapon", {})
+	if ItemStack.definition_of(weapon) == null:
+		return UiStyle.label("✦", 15, UiStyle.CORAL)
+	var cause := HBoxContainer.new()
+	cause.add_theme_constant_override("separation", 4)
+	var visual := ItemStack.visual_of(weapon)
+	if visual != null and ResourceLoader.exists(visual.icon_path):
+		var icon := TextureRect.new()
+		icon.texture = load(visual.icon_path) as Texture2D
+		icon.custom_minimum_size = Vector2.ONE * FEED_WEAPON_ICON_SIDE
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cause.add_child(icon)
+	cause.add_child(UiStyle.label(ItemStack.display_name_of(weapon), 15, Rarity.color(ItemStack.tier_of(weapon)).darkened(0.25)))
+	return cause
 
 
 func _avatar_of(id: int, side: float) -> AvatarView:
@@ -410,17 +434,34 @@ func _refresh_scoreboard() -> void:
 	for child in _score_rows.get_children():
 		child.free()
 	var ids := GameState.players.keys()
+	var elimination := Match.is_elimination()
 	ids.sort_custom(func(a: int, b: int) -> bool:
-		return GameState.players[a].kills > GameState.players[b].kills)
-	_score_rows.add_child(_score_row("Gracz", "Zabójstwa", "Śmierci", "Ping", UiStyle.CORAL, UiStyle.CORAL))
+		var first: Dictionary = GameState.players[a]
+		var second: Dictionary = GameState.players[b]
+		if elimination and first.alive != second.alive:
+			return first.alive
+		return first.kills > second.kills)
+	_score_rows.add_child(_score_row("Gracz", "Zabójstwa", "Status" if elimination else "Śmierci", "Ping", UiStyle.CORAL, UiStyle.CORAL))
 	for id: int in ids:
 		var info: Dictionary = GameState.players[id]
 		var ping: int = GameState.pings.get(id, -1)
 		var ping_text := "%d ms" % ping if ping >= 0 else "–"
-		var row := _score_row(info.name, str(info.kills), str(info.deaths), ping_text, UiStyle.INK, _ping_color(ping))
+		var middle := _match_status(info) if elimination else str(info.deaths)
+		var row := _score_row(info.name, str(info.kills), middle, ping_text, UiStyle.INK, _ping_color(ping))
 		row.add_child(_avatar_of(id, SCORE_AVATAR_SIDE))
 		row.move_child(row.get_child(-1), 0)
 		_score_rows.add_child(row)
+
+
+## Co gracz robi teraz w Battle Royale.
+func _match_status(info: Dictionary) -> String:
+	if Match.can_change_ready():
+		return "gotowy" if info.ready else "czeka"
+	if not info.in_match:
+		return "ogląda"
+	if info.place > 0:
+		return "miejsce %d" % info.place
+	return "żyje" if info.alive else "odpadł"
 
 
 func _ping_color(ping: int) -> Color:
@@ -433,7 +474,7 @@ func _ping_color(ping: int) -> Color:
 	return UiStyle.CORAL.darkened(0.1)
 
 
-func _score_row(player_name: String, kills: String, deaths: String, ping: String, color: Color, ping_color: Color) -> HBoxContainer:
+func _score_row(player_name: String, kills: String, middle: String, ping: String, color: Color, ping_color: Color) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	var name_label := UiStyle.label(player_name, 21, color)
@@ -441,7 +482,7 @@ func _score_row(player_name: String, kills: String, deaths: String, ping: String
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(name_label)
-	for value in [kills, deaths]:
+	for value in [kills, middle]:
 		var cell := UiStyle.label(value, 21, color)
 		cell.custom_minimum_size = Vector2(120, 0)
 		cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

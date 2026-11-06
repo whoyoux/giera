@@ -106,7 +106,7 @@ func _ready() -> void:
 		var stats := ItemRegistry.weapon_stats(ItemRegistry.DEFAULT_WEAPON, tier)
 		GameState.players[2].health = GameState.MAX_HEALTH
 		target.position = _pinned_at
-		shooter_behavior._resolve_shot(equipment, stats, NetworkTime.tick)
+		shooter_behavior._resolve_shot(equipment, equipment.active_stack(), stats, NetworkTime.tick)
 		var damage_dealt: int = GameState.MAX_HEALTH - GameState.players[2].health
 		print("[test] %s zadaje %d" % [Rarity.display_name(tier), damage_dealt])
 		if damage_dealt == 0:
