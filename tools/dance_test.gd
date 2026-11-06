@@ -144,6 +144,7 @@ func _test_camera_and_music() -> void:
 	_me.input.request_dance(2)
 	await _wait(0.2)
 	_check("zmiana tanca zmienia muzyke", _me.dance_id == 2 and _me._dance_music.stream() == DanceCatalog.music_of(2))
+	_check("zmiana tanca po obrocie kamery stawia postac przodem", absf(angle_difference(_me.yaw, _me.input.look_yaw + PI)) < 0.1)
 	await _stop_by_walking()
 	await _wait(0.6)
 	_check("po tancu kamera wraca do oczu", not _me.camera.top_level and _me.camera.position == Vector3.ZERO)
