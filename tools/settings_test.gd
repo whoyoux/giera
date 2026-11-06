@@ -21,6 +21,7 @@ func _ready() -> void:
 		return
 
 	_check("domyslna glosnosc", is_equal_approx(Settings.value("volume"), Settings.DEFAULTS.volume))
+	_test_graphics()
 	await _check_window_stays()
 	await _test_panel()
 	await _test_reload_sound()
@@ -36,6 +37,28 @@ func _ready() -> void:
 	await _wait(0.6)
 	_check("plik ustawien powstal", FileAccess.file_exists(Settings.path))
 	_finish()
+
+
+func _test_graphics() -> void:
+	var root := get_tree().root
+	var environment := (get_node("/root/Main/World/WorldEnvironment") as WorldEnvironment).environment
+	var sun := get_node("/root/Main/World/Sun") as DirectionalLight3D
+	Settings.set_value("graphics", float(Settings.Graphics.LOW))
+	_check("niska: bez SSAO i glow", not environment.ssao_enabled and not environment.glow_enabled)
+	_check("niska: 2 podzialy cieni", sun.directional_shadow_mode == DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS)
+	Settings.set_value("graphics", float(Settings.Graphics.MEDIUM))
+	_check("srednia: SSAO wraca", environment.ssao_enabled and environment.glow_enabled)
+	_check("srednia: MSAA 2x", root.msaa_3d == Viewport.MSAA_2X)
+	Settings.set_value("graphics", float(Settings.Graphics.HIGH))
+	_check("wysoka: MSAA 4x", root.msaa_3d == Viewport.MSAA_4X)
+	Settings.set_value("render_scale", 0.75)
+	_check("skala 75% przez FSR", root.scaling_3d_mode == Viewport.SCALING_3D_MODE_FSR and is_equal_approx(root.scaling_3d_scale, 0.75))
+	Settings.set_value("render_scale", 1.0)
+	_check("skala 100% bez skalowania", root.scaling_3d_mode == Viewport.SCALING_3D_MODE_BILINEAR)
+	Settings._config.set_value(Settings.SECTION, "high_quality", false)
+	Settings._migrate_old_quality()
+	_check("stary przelacznik przechodzi na niska", Settings.graphics() == Settings.Graphics.LOW and not Settings._config.has_section_key(Settings.SECTION, "high_quality"))
+	Settings.set_value("graphics", float(Settings.Graphics.HIGH))
 
 
 func _test_panel() -> void:
