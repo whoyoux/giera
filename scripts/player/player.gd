@@ -38,6 +38,8 @@ const SHAKE_HIT_BASE := 0.25
 const SHAKE_HIT_STRENGTH := 0.35
 const STEP_VOLUME_LOCAL := -11.0
 const STEP_VOLUME_REMOTE := -2.0
+## Tak dlugo cialo wyeliminowanego gracza lezy na mapie.
+const CORPSE_SECONDS := 5.0
 
 var peer_id := 0
 ## Referencja do wpisu w GameState (zdrowie, punkty, respawn).
@@ -84,6 +86,8 @@ var _next_prime_beep := 0.0
 var _seen_dance := DanceCatalog.NONE
 var _dance_music: DanceMusic
 var _dance_camera := DanceCamera.new()
+var _tag_root: Node3D
+var _seen_present := true
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -122,7 +126,10 @@ func _ready() -> void:
 	if not local and not Net.is_headless:
 		var tag := AvatarTag.new(info.get("steam_id", 0))
 		tag.position = name_label.position + Vector3.UP * AVATAR_TAG_HEIGHT
-		add_child(tag)
+		# Zdjecie samo decyduje o swojej widocznosci, wiec ukrywamy je przez rodzica.
+		_tag_root = Node3D.new()
+		add_child(_tag_root)
+		_tag_root.add_child(tag)
 	if not Net.is_headless:
 		_switch_audio = AudioStreamPlayer.new()
 		_switch_audio.stream = Sfx.switch_item()
@@ -349,6 +356,7 @@ func _process(delta: float) -> void:
 	if health < _seen_health and health > 0 and not is_local():
 		model.play_hit()
 	_seen_health = health
+	_update_presence()
 	_update_body_feedback(delta, grounded)
 	_update_prime_beep(delta)
 	_update_dance_view()
@@ -370,6 +378,20 @@ func _process(delta: float) -> void:
 	else:
 		var local_velocity := _velocity_smoothed.rotated(Vector3.UP, -rotation.y)
 		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
+
+
+## Widzowie i ciala starsze niz kilka sekund znikaja z mapy, ale ich wezly zostaja do konca meczu.
+func _update_presence() -> void:
+	if is_local():
+		return
+	var present: bool = info.alive or (info.in_match and NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(CORPSE_SECONDS)) or not Match.is_elimination()
+	if present == _seen_present:
+		return
+	_seen_present = present
+	model.visible = present
+	name_label.visible = present
+	if _tag_root != null:
+		_tag_root.visible = present
 
 
 ## Kazdy klient sam wlacza animacje i muzyke, gdy zobaczy zmiane stanu tanca.

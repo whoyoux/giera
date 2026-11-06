@@ -25,6 +25,8 @@ func _ready() -> void:
 	Settings.changed.connect(_apply_quality)
 	add_child(ChestField.new())
 	if not Net.is_headless:
+		add_child(SpectatorCamera.new())
+	if not Net.is_headless:
 		add_child(PickupField.new())
 		add_child(ExplosionPool.new())
 	_apply_quality()

@@ -12,6 +12,8 @@ var _ready_action: Label
 var _big_panel: PanelContainer
 var _big_label: Label
 var _shown_second := -1
+var _watch_panel: PanelContainer
+var _watch_label: Label
 
 
 func _ready() -> void:
@@ -19,6 +21,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_roster()
 	_build_big_label()
+	_build_watch_hint()
 	Match.phase_changed.connect(_refresh)
 	GameState.player_changed.connect(func(_id: int) -> void: _refresh())
 	GameState.player_added.connect(func(_id: int) -> void: _refresh())
@@ -33,6 +36,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
+	_update_watch_hint()
 	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING
 	_big_panel.visible = counting
 	if not counting:
@@ -44,6 +48,14 @@ func _process(_delta: float) -> void:
 	_shown_second = second
 	_big_label.text = ("Start za %d" if Match.phase == Match.Phase.COUNTDOWN else "Ruszasz za %d") % second
 	UiSound.play(Sfx.UiCue.NOTE)
+
+
+func _update_watch_hint() -> void:
+	var camera := get_tree().get_first_node_in_group(SpectatorCamera.GROUP) as SpectatorCamera
+	var watched := camera.target_name() if camera != null else ""
+	_watch_panel.visible = not watched.is_empty()
+	if _watch_panel.visible:
+		_watch_label.text = "Oglądasz: %s" % watched
 
 
 func _refresh() -> void:
@@ -106,6 +118,31 @@ func _build_roster() -> void:
 	action.add_child(UiStyle.key_chip("F", 34, 19))
 	_ready_action = UiStyle.label("", 19)
 	action.add_child(_ready_action)
+
+
+func _build_watch_hint() -> void:
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	center.position.y -= 40.0
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center)
+	_watch_panel = PanelContainer.new()
+	var style := UiStyle.sticker(UiStyle.PAPER, 18, 5)
+	style.set_content_margin_all(9)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	_watch_panel.add_theme_stylebox_override("panel", style)
+	_watch_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_watch_panel.visible = false
+	center.add_child(_watch_panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	_watch_panel.add_child(row)
+	_watch_label = UiStyle.label("", 21, UiStyle.INK)
+	row.add_child(_watch_label)
+	row.add_child(UiStyle.label("LPM: następny gracz", 17, Color(UiStyle.INK, 0.65), false))
 
 
 func _build_big_label() -> void:
