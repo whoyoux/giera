@@ -11,13 +11,13 @@ LOSS="${2:-2}"
 SERVER_PORT=7881
 PROXY_PORT=7882
 LOGS=tools/logs
-SECONDS_TOTAL=170
+SECONDS_TOTAL=110
 PROBE="--tool=res://tools/match_probe.gd --auto-ready --debug-weapons"
 mkdir -p "$LOGS"
 
 timeout $SECONDS_TOTAL "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$SERVER_PORT --debug-weapons --tool=res://tools/match_probe.gd > "$LOGS/reset_server.log" 2>&1 &
 sleep 2
-python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" 32 > /dev/null 2>&1 &
+python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" $SECONDS_TOTAL > /dev/null 2>&1 &
 PROXY=$!
 sleep 1
 for name in A B C; do

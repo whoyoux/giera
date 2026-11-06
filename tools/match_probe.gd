@@ -4,18 +4,21 @@ extends Node
 ## --auto-ready klika Gotowe przy kazdym powrocie do lobby. --quit-after-live=2 wychodzi z gry
 ## w trakcie meczu. --kill-all-at=3 na serwerze zabija wszystkich w jednej klatce, co jest remisem.
 
+const RESET_REPORT_DELAY := 2.0
+
 var _elapsed := 0.0
 var _plan := []
 var _freeze_start := Vector3.INF
 var _freeze_checked := false
 var _live_time := 0.0
+var _matches := 0
 
 
 func _ready() -> void:
 	for key: String in ["ready-at", "unready-at", "ready-again-at"]:
 		if Net.args.has(key):
 			_plan.append(float(Net.args[key]))
-	Match.phase_changed.connect(func() -> void: print("[etap] %s" % Match.Phase.find_key(Match.phase)))
+	Match.phase_changed.connect(_on_phase_changed)
 
 
 func _process(delta: float) -> void:
@@ -41,6 +44,35 @@ func _update_scenarios() -> void:
 		Net.args.erase("kill-all-at")
 		for id: int in GameState.players.keys():
 			GameState.server_damage(id, GameState.MAX_HEALTH, id)
+
+
+func _on_phase_changed() -> void:
+	print("[etap] %s" % Match.Phase.find_key(Match.phase))
+	if Match.phase == Match.Phase.RESULTS:
+		print("[wyniki] %s" % str(Match.results.map(func(entry: Dictionary) -> String: return "%d:%s:%d" % [entry.place, entry.name, entry.kills])))
+	elif Match.phase == Match.Phase.LOBBY and _matches > 0:
+		_report_clean_state.call_deferred()
+	if Match.phase == Match.Phase.LIVE:
+		_matches += 1
+
+
+## Po powrocie do lobby nic z meczu nie moze zostac. Czekamy na dotarcie stanu graczy.
+func _report_clean_state() -> void:
+	await get_tree().create_timer(RESET_REPORT_DELAY).timeout
+	var open := 0
+	for id: int in Chests.chests:
+		open += 1 if Chests.chests[id].open else 0
+	var dirty := 0
+	for id: int in GameState.players:
+		var info: Dictionary = GameState.players[id]
+		var kept := 0
+		for stack: Dictionary in info.slots:
+			kept += 0 if ItemStack.is_empty(stack) else 1
+		# Reset daje od nowa tylko to, co wynika z flag testowych.
+		var expected := 3 if Net.args.has("debug-weapons") else 0
+		if kept != expected or info.health != GameState.MAX_HEALTH or not info.alive or not info.in_match or info.kills != 0 or info.deaths != 0 or info.place != 0 or info.spawn_index != -1:
+			dirty += 1
+	print("[reset] mecz=%d przedmioty=%d granaty=%d otwarte=%d brudni=%d graczy=%d" % [_matches, WorldItems.items.size(), Grenades.flying_count(), open, dirty, GameState.players.size()])
 
 
 ## Postac ma stac w miejscu przez cale unieruchomienie, a konczyc je na wlasnym punkcie.

@@ -12,6 +12,11 @@ var _ready_action: Label
 var _big_panel: PanelContainer
 var _big_label: Label
 var _shown_second := -1
+var _results_center: CenterContainer
+var _results_card: PanelContainer
+var _results_title: Label
+var _results_rows: VBoxContainer
+var _results_timer: Label
 var _watch_panel: PanelContainer
 var _watch_label: Label
 
@@ -22,6 +27,7 @@ func _ready() -> void:
 	_build_roster()
 	_build_big_label()
 	_build_watch_hint()
+	_build_results()
 	Match.phase_changed.connect(_refresh)
 	GameState.player_changed.connect(func(_id: int) -> void: _refresh())
 	GameState.player_added.connect(func(_id: int) -> void: _refresh())
@@ -37,6 +43,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	_update_watch_hint()
+	if _results_center.visible:
+		_results_timer.text = "Powrót do lobby za %d" % ceili(Match.seconds_left())
 	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING
 	_big_panel.visible = counting
 	if not counting:
@@ -59,6 +67,7 @@ func _update_watch_hint() -> void:
 
 
 func _refresh() -> void:
+	_refresh_results()
 	_roster_card.visible = Match.can_change_ready()
 	if not _roster_card.visible:
 		return
@@ -76,6 +85,41 @@ func _refresh() -> void:
 		_roster_status.text = "Gotowi: %d z %d" % [ready_count, total]
 	var mine: Dictionary = GameState.players.get(multiplayer.get_unique_id(), {})
 	_ready_action.text = "cofnij gotowość" if mine.get("ready", false) else "jestem gotowy"
+
+
+func _refresh_results() -> void:
+	var showing := Match.phase == Match.Phase.RESULTS
+	if showing and not _results_center.visible:
+		_fill_results()
+		UiStyle.pop_in(_results_card)
+		UiSound.play(Sfx.UiCue.OPEN)
+	_results_center.visible = showing
+
+
+func _fill_results() -> void:
+	for child in _results_rows.get_children():
+		child.free()
+	var winners := Match.results.filter(func(entry: Dictionary) -> bool: return entry.place == 1)
+	var my_id := multiplayer.get_unique_id()
+	if winners.size() == 1 and winners[0].id == my_id:
+		_results_title.text = "Wygrywasz!"
+	elif winners.size() == 1:
+		_results_title.text = "Wygrywa %s" % winners[0].name
+	else:
+		_results_title.text = "Remis"
+	for entry: Dictionary in Match.results:
+		var row := HBoxContainer.new()
+		var color := UiStyle.BLUE if entry.id == my_id else UiStyle.INK
+		var place := UiStyle.label("%d." % entry.place, 21, color)
+		place.custom_minimum_size.x = 42.0
+		row.add_child(place)
+		var name_label := UiStyle.label(entry.name, 21, color)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.clip_text = true
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		row.add_child(name_label)
+		row.add_child(UiStyle.label("zabójstwa: %d" % entry.kills, 19, color, false))
+		_results_rows.add_child(row)
 
 
 func _row(info: Dictionary) -> HBoxContainer:
@@ -118,6 +162,31 @@ func _build_roster() -> void:
 	action.add_child(UiStyle.key_chip("F", 34, 19))
 	_ready_action = UiStyle.label("", 19)
 	action.add_child(_ready_action)
+
+
+func _build_results() -> void:
+	_results_center = CenterContainer.new()
+	_results_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_results_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_results_center.visible = false
+	add_child(_results_center)
+	_results_card = PanelContainer.new()
+	_results_card.custom_minimum_size = Vector2(520, 0)
+	_results_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
+	_results_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_results_center.add_child(_results_card)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	_results_card.add_child(column)
+	_results_title = UiStyle.label("", 38, UiStyle.CORAL)
+	_results_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_results_title)
+	_results_rows = VBoxContainer.new()
+	_results_rows.add_theme_constant_override("separation", 6)
+	column.add_child(_results_rows)
+	_results_timer = UiStyle.label("", 17, Color(UiStyle.INK, 0.65), false)
+	_results_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_results_timer)
 
 
 func _build_watch_hint() -> void:
