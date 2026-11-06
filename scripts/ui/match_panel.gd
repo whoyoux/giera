@@ -1,9 +1,13 @@
 class_name MatchPanel
 extends Control
-## Interfejs etapow Battle Royale: lista gotowosci w lobby i duze odliczanie.
+## Interfejs etapow Battle Royale: lobby, odliczanie, licznik zywych, strefa, widz i wyniki.
 
 const ROSTER_NAME_LENGTH := 20
 const ROSTER_WIDTH := 300.0
+const ZONE_TINT := Color(0.45, 0.33, 1.0)
+const ZONE_TINT_ALPHA := 0.2
+const ZONE_TINT_PULSE := 0.07
+const ZONE_HUM_VOLUME := -8.0
 
 var _roster_card: PanelContainer
 var _roster_rows: VBoxContainer
@@ -12,6 +16,11 @@ var _ready_action: Label
 var _big_panel: PanelContainer
 var _big_label: Label
 var _shown_second := -1
+var _info_panel: PanelContainer
+var _info_label: Label
+var _outside_panel: PanelContainer
+var _zone_tint: ColorRect
+var _zone_audio: AudioStreamPlayer
 var _results_center: CenterContainer
 var _results_card: PanelContainer
 var _results_title: Label
@@ -22,8 +31,10 @@ var _watch_label: Label
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	set_process(not Net.is_headless)
+	_build_zone_feedback()
 	_build_roster()
 	_build_big_label()
 	_build_watch_hint()
@@ -43,6 +54,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	_update_watch_hint()
+	_update_match_info()
 	if _results_center.visible:
 		_results_timer.text = "Powrót do lobby za %d" % ceili(Match.seconds_left())
 	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING
@@ -56,6 +68,33 @@ func _process(_delta: float) -> void:
 	_shown_second = second
 	_big_label.text = ("Start za %d" if Match.phase == Match.Phase.COUNTDOWN else "Ruszasz za %d") % second
 	UiSound.play(Sfx.UiCue.NOTE)
+
+
+## Licznik zywych i strefa. Ostrzezenie dotyczy tylko zywej postaci gracza.
+func _update_match_info() -> void:
+	var state := Match.zone_state()
+	_info_panel.visible = not state.is_empty()
+	var me := GameState.player_node(multiplayer.get_unique_id())
+	var outside: bool = not state.is_empty() and me != null and me.is_alive() and Zone.is_outside(state, me.position)
+	_outside_panel.visible = outside
+	_zone_tint.visible = outside
+	if outside != _zone_audio.playing:
+		if outside:
+			_zone_audio.play()
+		else:
+			_zone_audio.stop()
+	if outside:
+		_zone_tint.color = Color(ZONE_TINT, ZONE_TINT_ALPHA + sin(Time.get_ticks_msec() * 0.006) * ZONE_TINT_PULSE)
+	if not state.is_empty():
+		_info_label.text = "Żywi: %d   ·   %s" % [Match.alive_count(), _zone_text(state)]
+
+
+func _zone_text(state: Dictionary) -> String:
+	if state.seconds_left <= 0.0:
+		return "strefa zamknięta"
+	var seconds := ceili(state.seconds_left / Match.zone_speed)
+	var clock := "%d:%02d" % [seconds / 60, seconds % 60]
+	return "strefa zawęża się jeszcze %s" % clock if state.shrinking else "strefa ruszy za %s" % clock
 
 
 func _update_watch_hint() -> void:
@@ -162,6 +201,51 @@ func _build_roster() -> void:
 	action.add_child(UiStyle.key_chip("F", 34, 19))
 	_ready_action = UiStyle.label("", 19)
 	action.add_child(_ready_action)
+
+
+func _build_zone_feedback() -> void:
+	_zone_tint = ColorRect.new()
+	_zone_tint.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_zone_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_zone_tint.visible = false
+	add_child(_zone_tint)
+	_zone_audio = AudioStreamPlayer.new()
+	# Dzwiek liczy sie chwile, a serwer bez ekranu nigdy go nie zagra.
+	if not Net.is_headless:
+		_zone_audio.stream = Sfx.zone_hum()
+	_zone_audio.volume_db = ZONE_HUM_VOLUME
+	add_child(_zone_audio)
+
+	var info_center := CenterContainer.new()
+	info_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	info_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	info_center.position.y = 22.0
+	info_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(info_center)
+	_info_panel = PanelContainer.new()
+	var style := UiStyle.sticker(UiStyle.PAPER, 16, 4)
+	style.set_content_margin_all(8)
+	style.content_margin_left = 16
+	style.content_margin_right = 16
+	_info_panel.add_theme_stylebox_override("panel", style)
+	_info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_info_panel.visible = false
+	info_center.add_child(_info_panel)
+	_info_label = UiStyle.label("", 19, UiStyle.INK)
+	_info_panel.add_child(_info_label)
+
+	var outside_center := CenterContainer.new()
+	outside_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	outside_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	outside_center.position.y = 76.0
+	outside_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(outside_center)
+	_outside_panel = PanelContainer.new()
+	_outside_panel.add_theme_stylebox_override("panel", UiStyle.sticker(Color("7a5cff"), 18, 5))
+	_outside_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outside_panel.visible = false
+	outside_center.add_child(_outside_panel)
+	_outside_panel.add_child(UiStyle.label("Jesteś poza strefą!", 26, Color.WHITE))
 
 
 func _build_results() -> void:

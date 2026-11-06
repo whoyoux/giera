@@ -13,6 +13,7 @@ const FOLLOW_SPEED := 9.0
 const DELAY_SECONDS := 2.0
 
 var _target_id := 0
+var _untagged: Player
 
 
 func _ready() -> void:
@@ -37,6 +38,7 @@ func _process(delta: float) -> void:
 			me.camera.current = true
 			me.view_model.visible = true
 		_target_id = 0
+		_show_tag_of(null)
 		return
 	if not _is_valid_target(_target_id):
 		_select_next()
@@ -47,7 +49,19 @@ func _process(delta: float) -> void:
 		current = true
 		me.view_model.visible = false
 		global_position = target.position + Vector3.UP * HEIGHT
+	_show_tag_of(target)
 	_follow(target, delta)
+
+
+## Oddaje nazwe poprzedniemu ogladanemu i chowa ja obecnemu.
+func _show_tag_of(target: Player) -> void:
+	if target == _untagged:
+		return
+	if is_instance_valid(_untagged):
+		_untagged.set_name_tag_visible(true)
+	_untagged = target
+	if target != null:
+		target.set_name_tag_visible(false)
 
 
 func _should_watch(me: Player) -> bool:

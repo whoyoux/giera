@@ -1,6 +1,6 @@
 # Plan: battle royale
 
-Plan na później. Nic z tego nie jest jeszcze zaimplementowane.
+Kroki 1–4 są zrobione. Battle Royale to osobny tryb obok Deathmatchu: każdy tryb ma własny serwer i port (`compose.yaml`), a gracz wybiera tryb w menu głównym.
 
 ## Zasady
 
@@ -27,7 +27,7 @@ Każdy krok to osobny PR. Pierwsze wydanie po kroku 3.
 
 ## Strefa
 
-Propozycja dla mapy o promieniu 39 m, razem ok. 5 min 45 s.
+Mapa o promieniu 39 m, razem 4 min 40 s.
 
 | Faza | Czekanie | Zawężanie | Promień | Obrażenia/s |
 |---|---|---|---|---|
@@ -36,9 +36,9 @@ Propozycja dla mapy o promieniu 39 m, razem ok. 5 min 45 s.
 | 3 | 35 s | 25 s | 15 → 7 m | 7 |
 | 4 | 20 s | 25 s | 7 → 0 m | 12 |
 
-## Ustawienia do potwierdzenia
+## Ustawienia
 
-- Start ze zwykłym blasterem, który też wypada po śmierci.
+- Start bez broni. Łup trzeba zdobyć w skrzynkach.
 - Dołączenie w trakcie meczu: widz, a po końcu lobby.
 - Limit 10 graczy w meczu, reszta ogląda.
 - Start wymaga gotowości wszystkich w lobby. Później można dodać limit czasu dla osób poza klawiaturą.
@@ -47,4 +47,4 @@ Propozycja dla mapy o promieniu 39 m, razem ok. 5 min 45 s.
 
 - Krok 2: śmierć i odrodzenie są związane z rollbackiem, a błąd może wyjść dopiero przy opóźnieniu.
 - Krok 3: każda przeoczona rzecz przejdzie do kolejnego meczu.
-- Każde scalenie restartuje publiczny serwer, a stary tryb zniknie po pierwszym wydaniu.
+- Krok 6: mapa ma 11 skrzynek i każda otwiera się raz na mecz, a start jest bez broni, więc przy 10 graczach łupu może być za mało.

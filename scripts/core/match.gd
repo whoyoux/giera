@@ -14,6 +14,7 @@ const TELEPORT_LEAD_SECONDS := 0.5
 const FREEZE_SECONDS := 3.0
 const MAX_MATCH_PLAYERS := 10
 const RESULTS_SECONDS := 10.0
+const ZONE_DAMAGE_INTERVAL := 1.0
 ## Tick, ktory nigdy nie nadejdzie: wyeliminowany nie wraca sam do gry.
 const NEVER_TICK := 1 << 62
 
@@ -23,6 +24,11 @@ var phase := Phase.LIVE
 var phase_end_tick := -1
 var freeze_from_tick := -1
 var freeze_end_tick := -1
+var zone: Zone
+var zone_start_tick := -1
+## Tylko do testow: przyspiesza strefe flaga --zone-speed.
+var zone_speed := 1.0
+var zone_seed := 0
 ## Wyniki ostatniego meczu: { id, name, kills, place } od zwyciezcy w dol.
 var results: Array = []
 
@@ -31,6 +37,7 @@ var _ranking := {}
 ## Kto odpadl od ostatniego rozliczenia. Smierci z jednego wybuchu rozliczamy razem.
 var _pending_out: Array[int] = []
 var _settle_queued := false
+var _zone_timer := 0.0
 
 
 func _ready() -> void:
@@ -79,6 +86,13 @@ func can_change_ready() -> bool:
 	return is_elimination() and (phase == Phase.LOBBY or phase == Phase.COUNTDOWN)
 
 
+## Stan strefy albo pusty slownik, gdy mecz nie trwa.
+func zone_state() -> Dictionary:
+	if zone == null or phase != Phase.LIVE:
+		return {}
+	return zone.state_at(maxf(0.0, (NetworkTime.tick - zone_start_tick) * NetworkTime.ticktime * zone_speed))
+
+
 ## Sekundy do konca etapu.
 func seconds_left() -> float:
 	return maxf(0.0, (phase_end_tick - NetworkTime.tick) * NetworkTime.ticktime) if phase_end_tick >= 0 else 0.0
@@ -119,9 +133,10 @@ func server_send_state(id: int) -> void:
 	_sync_state.rpc_id(id, _state())
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not Net.in_session or not is_elimination() or not multiplayer.is_server():
 		return
+	_update_zone_damage(delta)
 	if phase_end_tick < 0 or NetworkTime.tick < phase_end_tick:
 		return
 	match phase:
@@ -132,6 +147,22 @@ func _process(_delta: float) -> void:
 			_settle()
 		Phase.RESULTS:
 			_return_to_lobby()
+
+
+## Raz na sekunde bije wszystkich zywych poza strefa. Atakujacym jest sama strefa.
+func _update_zone_damage(delta: float) -> void:
+	var state := zone_state()
+	if state.is_empty():
+		_zone_timer = 0.0
+		return
+	_zone_timer += delta
+	if _zone_timer < ZONE_DAMAGE_INTERVAL:
+		return
+	_zone_timer -= ZONE_DAMAGE_INTERVAL
+	for id: int in GameState.players.keys():
+		var node := GameState.player_node(id)
+		if node != null and node.is_alive() and node.info.in_match and Zone.is_outside(state, node.position):
+			GameState.server_damage(id, state.damage, GameState.ZONE_ATTACKER)
 
 
 ## Start wymaga co najmniej 2 graczy i gotowosci wszystkich. Nowy gracz nie jest gotowy,
@@ -155,6 +186,11 @@ func _start_match() -> void:
 	var start_tick := NetworkTime.tick + NetworkTime.seconds_to_ticks(TELEPORT_LEAD_SECONDS)
 	freeze_from_tick = start_tick
 	freeze_end_tick = start_tick + NetworkTime.seconds_to_ticks(FREEZE_SECONDS)
+	# Zero oznacza brak strefy, wiec ziarno jest zawsze nieparzyste.
+	zone_seed = randi() | 1
+	zone_start_tick = freeze_end_tick
+	zone_speed = float(Net.args.get("zone-speed", 1.0))
+	zone = Zone.new(zone_seed)
 	_clear_world.rpc()
 	_enter_phase(Phase.STARTING, freeze_end_tick)
 	var index := 0
@@ -213,6 +249,8 @@ func _return_to_lobby() -> void:
 	freeze_from_tick = -1
 	freeze_end_tick = -1
 	results = []
+	zone = null
+	zone_seed = 0
 	_ranking.clear()
 	_clear_world.rpc()
 	_enter_phase(Phase.LOBBY, -1)
@@ -230,7 +268,7 @@ func _enter_phase(new_phase: int, end_tick: int) -> void:
 
 
 func _state() -> Dictionary:
-	return { "mode": mode, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results }
+	return { "mode": mode, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
 
 
 func _clear() -> void:
@@ -240,6 +278,8 @@ func _clear() -> void:
 	freeze_from_tick = -1
 	freeze_end_tick = -1
 	results = []
+	zone = null
+	zone_seed = 0
 	_ranking.clear()
 	_pending_out.clear()
 	phase_changed.emit()
@@ -263,6 +303,11 @@ func _sync_state(state: Dictionary) -> void:
 	freeze_from_tick = state.freeze_from_tick
 	freeze_end_tick = state.freeze_end_tick
 	results = state.results
+	zone_start_tick = state.zone_start_tick
+	zone_speed = state.zone_speed
+	if state.zone_seed != zone_seed:
+		zone_seed = state.zone_seed
+		zone = Zone.new(zone_seed) if zone_seed != 0 else null
 	phase_changed.emit()
 
 

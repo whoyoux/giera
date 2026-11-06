@@ -380,6 +380,13 @@ func _process(delta: float) -> void:
 		model.update_pose(delta, Vector2(local_velocity.x, -local_velocity.z), grounded, pitch, sprinting, not info.alive)
 
 
+## Widz patrzy z bliska, wiec nazwa ogladanego gracza zaslanialaby mu pol ekranu.
+func set_name_tag_visible(shown: bool) -> void:
+	name_label.visible = shown and _seen_present
+	if _tag_root != null:
+		_tag_root.visible = shown and _seen_present
+
+
 ## Widzowie i ciala starsze niz kilka sekund znikaja z mapy, ale ich wezly zostaja do konca meczu.
 func _update_presence() -> void:
 	if is_local():
