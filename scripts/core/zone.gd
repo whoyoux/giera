@@ -3,11 +3,11 @@ extends RefCounted
 ## Zacieśniajaca sie strefa. Przebieg wynika tylko z ziarna, wiec serwer wysyla je raz, a kazdy
 ## liczy to samo. Obrazenia zadaje wylacznie serwer. Kazde kolejne kolo lezy w poprzednim.
 
-const START_RADIUS := 39.0
+const START_RADIUS := ForestTerrain.BORDER_RADIUS
 const PHASES: Array[Dictionary] = [
-	{ "wait": 60.0, "shrink": 40.0, "radius": 26.0, "damage": 2 },
-	{ "wait": 45.0, "shrink": 30.0, "radius": 15.0, "damage": 4 },
-	{ "wait": 35.0, "shrink": 25.0, "radius": 7.0, "damage": 7 },
+	{ "wait": 60.0, "shrink": 40.0, "radius": 34.0, "damage": 2 },
+	{ "wait": 45.0, "shrink": 30.0, "radius": 20.0, "damage": 4 },
+	{ "wait": 35.0, "shrink": 25.0, "radius": 9.0, "damage": 7 },
 	{ "wait": 20.0, "shrink": 25.0, "radius": 0.0, "damage": 12 },
 ]
 

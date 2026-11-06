@@ -9,29 +9,29 @@ extends StaticBody3D
 enum Ground { GRASS, DIRT, STONE, WATER }
 
 const CELL := 2.5
-const HALF_CELLS := 36
+const HALF_CELLS := 46
 ## Dalej kolizja nie jest potrzebna, bo gracza zatrzymuje wczesniej granica mapy.
-const COLLISION_RADIUS := 48.0
-const BORDER_RADIUS := 39.0
-const BORDER_SEGMENTS := 16
+const COLLISION_RADIUS := 62.0
+const BORDER_RADIUS := 50.0
+const BORDER_SEGMENTS := 20
 const BORDER_HEIGHT := 60.0
 const BORDER_THICKNESS := 2.0
 const WATER_LEVEL := -0.75
 
-const CLEARING_INNER := 20.0
-const CLEARING_OUTER := 30.0
-const RIM_INNER := 33.0
-const RIM_OUTER := 44.0
+const CLEARING_INNER := 26.0
+const CLEARING_OUTER := 39.0
+const RIM_INNER := 43.0
+const RIM_OUTER := 57.0
 const RIM_HEIGHT := 9.0
-const HILL_CENTER := Vector2(18.0, -18.0)
-const HILL_HEIGHT := 3.5
-const HILL_WIDTH := 6.5
+const HILL_CENTER := Vector2(24.0, -24.0)
+const HILL_HEIGHT := 4.0
+const HILL_WIDTH := 8.0
 const CREEK_DEPTH := 1.2
 const CREEK_INNER := 1.2
 const CREEK_OUTER := 3.2
-const CREEK_Z := 25.0
-const CREEK_WAVE := 5.0
-const CREEK_FREQUENCY := 0.13
+const CREEK_Z := 32.0
+const CREEK_WAVE := 6.5
+const CREEK_FREQUENCY := 0.1
 
 const GRASS := Color("5f9438")
 const GRASS_LIGHT := Color("6da342")
@@ -41,6 +41,8 @@ const DIRT := Color("94744a")
 const CREEK_BED := Color("a3925f")
 const WATER := Color(0.36, 0.66, 0.82, 0.72)
 const PATH_WIDTH := 1.6
+const PATH_RADIUS := 40.0
+const FOREST_FLOOR_START := 29.0
 const RUIN_DIRT_RADIUS := 9.5
 ## Wyzej nad ziemia gracz stoi juz na kamieniach ruin albo skalach.
 const STANDING_ON_STONE_HEIGHT := 0.35
@@ -98,7 +100,7 @@ static func surface(x: float, z: float) -> float:
 
 ## Sciezki biegna od ruin na polnoc, wschod i zachod.
 static func is_path(x: float, z: float) -> bool:
-	if Vector2(x, z).length() > 31.0:
+	if Vector2(x, z).length() > PATH_RADIUS:
 		return false
 	if z < 0.0 and absf(x - 2.0 * sin(z * 0.2)) < PATH_WIDTH:
 		return true
@@ -171,7 +173,7 @@ func _add_face(tool: SurfaceTool, triangle: Array) -> void:
 func _ground_color(center: Vector3, normal: Vector3) -> Color:
 	var distance := Vector2(center.x, center.z).length()
 	var color := GRASS.lerp(GRASS_LIGHT, (sin(center.x * 1.7) * cos(center.z * 1.3) + 1.0) * 0.5)
-	color = color.lerp(FOREST_FLOOR, smoothstep(22.0, 30.0, distance))
+	color = color.lerp(FOREST_FLOOR, smoothstep(FOREST_FLOOR_START, CLEARING_OUTER, distance))
 	color = color.lerp(RIM_GRASS, smoothstep(RIM_INNER, RIM_OUTER, distance))
 	if distance < RUIN_DIRT_RADIUS or is_path(center.x, center.z):
 		color = DIRT
@@ -197,7 +199,7 @@ func _build_border() -> void:
 
 func _build_water() -> void:
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(120.0, 40.0)
+	plane.size = Vector2(156.0, 52.0)
 	var material := StandardMaterial3D.new()
 	material.albedo_color = WATER
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA

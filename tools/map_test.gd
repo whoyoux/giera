@@ -16,7 +16,7 @@ func _ready() -> void:
 
 	# Kolizja lezy dokladnie tam, gdzie liczy ja wzor.
 	var worst := 0.0
-	for spot: Vector2 in [Vector2(0, 0), Vector2(18, -18), Vector2(7.3, 26.1), Vector2(-27.7, 14.2), Vector2(31.1, -11.9), Vector2(-3.3, 35.0)]:
+	for spot: Vector2 in [Vector2(0, 0), Vector2(24, -24), Vector2(7.3, 34.1), Vector2(-36.7, 18.2), Vector2(41.1, -15.9), Vector2(-3.3, 46.0)]:
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(spot.x, 30, spot.y), Vector3(spot.x, -10, spot.y), Hitscan.WORLD_MASK))
 		if hit.collider is ForestTerrain:
 			worst = maxf(worst, absf(hit.position.y - ForestTerrain.surface(spot.x, spot.y)))
@@ -34,9 +34,9 @@ func _ready() -> void:
 
 	# Prawdziwy ksztalt gracza idacy po terenie.
 	await _walk("rampa na wieze", Vector3(5.0, 0.3, -4.5), Vector3(-3.0, 0.0, -4.5), func(body: CharacterBody3D) -> bool: return body.position.y > 3.4)
-	await _walk("wejscie na wzgorze", Vector3(18.0, 1.0, -8.0), Vector3(18.0, 0.0, -18.0), func(body: CharacterBody3D) -> bool: return body.position.y > 3.0)
-	await _walk("wyjscie ze strumienia", Vector3(-1.0, 0.0, 25.0), Vector3(-1.0, 0.0, 14.0), func(body: CharacterBody3D) -> bool: return body.position.z < 16.0)
-	await _walk("granica zatrzymuje", Vector3(36.0, 3.0, 0.5), Vector3(60.0, 0.0, 0.5), func(body: CharacterBody3D) -> bool: return Vector2(body.position.x, body.position.z).length() < ForestTerrain.BORDER_RADIUS + 0.5, 2.0, true)
+	await _walk("wejscie na wzgorze", Vector3(24.0, 1.0, -12.0), Vector3(24.0, 0.0, -24.0), func(body: CharacterBody3D) -> bool: return body.position.y > 3.4)
+	await _walk("wyjscie ze strumienia", Vector3(-1.0, 0.0, ForestTerrain.creek_center_z(-1.0)), Vector3(-1.0, 0.0, 18.0), func(body: CharacterBody3D) -> bool: return body.position.z < 21.0)
+	await _walk("granica zatrzymuje", Vector3(47.0, 3.0, 0.5), Vector3(75.0, 0.0, 0.5), func(body: CharacterBody3D) -> bool: return Vector2(body.position.x, body.position.z).length() < ForestTerrain.BORDER_RADIUS + 0.5, 2.0, true)
 
 	print("[test] %s" % ("WSZYSTKO OK" if _failures == 0 else "BLEDY: %d" % _failures))
 	get_tree().quit(1 if _failures > 0 else 0)
