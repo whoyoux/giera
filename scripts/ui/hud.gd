@@ -45,7 +45,8 @@ var _use_bar: ProgressBar
 var _heal_label: Label
 var _heal_audio: AudioStreamPlayer
 var _seen_health := -1
-var _shown_prompt_id := -1
+## Przedmiot ma tu swoj numer, a skrzynka numer ujemny. 0 oznacza, ze nic nie pokazano.
+var _shown_prompt_id := 0
 var _ammo_label: Label
 var _ammo_hint: Label
 var _ammo_panel: PanelContainer
@@ -187,7 +188,7 @@ func _update_prompt() -> void:
 	var id := WorldItems.focused_id
 	_prompt_panel.visible = id != 0 and WorldItems.items.has(id)
 	if not _prompt_panel.visible:
-		_shown_prompt_id = -1
+		_shown_prompt_id = 0
 		return
 	var stack: Dictionary = WorldItems.items[id].stack
 	var slots := _player.equipment.slots()
