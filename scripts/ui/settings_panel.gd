@@ -9,6 +9,8 @@ const LIST_HEIGHT := 350.0
 
 var _rows: VBoxContainer
 var _scroll: ScrollContainer
+const GRAPHICS_NAMES: Array[String] = ["Niska", "Średnia", "Wysoka"]
+
 var _refreshers: Array[Callable] = []
 var _shade: ColorRect
 var _card: PanelContainer
@@ -99,10 +101,11 @@ func _build() -> void:
 	_add_slider("Czułość przy celowaniu", "aim_sensitivity", 0.3, 1.5, 0.05, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Pole widzenia", "fov", 65.0, 110.0, 1.0, func(v: float) -> String: return "%d°" % roundi(v))
 	_add_slider("Wstrząsy kamery", "camera_shake", 0.0, 1.0, 0.05, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
+	_add_slider("Jakość grafiki", "graphics", Settings.Graphics.LOW, Settings.Graphics.HIGH, 1.0, func(v: float) -> String: return GRAPHICS_NAMES[roundi(v)])
+	_add_slider("Rozdzielczość 3D", "render_scale", 0.5, 1.0, 0.05, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_toggle("Odwrócona mysz w pionie", "invert_y")
 	_add_toggle("Pełny ekran", "fullscreen")
 	_add_toggle("Synchronizacja pionowa", "vsync")
-	_add_toggle("Wysoka jakość cieni", "high_quality")
 	_add_toggle("Licznik FPS", "show_fps")
 	_add_toggle("Wykres sieci (debug)", "show_net_graph")
 
@@ -142,7 +145,7 @@ func _add_slider(text: String, key: String, min_value: float, max_value: float, 
 	slider.add_theme_stylebox_override("grabber_area_highlight", filled)
 	row.add_child(slider)
 	var shown := UiStyle.label("", 19, UiStyle.INK)
-	shown.custom_minimum_size = Vector2(64, 0)
+	shown.custom_minimum_size = Vector2(68, 0)
 	shown.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(shown)
 	slider.value_changed.connect(func(new_value: float) -> void:

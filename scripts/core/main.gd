@@ -11,6 +11,7 @@ const MENU_ORBIT_HEIGHT := 22.0
 @onready var hud := $Hud as Hud
 @onready var settings_panel := $SettingsPanel as SettingsPanel
 @onready var world_environment := $World/WorldEnvironment as WorldEnvironment
+@onready var sun := $World/Sun as DirectionalLight3D
 
 var _orbit := 0.6
 
@@ -38,7 +39,10 @@ func _ready() -> void:
 
 
 func _apply_quality() -> void:
-	world_environment.environment.ssao_enabled = Settings.value("high_quality")
+	var low: bool = Settings.graphics() == Settings.Graphics.LOW
+	world_environment.environment.ssao_enabled = not low
+	world_environment.environment.glow_enabled = not low
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if low else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 
 
 func _process(delta: float) -> void:

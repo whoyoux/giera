@@ -59,7 +59,7 @@ script = ExtResource("terrain")
 [node name="WallNorthA" type="StaticBody3D" parent="Ruin"]
 transform = Transform3D(1, 0, 0, 0, 1, -0, 0, 0, 1, -4.5, 1.5, -7)
 script = ExtResource("block")
-size = Vector3(5, 3.0, 1)
+size = Vector3(4.8, 3.0, 1)
 color = Color(0.5216, 0.5216, 0.5608, 1)
 bevel = 0.08
 
