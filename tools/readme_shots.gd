@@ -73,6 +73,7 @@ func _ready() -> void:
 	await _wait(0.25)
 	await _shot("scoreboard.png")
 	Input.action_release("scoreboard")
+	await _chat_shot()
 
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	Input.action_press("aim")
@@ -165,6 +166,21 @@ func _chest_shots(me: Player, forward: Vector3) -> void:
 	await _wait(0.28)
 	await _shot("chest_open.png")
 	await _dance_shots(me)
+
+
+func _chat_shot() -> void:
+	var chat := (get_tree().get_first_node_in_group(&"hud") as Hud)._chat
+	Chat.message_received.emit(2, "Kto otworzył skrzynkę?")
+	Chat.message_received.emit(3, "Ja! Była tam strzelba")
+	Chat.message_received.emit(1, "Dobra, idę do was")
+	Chat.message_received.emit(4, "Uważajcie, strefa zaraz rusza, więc lepiej chodźcie na polanę")
+	chat.open()
+	chat._input.text = "Widzę was"
+	chat._input.caret_column = chat._input.text.length()
+	await _wait(0.5)
+	await _shot("chat.png")
+	Chat.cleared.emit()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _dance_shots(me: Player) -> void:

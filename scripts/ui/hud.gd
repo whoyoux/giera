@@ -69,6 +69,7 @@ var _audio: AudioStreamPlayer
 var _hurt_audio: AudioStreamPlayer
 var _last_ammo := -1
 var _dance_wheel: DanceWheel
+var _chat: ChatPanel
 
 
 func _ready() -> void:
@@ -97,6 +98,7 @@ func bind(player: Player) -> void:
 func unbind() -> void:
 	_close_dance_wheel()
 	_player = null
+	_chat.close()
 
 
 func _process(delta: float) -> void:
@@ -131,7 +133,7 @@ func _process(delta: float) -> void:
 	_crosshair.aiming = _player.aiming
 	_crosshair.spread_radius = _spread_on_screen(_player)
 	_update_death_panel(info)
-	var show_scores := Input.is_action_pressed("scoreboard")
+	var show_scores := Input.is_action_pressed("scoreboard") and not _chat.is_open
 	if show_scores != _score_center.visible:
 		_score_center.visible = show_scores
 		if show_scores:
@@ -261,8 +263,16 @@ func _update_ammo(equipment: Equipment) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _player == null or not visible or not Net.bot_mode.is_empty():
 		return
-	if event.is_action_pressed("pause"):
+	if _chat.is_open:
+		# Klikniecie obok pola wraca do gry. Scroll przewija historie.
+		if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+			_chat.close()
+	elif event.is_action_pressed("pause"):
 		_set_paused(not _pause.visible)
+	elif event.is_action_pressed("chat") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_chat.open()
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("dance") and _player.is_alive() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_dance_wheel.open()
 		_player.input.set_wheel_open(true)
@@ -274,6 +284,14 @@ func _on_dance_chosen(dance_id: int) -> void:
 	_player.input.set_wheel_open(false)
 	var started := _player.input.request_dance(dance_id)
 	UiSound.play(Sfx.UiCue.CONFIRM if started else Sfx.UiCue.ERROR)
+
+
+## Klikniecie, ktore zamknelo czat, nie moze jeszcze wystrzelic.
+func _on_chat_closed() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_player.input.block_fire()
 
 
 func _close_dance_wheel() -> void:
@@ -512,6 +530,9 @@ func _build() -> void:
 	_build_status_sticker()
 	_build_ammo_sticker()
 	add_child(MatchPanel.new())
+	_chat = ChatPanel.new()
+	_chat.closed.connect(_on_chat_closed)
+	add_child(_chat)
 
 	_hotbar = Hotbar.new()
 	_hotbar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)

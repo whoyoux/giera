@@ -8,9 +8,9 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 |---|---|---|---|
 | ![Otwieranie skrzynki](docs/screenshots/chest_open.png) | ![Bronie na ziemi](docs/screenshots/loot.png) | ![Celowanie](docs/screenshots/aim.png) | ![Wybuch granatu](docs/screenshots/grenade.png) |
 
-| Koło tańców | Taniec |
-|---|---|
-| ![Koło tańców](docs/screenshots/dance_wheel.png) | ![Taniec](docs/screenshots/dance.png) |
+| Koło tańców | Taniec | Czat |
+|---|---|---|
+| ![Koło tańców](docs/screenshots/dance_wheel.png) | ![Taniec](docs/screenshots/dance.png) | ![Czat](docs/screenshots/chat.png) |
 
 | Strzelba | Nóż | Menu | Wyniki | Obrażenia |
 |---|---|---|---|---|
@@ -28,6 +28,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Ekwipunek na 4 sloty:** szybka zmiana broni klawiszami lub scrollem, osobna amunicja w każdej broni.
 - **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Każda daje jeden przedmiot: blaster, strzelbę, nóż, apteczkę albo granat, a po minucie wraca. Wśród broni z klasami 55% to zwykłe, 35% epickie i 10% legendarne.
 - **Tańce:** przytrzymanie klawisza otwiera koło z 6 tańcami, każdy z własnym ruchem i muzyką, którą słyszą też gracze obok. Kamera odjeżdża wtedy za postać, a każdy ruch przerywa taniec.
+- **Czat:** wiadomości widać nad paskiem zdrowia przez chwilę, a po otwarciu czatu całą rozmowę. Znikają po wyjściu z gry, bo nikt ich nie zapisuje.
 - **Podnoszenie i wyrzucanie:** bronie leżą na ziemi, a po śmierci wypadają dla innych.
 - **Apteczki:** przytrzymanie strzału przez 2,5 s leczy o 50 punktów.
 - **Granaty:** przytrzymanie odbezpiecza, a puszczenie rzuca, więc można skrócić czas do wybuchu. Im bliżej wybuchu, tym większe obrażenia, a tuż obok giniesz od razu.
@@ -65,6 +66,7 @@ Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d 
 | **E** | Podniesienie przedmiotu, przytrzymanie otwiera skrzynkę |
 | **G** | Wyrzucenie przedmiotu |
 | **B** | Przytrzymanie otwiera koło tańców. Puszczenie albo LPM wybiera taniec, a ruch go przerywa |
+| **T** | Czat. Enter wysyła, Esc zamyka |
 | **Tab** | Wyniki |
 | **Esc** | Pauza i ustawienia |
 
