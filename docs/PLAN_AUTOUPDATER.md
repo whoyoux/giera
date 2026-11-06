@@ -1,6 +1,6 @@
 # Plan: autoupdater
 
-Etap 1 jest zrobiony, a z etapu 0 została próba na prawdziwym Macu. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
+Etap 1 jest zrobiony, a etap 2 czeka na próbne wydanie. Z etapu 0 została próba na prawdziwym Macu. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
 
 ## Pomiary
 
@@ -98,7 +98,7 @@ Każdy etap to osobny PR.
 1. **Windows: działa.** Exe skopiowany jako `GieraGame.exe` z `GieraGame.pck` i bibliotekami obok startuje z innego folderu, także ze spacją i polskimi znakami w ścieżce, i łączy się ze Steamem.
 2. **macOS: działa w CI bez okna, zostaje próba na prawdziwym Macu.** Sam plik binarny z PCK obok uruchamia serwer i przyjmuje klienta, więc to pierwszy wybór, bo nie narusza podpisu. Kopia `.app` z podmienionym PCK też startuje, przed i po ponownym podpisaniu `codesign -s -`, i zostaje wariantem zapasowym. `ditto` przenosi kwarantannę na kopię, a kopia bajtowa nie, więc launcher kopiuje bajty i sam ustawia prawo uruchamiania. CI nie pokazuje okna, Docka, fokusu ani zachowania Gatekeepera u gracza, a `spctl` odrzuca aplikację z podpisem ad hoc także bez kwarantanny.
 3. **Pobieranie: działa.** `HTTPRequest` przechodzi przez przekierowania GitHuba i zachowuje nagłówek `Range`, także z `download_file`. Brak pliku daje kod 404, a brak sieci błąd bez kodu.
-4. **Cache importu w CI: działa.** Wynik z Linuksa jest w sekcji Pomiary. Samo `actions/cache` sprawdzi etap 2.
+4. **Cache importu w CI: działa.** Wynik z Linuksa jest w sekcji Pomiary. `actions/cache` odpada, bo przebieg dla jednego tagu nie odczyta cache'u z innego tagu.
 
 ### Etap 1: wersja gry
 
@@ -109,9 +109,11 @@ Każdy etap to osobny PR.
 ### Etap 2: wydania z manifestem
 
 - `export_presets.cfg`: PCK osobno od exe, `embed_pck=false`.
-- `release.yml` publikuje PCK, `runtime` i `manifest.json` dla obu systemów.
-- `release.yml` zachowuje `.godot/imported` między wydaniami przez `actions/cache`. Po wygaśnięciu cache'u kolejna aktualizacja jest większa, ale nic się nie psuje.
-- Stare ZIP-y zostają do końca przejścia.
+- `tools/make_manifest.py` tworzy manifest, a `release.yml` publikuje PCK, `runtime` i `manifest.json` dla obu systemów.
+- Test macOS uruchamia też grę w układzie aktualizacji: sam plik binarny i PCK obok.
+- Zapis importu leży w wydaniu jako `ci-import-cache-godot-<wersja>.tar.gz`, ok. 10 MB. Zawiera `.godot/imported` i `.godot/exported`, bo sam `imported` daje 12 zmienionych plików zamiast 8. Kolejny build pobiera go z najnowszego wydania stabilnego.
+- Bez zapisu build importuje od zera, więc aktualizacja jest większa, ale nic się nie psuje. Pierwsze wydanie po tym etapie nie ma jeszcze zapisu, a działanie zapisu w CI sprawdzi dopiero następne wydanie stabilne.
+- Stare ZIP-y zostają do końca przejścia. ZIP na Windows zawiera teraz też `Giera.pck`.
 
 ### Etap 3: launcher
 

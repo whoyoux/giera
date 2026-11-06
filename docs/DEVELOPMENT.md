@@ -22,6 +22,8 @@ SteamID podaje klient i nikt go nie weryfikuje, więc służy tylko do pokazania
 
 Wydanie powstaje po wypchnięciu tagu `v*` z `main`, np. `git tag v0.6.0`, a potem `git push origin v0.6.0`. Workflow `.github/workflows/release.yml` buduje grę na Windows i macOS, uruchamia wersję na macOS na Macu z Apple Silicon i publikuje obie. Tag z myślnikiem, np. `v0.6.0-rc1`, tworzy wersję próbną. Workflow wpisuje numer z tagu do `config/version`, a menu go pokazuje. W repo to pole zostaje ustawione na `dev`.
 
+Wydanie zawiera też pliki dla launchera: PCK, `runtime` i `manifest.json`, który tworzy `tools/make_manifest.py`. Zapis `ci-import-cache-godot-*.tar.gz` przenosi import modeli do następnego builda, bo import od zera zmieniałby wszystkie modele w PCK.
+
 Sam tag nie wdraża serwera, ale push na `main` zmieniający pliki gry już tak. Przed zmianą wersji Godota zaktualizuj w workflow `GODOT_VERSION` i `GODOT_SUMS_SHA512`.
 
 Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
