@@ -1,6 +1,6 @@
 class_name Menu
 extends CanvasLayer
-## Ekran startowy: konto gracza, adres serwera, dolaczanie i hostowanie.
+## Ekran startowy: konto gracza, tryb gry, adres serwera, dolaczanie i hostowanie.
 ## Ze Steamem nazwy nie da sie zmienic, a bez niego gracz wpisuje nick.
 
 signal settings_requested
@@ -14,11 +14,16 @@ const TITLE_NOTES: Array[float] = [1.0, 1.122, 1.26, 1.498, 1.682]
 const LETTER_POP_SCALE := 1.16
 const LETTER_POP_SECONDS := 0.32
 const INTRO_STAGGER_SECONDS := 0.05
+const MODE_COLORS := { GameMode.Id.DEATHMATCH: UiStyle.CORAL, GameMode.Id.BATTLE_ROYALE: Color("9b7bff") }
+const MODE_OFF_TINT := Color(1.0, 1.0, 1.0, 0.65)
 
 var _name_field: LineEdit
 var _account_name: Label
 var _address_field: LineEdit
 var _status: Label
+var _mode := GameMode.Id.DEATHMATCH
+var _mode_buttons := {}
+var _mode_hint: Label
 var _join_button: Button
 var _host_button: Button
 var _picker: CharacterPicker
@@ -66,6 +71,8 @@ func _ready() -> void:
 		_name_field.max_length = GameState.MAX_NAME_LENGTH
 		column.add_child(_name_field)
 
+	column.add_child(_build_mode_picker())
+
 	column.add_child(UiStyle.label("Adres serwera", 17, UiStyle.INK, false))
 	_address_field = UiStyle.field(Settings.player_value("address", ""), "np. 203.0.113.10")
 	column.add_child(_address_field)
@@ -98,6 +105,36 @@ func _ready() -> void:
 
 	if not Net.is_headless:
 		_play_intro.call_deferred()
+
+
+## Wybrany tryb ma kolor, a drugi jest przygaszony. Oba zawsze widac, wiec wybor jest oczywisty.
+func _build_mode_picker() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	for id: int in GameMode.INFO:
+		var button := UiStyle.button(GameMode.title_of(id), MODE_COLORS[id], Color.WHITE, Sfx.UiCue.PRESS)
+		button.add_theme_font_size_override("font_size", 20)
+		button.custom_minimum_size.y = 50.0
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(_select_mode.bind(id))
+		row.add_child(button)
+		_mode_buttons[id] = button
+	_mode_hint = UiStyle.label("", 16, Color(UiStyle.INK, 0.7), false)
+	_mode_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(_mode_hint)
+	var saved := GameMode.from_key(Settings.player_value("mode", GameMode.key_of(GameMode.Id.DEATHMATCH)))
+	_select_mode(saved if saved >= 0 else GameMode.Id.DEATHMATCH)
+	return box
+
+
+func _select_mode(id: int) -> void:
+	_mode = id
+	_mode_hint.text = GameMode.hint_of(id)
+	for other: int in _mode_buttons:
+		(_mode_buttons[other] as Button).modulate = Color.WHITE if other == id else MODE_OFF_TINT
 
 
 ## Awatar lekko przechylony, jak litery tytulu, a obok nazwa konta.
@@ -214,7 +251,7 @@ func _on_join() -> void:
 		_fail("Wpisz adres serwera.", _address_field)
 		return
 	_apply_settings()
-	var port := int(parts[1]) if parts.size() == 2 else Net.DEFAULT_PORT
+	var port := GameMode.port_for_address(int(parts[1]) if parts.size() == 2 else 0, _mode)
 	var error := Net.join(address, port)
 	if not error.is_empty():
 		_fail(error, _address_field)
@@ -226,7 +263,7 @@ func _on_join() -> void:
 
 func _on_host() -> void:
 	_apply_settings()
-	var error := Net.start_server()
+	var error := Net.start_server(GameMode.port_of(_mode), false, _mode)
 	if not error.is_empty():
 		_fail(error, _host_button)
 		return
@@ -251,6 +288,7 @@ func _apply_settings() -> void:
 	if _picker != null:
 		Net.player_character = _picker.selected_id()
 	Settings.set_player_value("address", _address_field.text)
+	Settings.set_player_value("mode", GameMode.key_of(_mode))
 
 
 func _set_busy(busy: bool) -> void:

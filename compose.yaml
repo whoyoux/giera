@@ -1,0 +1,23 @@
+# Wszystkie serwery gry w jednym miejscu: docker compose up -d --build
+# Kolejny serwer to kopia wpisu z innym portem. Trzeba tez otworzyc ten port UDP na VPS.
+# Menu laczy z portem wybranego trybu (scripts/core/game_mode.gd). Serwer na innym porcie
+# gracz wybiera, dopisujac port do adresu, np. 203.0.113.10:7779.
+
+x-game-server: &game-server
+  image: giera-server
+  build: .
+  restart: unless-stopped
+  stop_signal: SIGTERM
+
+services:
+  deathmatch:
+    <<: *game-server
+    command: ["--port=7777", "--mode=deathmatch"]
+    ports:
+      - "7777:7777/udp"
+
+  battle-royale:
+    <<: *game-server
+    command: ["--port=7778", "--mode=battle_royale"]
+    ports:
+      - "7778:7778/udp"

@@ -32,6 +32,8 @@ USER giera
 RUN godot --headless --path /game --import || true; \
 	test -f /game/.godot/global_script_class_cache.cfg
 
-EXPOSE 7777/udp
+EXPOSE 7777/udp 7778/udp
 STOPSIGNAL SIGTERM
-CMD ["godot", "--headless", "--path", "/game", "--", "--server", "--port=7777"]
+# Port i tryb podaje compose.yaml. Ten sam obraz sluzy wszystkim serwerom.
+ENTRYPOINT ["godot", "--headless", "--path", "/game", "--", "--server"]
+CMD ["--port=7777", "--mode=deathmatch"]
