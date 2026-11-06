@@ -1,6 +1,6 @@
 # Plan: autoupdater
 
-Etap 1 jest zrobiony, a z etapu 0 zostały próby na macOS i w CI. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
+Etap 1 jest zrobiony, a z etapu 0 została próba na prawdziwym Macu. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
 
 ## Pomiary
 
@@ -25,7 +25,7 @@ Eksport lokalny tych tagów, bez GodotSteam:
 | v0.19.0 → v0.20.0, zachowany `.godot` | 8 | 0,12 MB |
 | v0.19.0 → v0.20.0, import od zera | 166 | 8,47 MB |
 
-Nie zmierzono macOS, większych wydań ani builda z zachowanym importem w samym CI. Zmiana modeli lub tekstur da większą aktualizację, a zmiana silnika oznacza ok. 37 MB.
+Na Linuksie w CI wynik jest taki sam: 8 plików i 0,12 MB z zachowanym importem, 166 plików i 8,47 MB od zera. Nie zmierzono rozmiaru aktualizacji na macOS ani większych wydań. Zmiana modeli lub tekstur da większą aktualizację, a zmiana silnika oznacza ok. 37 MB.
 
 ## Ograniczenia silnika
 
@@ -96,9 +96,9 @@ Każdy etap to osobny PR.
 ### Etap 0: próby
 
 1. **Windows: działa.** Exe skopiowany jako `GieraGame.exe` z `GieraGame.pck` i bibliotekami obok startuje z innego folderu, także ze spacją i polskimi znakami w ścieżce, i łączy się ze Steamem.
-2. **macOS, największe ryzyko.** Czy gra ruszy poza pakietem `.app`. Podmiana PCK w środku narusza podpis, a kopia aplikacji może znów trafić na blokadę Gatekeepera. Warianty w tej kolejności: sam plik binarny z PCK obok, kopia `.app` ponownie podpisana przez `codesign -s -`, a w razie porażki pobieranie całej aplikacji przy każdej aktualizacji.
+2. **macOS: działa w CI bez okna, zostaje próba na prawdziwym Macu.** Sam plik binarny z PCK obok uruchamia serwer i przyjmuje klienta, więc to pierwszy wybór, bo nie narusza podpisu. Kopia `.app` z podmienionym PCK też startuje, przed i po ponownym podpisaniu `codesign -s -`, i zostaje wariantem zapasowym. `ditto` przenosi kwarantannę na kopię, a kopia bajtowa nie, więc launcher kopiuje bajty i sam ustawia prawo uruchamiania. CI nie pokazuje okna, Docka, fokusu ani zachowania Gatekeepera u gracza, a `spctl` odrzuca aplikację z podpisem ad hoc także bez kwarantanny.
 3. **Pobieranie: działa.** `HTTPRequest` przechodzi przez przekierowania GitHuba i zachowuje nagłówek `Range`, także z `download_file`. Brak pliku daje kod 404, a brak sieci błąd bez kodu.
-4. **Cache importu w CI.** Powtórzyć test z zachowanym `.godot` na Linuksie.
+4. **Cache importu w CI: działa.** Wynik z Linuksa jest w sekcji Pomiary. Samo `actions/cache` sprawdzi etap 2.
 
 ### Etap 1: wersja gry
 
