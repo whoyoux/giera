@@ -18,11 +18,12 @@ STONE_DARK = "6c6c78"
 MOSS = "5f8048"
 WOOD = "8a6240"
 
-SPAWNS = [(23, 2), (-23, -2), (2, -23), (-16, -16), (16, 13), (-17, 12), (22, -8), (-22, -9), (9, -22), (-9, -22)]
+SPAWNS = [(30, 3), (-30, -3), (3, -30), (-21, -21), (21, 17), (-22, 16), (29, -10), (-29, -12), (12, -29), (-12, -29)]
 # x, z, y albo None dla ziemi.
 CHESTS = [
-    (-4.5, -4.5, 3.5), (1.5, 1.5, None), (18, -18, None), (-30, 6, None), (31, -3, None), (-6, 31, None),
-    (4, 27.4, None), (-8, -31, None), (-25, -23, None), (26, 23, None), (-13, 4, None),
+    (-4.5, -4.5, 3.5), (1.5, 1.5, None), (24, -24, None), (-39, 8, None), (40, -4, None), (-8, 40, None),
+    (5.2, 35.2, None), (-10, -40, None), (-32, -30, None), (34, 30, None), (-17, 5, None),
+    (18, -40, None), (-42, -12, None), (-26, 20, None), (20, 43, None),
 ]
 TREES = ["Tree_1_A", "Tree_1_B", "Tree_1_C", "Tree_2_A", "Tree_2_B", "Tree_2_C", "Tree_3_A", "Tree_3_B", "Tree_4_A", "Tree_4_B", "Tree_4_C"]
 BARE_TREES = ["Tree_Bare_1_A", "Tree_Bare_2_A"]
@@ -35,17 +36,17 @@ def smoothstep(a, b, x):
 
 
 def creek_distance(x, z):
-    return abs(z - (25.0 + 5.0 * math.sin(x * 0.13)))
+    return abs(z - (32.0 + 6.5 * math.sin(x * 0.1)))
 
 
 def height(x, z):
     d = math.hypot(x, z)
     noise = math.sin(x * 0.21 + 1.3) * math.cos(z * 0.17 - 0.7) * 0.5 + math.sin(x * 0.07 - z * 0.11) * 0.6
-    y = noise * smoothstep(20.0, 30.0, d)
-    y += 9.0 * smoothstep(33.0, 44.0, d)
-    hill = math.hypot(x - 18.0, z + 18.0) / 6.5
-    y += 3.5 * math.exp(-hill * hill)
-    y -= 1.2 * (1.0 - smoothstep(1.2, 3.2, creek_distance(x, z))) * (1.0 - smoothstep(33.0, 44.0, d))
+    y = noise * smoothstep(26.0, 39.0, d)
+    y += 9.0 * smoothstep(43.0, 57.0, d)
+    hill = math.hypot(x - 24.0, z + 24.0) / 8.0
+    y += 4.0 * math.exp(-hill * hill)
+    y -= 1.2 * (1.0 - smoothstep(1.2, 3.2, creek_distance(x, z))) * (1.0 - smoothstep(43.0, 57.0, d))
     return y
 
 
@@ -62,7 +63,7 @@ def surface(x, z):
 
 
 def is_path(x, z):
-    if math.hypot(x, z) > 31.0:
+    if math.hypot(x, z) > 40.0:
         return False
     if z < 0.0 and abs(x - 2.0 * math.sin(z * 0.2)) < 1.6:
         return True
@@ -147,7 +148,7 @@ def distance_to_segment(x, z, a, b):
 def is_free(x, z, placed, gap):
     if math.hypot(x, z) < 10.5 or is_path(x, z) or creek_distance(x, z) < 3.6:
         return False
-    if math.hypot(x - 18.0, z + 18.0) < 3.0:
+    if math.hypot(x - 24.0, z + 24.0) < 3.0:
         return False
     for sx, sz in SPAWNS:
         # Punkt odrodzenia ma wolna przestrzen i wolny widok w strone polany.
@@ -208,12 +209,12 @@ def build_forest():
     placed = []
     index = 1
     # Pojedyncze drzewa na polanie i gesty las dookola.
-    for x, z in scatter(rng, 14, 13.0, 24.0, 7.0, placed) + scatter(rng, 120, 25.0, 38.0, 3.4, placed):
+    for x, z in scatter(rng, 23, 13.0, 31.0, 7.0, placed) + scatter(rng, 197, 32.0, 49.0, 3.4, placed):
         model = rng.choice(BARE_TREES) if rng.random() < 0.07 else rng.choice(TREES)
         tree(index, model, x, z, rng.uniform(1.5, 2.3), rng.uniform(0, 360))
         index += 1
     index = 1
-    for x, z in scatter(rng, 16, 11.0, 24.0, 5.0, placed) + scatter(rng, 26, 25.0, 38.0, 4.0, placed):
+    for x, z in scatter(rng, 26, 11.0, 31.0, 5.0, placed) + scatter(rng, 43, 32.0, 49.0, 4.0, placed):
         rock(index, rng.choice(ROCKS), x, z, rng.uniform(1.3, 2.4), rng.uniform(0, 360))
         index += 1
 

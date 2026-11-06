@@ -5,11 +5,11 @@ extends Node3D
 ## je sam, a jeden model rysowany setki razy kosztuje tyle co jedno wywolanie.
 
 const SEED := 4217
-const PLAY_RADIUS := 38.0
-const FAR_RADIUS := 85.0
-const GRASS_COUNT := 900
-const BUSH_COUNT := 130
-const FAR_TREE_COUNT := 260
+const PLAY_RADIUS := 49.0
+const FAR_RADIUS := 110.0
+const GRASS_COUNT := 1480
+const BUSH_COUNT := 215
+const FAR_TREE_COUNT := 440
 const GRASS_FADE := 50.0
 const RUIN_RADIUS := 9.0
 const GRASS_MODELS: Array[String] = ["Grass_1_A", "Grass_1_B", "Grass_1_C", "Grass_2_A", "Grass_2_B"]
