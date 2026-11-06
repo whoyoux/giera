@@ -42,7 +42,7 @@ var _zone_timer := 0.0
 
 func _ready() -> void:
 	GameState.player_added.connect(func(_id: int) -> void: _update_lobby())
-	GameState.player_removed.connect(func(_id: int) -> void: _update_lobby())
+	GameState.player_removed.connect(_on_player_removed)
 	Net.session_ended.connect(func(_reason: String) -> void: _clear())
 
 
@@ -119,8 +119,9 @@ func server_begin(new_mode: int) -> void:
 
 ## Gracz odpadl przez smierc albo wyjscie z gry. Wynik sprawdzamy dopiero pod koniec klatki,
 ## bo granat zabija po kolei, a jednoczesna smierc ostatnich graczy to remis.
+## Po ostatnim rozliczeniu nic juz nie liczymy, bo wyjscie w czasie wynikow nie zmienia wyniku.
 func server_on_player_out(id: int) -> void:
-	if not is_elimination() or phase == Phase.LOBBY or phase == Phase.COUNTDOWN:
+	if not is_elimination() or (phase != Phase.STARTING and phase != Phase.LIVE):
 		return
 	_pending_out.append(id)
 	_remember_result(id)
@@ -164,6 +165,14 @@ func _update_zone_damage(delta: float) -> void:
 		var node := GameState.player_node(id)
 		if node != null and node.is_alive() and node.info.in_match and Zone.is_outside(state, node.position):
 			GameState.server_damage(id, state.damage, GameState.ZONE_ATTACKER)
+
+
+## Pusty serwer od razu czeka na nowy mecz, zeby nikt nie trafil na koncowke starego.
+func _on_player_removed(_id: int) -> void:
+	if Net.in_session and multiplayer.is_server() and is_elimination() and GameState.players.is_empty() and phase != Phase.LOBBY:
+		_return_to_lobby()
+	else:
+		_update_lobby()
 
 
 ## Start wymaga co najmniej 2 graczy i gotowosci wszystkich. Nowy gracz nie jest gotowy,
@@ -253,6 +262,7 @@ func _return_to_lobby() -> void:
 	zone = null
 	zone_seed = 0
 	_ranking.clear()
+	_pending_out.clear()
 	_clear_world.rpc()
 	_enter_phase(Phase.LOBBY, -1)
 	for id: int in GameState.players:

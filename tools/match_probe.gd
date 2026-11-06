@@ -3,7 +3,8 @@ extends Node
 ## Opcje w sekundach od startu: --ready-at, --unready-at, --ready-again-at.
 ## --auto-ready klika Gotowe przy kazdym powrocie do lobby. --quit-after-live=2 wychodzi z gry
 ## w trakcie meczu. --kill-all-at=3 na serwerze zabija wszystkich w jednej klatce, co jest remisem.
-## --kill-name=Ty --kill-name-at=4 na serwerze zabija jednego gracza w trakcie meczu.
+## --kill-name=A,B --kill-name-at=4 na serwerze zabija tych graczy w jednej klatce, w kazdym meczu.
+## --quit-in-results wychodzi z gry, gdy tylko zobaczy wyniki meczu.
 
 const RESET_REPORT_DELAY := 2.0
 
@@ -13,6 +14,7 @@ var _freeze_start := Vector3.INF
 var _freeze_checked := false
 var _live_time := 0.0
 var _matches := 0
+var _killed_in_match := false
 
 
 func _ready() -> void:
@@ -36,16 +38,20 @@ func _update_scenarios() -> void:
 	var me: Dictionary = GameState.players.get(multiplayer.get_unique_id(), {})
 	if Net.args.has("auto-ready") and Match.phase == Match.Phase.LOBBY and not me.is_empty() and not me.ready and Engine.get_process_frames() % 60 == 0:
 		Match.toggle_ready()
+	if Net.args.has("quit-in-results") and Match.phase == Match.Phase.RESULTS:
+		get_tree().quit()
 	if Match.phase != Match.Phase.LIVE:
 		_live_time = 0.0
+		_killed_in_match = false
 		return
 	_live_time += get_process_delta_time()
 	if Net.args.has("quit-after-live") and _live_time >= float(Net.args["quit-after-live"]):
 		get_tree().quit()
-	if Net.args.has("kill-name-at") and _live_time >= float(Net.args["kill-name-at"]):
-		Net.args.erase("kill-name-at")
+	if Net.args.has("kill-name-at") and not _killed_in_match and _live_time >= float(Net.args["kill-name-at"]):
+		_killed_in_match = true
+		var names: PackedStringArray = str(Net.args.get("kill-name", "")).split(",")
 		for id: int in GameState.players.keys():
-			if GameState.display_name(id) == Net.args.get("kill-name", ""):
+			if names.has(GameState.display_name(id)):
 				GameState.server_damage(id, GameState.MAX_HEALTH, id)
 	if Net.args.has("kill-all-at") and _live_time >= float(Net.args["kill-all-at"]):
 		Net.args.erase("kill-all-at")
