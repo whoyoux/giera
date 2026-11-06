@@ -201,7 +201,10 @@ func _dance_shots(me: Player) -> void:
 	hud._dance_wheel.cancel()
 	await _wait(0.1)
 	me.input.request_dance(4)
-	await _wait(1.1)
+	await _wait(0.1)
+	# Postac patrzy jak kamera, wiec zeby pokazac jej przod, kamera okraza ja na druga strone.
+	me.input.look_yaw += PI
+	await _wait(1.0)
 	await _shot("dance.png")
 
 
