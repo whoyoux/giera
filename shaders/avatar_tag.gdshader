@@ -1,7 +1,7 @@
 // Awatar nad glowa gracza: zawsze przodem do kamery, z zaokraglonymi rogami i biala ramka jak naklejka.
-// Widac go przez sciany, tak samo jak nazwe pod spodem.
+// Sciany go zaslaniaja, tak samo jak nazwe pod spodem.
 shader_type spatial;
-render_mode unshaded, depth_test_disabled, cull_disabled, shadows_disabled;
+render_mode unshaded, cull_disabled, shadows_disabled;
 
 uniform sampler2D picture : source_color, filter_linear_mipmap, repeat_disable;
 uniform float radius : hint_range(0.0, 0.5) = 0.22;

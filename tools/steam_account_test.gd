@@ -49,6 +49,7 @@ func _test_game_avatars() -> void:
 	GameState.kill_announced.emit(1, 3)
 	_check("lista zabojstw ma obu graczy", _avatars_in(hud._feed).size() == feed_before + 2)
 	_check("nad graczem jest zdjecie", _tag_visible(2))
+	_check("zdjecie jest na lewo od nazwy", _tag_left_of_name(2))
 	_check("nad graczem bez konta nie ma zdjecia", not _tag_visible(3))
 	_check("nad soba nie ma zdjecia", _tag_of(1) == null)
 
@@ -66,13 +67,22 @@ func _pictures_in(parent: Node) -> int:
 
 
 func _tag_of(id: int) -> AvatarTag:
-	var found := GameState.player_node(id).find_children("*", "AvatarTag", false, false)
+	var found := GameState.player_node(id).find_children("*", "AvatarTag", true, false)
 	return found[0] if found.size() > 0 else null
 
 
 func _tag_visible(id: int) -> bool:
 	var tag := _tag_of(id)
 	return tag != null and tag.visible
+
+
+func _tag_left_of_name(id: int) -> bool:
+	var tag := _tag_of(id)
+	if tag == null:
+		return false
+	var right_edge: float = (tag.mesh as QuadMesh).center_offset.x + AvatarTag.SIDE / 2.0
+	var label := GameState.player_node(id).get_node("NameLabel") as Label3D
+	return right_edge < label.get_aabb().position.x
 
 
 func _test_helpers() -> void:
