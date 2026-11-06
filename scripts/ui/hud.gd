@@ -435,7 +435,8 @@ func _update_death_panel(info: Dictionary) -> void:
 			_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
 		return
 	var fresh: bool = NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(ELIMINATED_SECONDS)
-	_death_panel.visible = watching and info.in_match and fresh
+	# Ekran wynikow podaje juz miejsce, a napis by go zaslonil.
+	_death_panel.visible = watching and info.in_match and fresh and Match.phase != Match.Phase.RESULTS
 	if _death_panel.visible:
 		_death_label.text = "Odpadasz!\nMiejsce %d" % info.place if info.place > 0 else "Odpadasz!"
 
