@@ -24,7 +24,7 @@ const DEDICATED_MAX_FPS := 60
 ## Podnies przy kazdej zmianie, po ktorej stary build nie dogada sie z serwerem.
 const PROTOCOL_VERSION := 20
 const JOIN_ANSWER_SECONDS := 6.0
-const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Pobierz najnowszy build."
+const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Uruchom grę ponownie, żeby ją zaktualizować."
 
 var args := {}
 var is_headless := false

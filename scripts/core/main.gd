@@ -36,6 +36,16 @@ func _ready() -> void:
 	if Net.is_headless:
 		menu.visible = false
 		set_process(false)
+	_report_started()
+
+
+## Launcher czeka na ten plik, zeby wiedziec, ze nowa wersja naprawde sie uruchomila.
+func _report_started() -> void:
+	var marker: String = Net.args.get("launcher-marker", "")
+	if not marker.is_empty():
+		var file := FileAccess.open(marker, FileAccess.WRITE)
+		if file != null:
+			file.store_string("ok")
 
 
 func _apply_quality() -> void:

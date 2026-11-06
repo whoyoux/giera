@@ -57,6 +57,9 @@ jobs:
           set -euo pipefail
           sed -i "s|^config/version=.*|config/version=\"${TAG#v}\"|" project.godot
           grep -Fx "config/version=\"${TAG#v}\"" project.godot
+          runtime_id="$(python3 -I tools/make_manifest.py --godot "$GODOT_VERSION" --print-runtime-id)"
+          sed -i "s|^runtime_id=.*|runtime_id=\"$runtime_id\"|" launcher/project.godot
+          grep -Fx "runtime_id=\"$runtime_id\"" launcher/project.godot
 
       - name: Pobierz GodotSteam
         run: bash tools/fetch_godotsteam.sh
@@ -88,6 +91,11 @@ jobs:
         run: |
           godot --headless --path . --import || true
           test -f .godot/global_script_class_cache.cfg
+          godot --headless --path launcher --import || true
+          test -f launcher/.godot/global_script_class_cache.cfg
+
+      - name: Sprawdz logike launchera
+        run: godot --headless --path launcher --script res://tests/update_plan_test.gd
 
       - name: Zbuduj wersje na Windows
         run: |
@@ -102,19 +110,27 @@ jobs:
           test -f "$windows/libgodotsteam.windows.template_release.x86_64.dll"
           cp addons/godotsteam/license.md "$windows/GodotSteam-license.md"
           runtime="Giera.exe steam_api64.dll libgodotsteam.windows.template_release.x86_64.dll GodotSteam-license.md"
-          (cd "$windows" && zip -q "$GITHUB_WORKSPACE/builds/Giera-Windows.zip" Giera.pck $runtime)
           (cd "$windows" && zip -q "$GITHUB_WORKSPACE/builds/Giera-Windows-runtime.zip" $runtime)
           cp "$windows/Giera.pck" builds/Giera-Windows.pck
+          # Gracz pobiera sam launcher z bibliotekami. Gre doinstaluje launcher.
+          launcher="$RUNNER_TEMP/launcher-windows"
+          mkdir -p "$launcher"
+          godot --headless --path launcher --export-release "Windows Desktop" "$launcher/Giera.exe"
+          test -s "$launcher/Giera.pck"
+          cp "$windows"/*.dll "$windows/GodotSteam-license.md" "$launcher/"
+          (cd "$launcher" && zip -q "$GITHUB_WORKSPACE/builds/Giera-Windows.zip" Giera.exe Giera.pck steam_api64.dll libgodotsteam.windows.template_release.x86_64.dll GodotSteam-license.md)
 
       - name: Zbuduj wersje na macOS
         run: |
-          godot --headless --path . --export-release "macOS" builds/Giera-macOS.zip
-          test -s builds/Giera-macOS.zip
+          godot --headless --path . --export-release "macOS" "$RUNNER_TEMP/game-macos.zip"
           macos="$RUNNER_TEMP/macos"
-          unzip -q builds/Giera-macOS.zip -d "$macos"
+          unzip -q "$RUNNER_TEMP/game-macos.zip" -d "$macos"
           cp "$macos/Giera.app/Contents/Resources/Giera.pck" builds/Giera-macOS.pck
           chmod +x "$macos/Giera.app/Contents/MacOS/Giera"
           (cd "$macos/Giera.app/Contents/MacOS" && zip -q "$GITHUB_WORKSPACE/builds/Giera-macOS-runtime.zip" Giera)
+          # Gracz pobiera sam launcher. Gre doinstaluje launcher.
+          godot --headless --path launcher --export-release "macOS" "$GITHUB_WORKSPACE/builds/Giera-macOS.zip"
+          test -s builds/Giera-macOS.zip
 
       - name: Utworz manifest i zapis importu
         env:
@@ -139,6 +155,11 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 10
     steps:
+      - name: Pobierz kod
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Pobierz buildy
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -152,21 +173,6 @@ jobs:
           app="unpacked/Giera.app"
           lipo -archs "$app/Contents/MacOS/Giera" | grep -q arm64
           codesign --verify --verbose "$app"
-
-      - name: Uruchom serwer i klienta
-        run: |
-          set -uo pipefail
-          binary="unpacked/Giera.app/Contents/MacOS/Giera"
-          "$binary" --headless -- --server --port=8765 > server.log 2>&1 &
-          server=$!
-          sleep 8
-          "$binary" --headless -- --connect=127.0.0.1 --port=8765 --name=TestMac --bot=runner > client.log 2>&1 &
-          client=$!
-          sleep 15
-          kill "$client" "$server" 2>/dev/null
-          cat server.log
-          grep -q "dolaczyl TestMac" server.log
-          ! grep -q "SCRIPT ERROR" server.log client.log
 
       - name: Sprawdz gre w ukladzie aktualizacji
         # Tak launcher uruchomi gre: sam plik binarny i PCK obok, poza pakietem aplikacji.
@@ -185,6 +191,12 @@ jobs:
           cat game_server.log
           grep -q "dolaczyl TestUpdate" game_server.log
           ! grep -q "SCRIPT ERROR" game_server.log game_client.log
+
+      - name: Sprawdz launcher
+        run: |
+          set -euo pipefail
+          runtime_id="$(python3 -I tools/make_manifest.py --godot "$GODOT_VERSION" --print-runtime-id)"
+          python3 -I tools/launcher_test.py --launcher unpacked/Giera.app/Contents/MacOS/Giera --builds builds --runtime-id "$runtime_id"
 
   publish:
     needs: [build, test-macos]
@@ -208,9 +220,9 @@ jobs:
           cat > notes.md <<EOF
           Wersja $TAG na Windows i macOS.
 
-          **Windows:** pobierz \`Giera-Windows.zip\`, rozpakuj do jednego folderu i uruchom \`Giera.exe\`. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
+          **Windows:** pobierz \`Giera-Windows.zip\`, rozpakuj do jednego folderu i uruchom \`Giera.exe\`. To launcher, który przy każdym starcie sam pobiera aktualizacje i uruchamia grę, więc ZIP pobierasz tylko raz. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
 
-          **macOS:** pobierz \`Giera-macOS.zip\`, rozpakuj i uruchom \`Giera.app\`. Aplikacja nie ma podpisu Apple, więc system ją zablokuje. Wtedy otwórz **Ustawienia systemowe → Prywatność i ochrona** i wybierz **Otwórz mimo to**.
+          **macOS:** pobierz \`Giera-macOS.zip\`, rozpakuj i uruchom \`Giera.app\`. To launcher, który sam pobiera aktualizacje i uruchamia grę. Aplikacja nie ma podpisu Apple, więc system ją zablokuje. Wtedy otwórz **Ustawienia systemowe → Prywatność i ochrona** i wybierz **Otwórz mimo to**.
 
           Na Windows z uruchomionym Steamem gra sama użyje nazwy i zdjęcia z konta. W pozostałych przypadkach wpisz nick. Potem podaj adres serwera od hosta i kliknij **Dołącz**.
 

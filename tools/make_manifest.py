@@ -2,6 +2,7 @@
 """Tworzy manifest.json wydania. Launcher czyta z niego, co ma pobrac.
 
 Uzycie: python3 tools/make_manifest.py --version 0.21.0 --godot 4.7.2 --builds builds > manifest.json
+        python3 tools/make_manifest.py --godot 4.7.2 --print-runtime-id
 
 Identyfikator runtime zmienia sie tylko po zmianie Godota albo GodotSteam, wiec zwykle
 gracz pobiera sam PCK. Sumy samego exe nie da sie do tego uzyc, bo eksport zmienia
@@ -44,21 +45,27 @@ def platform(builds: pathlib.Path, name: str, runtime_id: str) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--version", required=True)
+    parser.add_argument("--version")
     parser.add_argument("--godot", required=True)
-    parser.add_argument("--builds", required=True, type=pathlib.Path)
+    parser.add_argument("--builds", type=pathlib.Path)
+    parser.add_argument("--print-runtime-id", action="store_true")
     args = parser.parse_args()
 
-    protocol = find_value(ROOT / "scripts/core/net.gd", r"^const PROTOCOL_VERSION := (\d+)$")
     steam = find_value(ROOT / "tools/fetch_godotsteam.sh", r'^VERSION="([^"]+)"$')
-    godot = "godot-%s" % args.godot
+    runtime_id = "godot-%s+steam-%s" % (args.godot, steam)
+    if args.print_runtime_id:
+        print(runtime_id)
+        return
+    if args.version is None or args.builds is None:
+        parser.error("podaj --version i --builds")
+
+    protocol = find_value(ROOT / "scripts/core/net.gd", r"^const PROTOCOL_VERSION := (\d+)$")
     manifest = {
         "schema": SCHEMA,
         "version": args.version,
         "protocol": int(protocol),
-        "windows": platform(args.builds, "Windows", "%s+steam-%s" % (godot, steam)),
-        # Wersja na macOS nie ma Steama.
-        "macos": platform(args.builds, "macOS", godot),
+        "windows": platform(args.builds, "Windows", runtime_id),
+        "macos": platform(args.builds, "macOS", runtime_id),
     }
     json.dump(manifest, sys.stdout, indent=2)
     sys.stdout.write("\n")

@@ -22,7 +22,7 @@ SteamID podaje klient i nikt go nie weryfikuje, więc służy tylko do pokazania
 
 Wydanie powstaje po wypchnięciu tagu `v*` z `main`, np. `git tag v0.6.0`, a potem `git push origin v0.6.0`. Workflow `.github/workflows/release.yml` buduje grę na Windows i macOS, uruchamia wersję na macOS na Macu z Apple Silicon i publikuje obie. Tag z myślnikiem, np. `v0.6.0-rc1`, tworzy wersję próbną. Workflow wpisuje numer z tagu do `config/version`, a menu go pokazuje. W repo to pole zostaje ustawione na `dev`.
 
-Wydanie zawiera też pliki dla launchera: PCK, `runtime` i `manifest.json`, który tworzy `tools/make_manifest.py`. Zapis `ci-import-cache-godot-*.tar.gz` przenosi import modeli do następnego builda, bo import od zera zmieniałby wszystkie modele w PCK.
+Gracz pobiera ZIP z launcherem z folderu `launcher/`, a launcher instaluje grę w `user://game`. Wydanie zawiera dla niego PCK, `runtime` i `manifest.json`, który tworzy `tools/make_manifest.py`. Launcher pobiera manifest z najnowszego wydania stabilnego. Wersję próbną testujesz przez `Giera.exe -- --update-tag=v0.22.0-rc1`, a wydanie wycofujesz przez `gh release edit <starszy tag> --latest`. Zapis `ci-import-cache-godot-*.tar.gz` przenosi import modeli do następnego builda, bo import od zera zmieniałby wszystkie modele w PCK.
 
 Sam tag nie wdraża serwera, ale push na `main` zmieniający pliki gry już tak. Przed zmianą wersji Godota zaktualizuj w workflow `GODOT_VERSION` i `GODOT_SUMS_SHA512`.
 
@@ -43,6 +43,8 @@ Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
 `tools/generate_forest.py` nadpisuje `world.tscn`, więc po ręcznej edycji mapy nie uruchamiaj go ponownie. Wzór wysokości terenu jest w tym skrypcie i w `forest_terrain.gd`, a obie wersje muszą się zgadzać.
 
 ## Testy
+
+Launcher: `godot --headless --path launcher --script res://tests/update_plan_test.gd` sprawdza decyzje, a `tools/launcher_test.py` cały przebieg na lokalnym serwerze wydań, z wyeksportowanym launcherem.
 
 Testy to skrypty w `tools/`, uruchamiane parametrem `-- --tool=res://tools/NAZWA.gd`: `items_test`, `hitscan_test` (bez okna), `inventory_test`, `pickup_test`, `grenade_test`, `ambience_test`, `map_test`, `character_test`, `aim_test`, `medkit_test`, `weapons_test`, `feel_test`, `flow_test`, `chat_test`, `ui_feel_test`, `dance_test`, `chest_test` z `--debug-chests`, `settings_test` z `--settings-path=user://test_settings.cfg` (w oknie), `net_graph_test` z połączeniem do serwera (opis w pliku), `steam_account_test` z `--fake-steam=Kapitan:76561197960265729` albo `--no-steam`. `tools/bot_test.sh`, `tools/hit_test.sh` i `tools/loot_test.sh` i `tools/chest_test.sh`, `tools/grenade_net_test.sh`, `tools/steam_net_test.sh`, `tools/weapons_net_test.sh`, `tools/dance_net_test.sh`, `tools/chat_net_test.sh`, `tools/prediction_net_test.sh` sprawdzają sieć z botami, a `tools/lag_proxy.py` dodaje opóźnienie i utratę pakietów.
 
