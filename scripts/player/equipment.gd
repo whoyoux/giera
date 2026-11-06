@@ -193,7 +193,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	elif action_end >= 0 and tick >= action_end:
 		action_end = -1
 		ItemStack.behavior_of(stack).on_timed_action_finished(self, stack, tick)
-	if dead or player.sprinting or ItemStack.is_empty(stack) or tick < draw_end:
+	if dead or player.sprinting or ItemStack.is_empty(stack) or tick < draw_end or Match.is_frozen_at(tick):
 		return
 	ItemStack.behavior_of(stack).rollback_tick(self, stack, tick)
 

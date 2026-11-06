@@ -135,6 +135,23 @@ static func field(text: String, placeholder: String) -> LineEdit:
 	return node
 
 
+## Klawisz do nacisniecia, pokazany w podpowiedzi.
+static func key_chip(key_name: String, chip_size: float, font_size: int) -> PanelContainer:
+	var chip := PanelContainer.new()
+	chip.custom_minimum_size = Vector2.ONE * chip_size
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = INK
+	style.set_corner_radius_all(10)
+	style.anti_aliasing = true
+	chip.add_theme_stylebox_override("panel", style)
+	var text := label(key_name, font_size, Color.WHITE)
+	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	chip.add_child(text)
+	return chip
+
+
 ## Ikona naboju, wyrenderowana z modelu 3D jak ikony broni.
 static func ammo_icon(icon_size: Vector2) -> TextureRect:
 	var icon := TextureRect.new()

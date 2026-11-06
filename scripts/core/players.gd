@@ -16,8 +16,10 @@ func _ready() -> void:
 ## Wynik zalezy tylko od danych wspolnych, wiec jest taki sam u wszystkich.
 func spawn_point(peer_id: int, respawn_number: int) -> Vector3:
 	var points := get_tree().get_nodes_in_group(&"spawn_points")
-	var index := absi(hash(peer_id * 37 + respawn_number * 19)) % points.size()
-	return (points[index] as Node3D).global_position
+	var info: Dictionary = GameState.players.get(peer_id, {})
+	var chosen: int = info.get("spawn_index", -1)
+	var index := chosen if chosen >= 0 else absi(hash(peer_id * 37 + respawn_number * 19))
+	return (points[index % points.size()] as Node3D).global_position
 
 
 func _spawn(id: int) -> void:
