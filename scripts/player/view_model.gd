@@ -91,7 +91,8 @@ func _build_overlay() -> void:
 	_overlay_viewport = SubViewport.new()
 	var viewport := _overlay_viewport
 	viewport.transparent_bg = true
-	viewport.msaa_3d = Viewport.MSAA_4X
+	viewport.msaa_3d = Settings.msaa()
+	Settings.changed.connect(_apply_msaa)
 	viewport.handle_input_locally = false
 	viewport.gui_disable_input = true
 	viewport.positional_shadow_atlas_size = 0
@@ -133,6 +134,10 @@ func _overlay_environment() -> Environment:
 	environment.ssao_enabled = false
 	environment.glow_enabled = false
 	return environment
+
+
+func _apply_msaa() -> void:
+	_overlay_viewport.msaa_3d = Settings.msaa()
 
 
 func _match_window_size() -> void:
