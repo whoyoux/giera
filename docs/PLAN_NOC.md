@@ -96,10 +96,11 @@ br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
 
 ### Etap 2: Nowe bronie
 
-- [ ] **Desert Eagle:** pistolet, duże obrażenia i rzadkie strzały. Punkt wyjścia: 55 obrażeń, 0,65 s między strzałami, magazynek 7, mocny odrzut, celny pierwszy strzał. Dwa trafienia zabijają.
-- [ ] **AWP:** snajperka, **jedno trafienie zabija** z każdej odległości. Punkt wyjścia: 5 naboi, 1,6 s między strzałami, długie przeładowanie, bardzo duży rozrzut bez celowania, wolniejszy ruch.
-- [ ] **Celownik snajperski AWP:** PPM daje nakładkę lunety na cały ekran, mocne przybliżenie, niższą czułość myszy, ukryty model broni i lekkie kołysanie. Strzał wyrzuca z lunety, a podczas przeładowania nie da się celować.
-- [ ] Obie bronie: definicje w `data/items/`, własne modele (przebudowa z paczki blasterów albo kodem, wyraźnie różne od reszty), ikony, smuga, dźwięk, chwyt w obu rękach, wypadanie i podnoszenie. Zasięg trafienia wystarcza na całą dużą mapę. AWP jest rzadki w tabeli łupu.
+- [x] **Desert Eagle:** pistolet, duże obrażenia i rzadkie strzały. Punkt wyjścia: 55 obrażeń, 0,65 s między strzałami, magazynek 7, mocny odrzut, celny pierwszy strzał. Dwa trafienia zabijają.
+- [x] **AWP:** snajperka, **jedno trafienie zabija** z każdej odległości. Punkt wyjścia: 5 naboi, 1,6 s między strzałami, długie przeładowanie, bardzo duży rozrzut bez celowania, wolniejszy ruch.
+- [x] **Celownik snajperski AWP:** PPM daje nakładkę lunety na cały ekran, mocne przybliżenie, niższą czułość myszy, ukryty model broni i lekkie kołysanie. Strzał wyrzuca z lunety, a podczas przeładowania nie da się celować.
+- [x] Obie bronie: definicje w `data/items/`, własne modele (przebudowa z paczki blasterów albo kodem, wyraźnie różne od reszty), ikony, smuga, dźwięk, chwyt w obu rękach, wypadanie i podnoszenie. Zasięg trafienia wystarcza na całą dużą mapę. AWP jest rzadki w tabeli łupu.
+  Dowód: `new_weapons_test` OK (Deagle: 55 obrażeń, 2 trafienia zabijają, 0,65 s, 7 naboi, celny pierwszy strzał, mocny rozrzut; AWP: 1 trafienie zabija w każdej klasie, 5 naboi, 1,6 s, 3,6 s przeładowania, rozrzut 9° bez lunety, wolniejszy bieg; luneta: nakładka, przybliżenie, niższa czułość, ukryta broń, kołysanie, wyrzucenie po strzale i powrót, blokada przy przeładowaniu; wypadanie i podnoszenie; tabela łupu). `sniper_net_test` przez lag_proxy 120 ms: 10 zabójstw z AWP, 0 duplikatów. Zrzuty lunety, broni w rękach, postaci z bronią i ikon obejrzane. Modele z `tools/build_weapon_models.gd` (kod, LowPoly), `Hitscan.RANGE` = 500 m.
 
 ### Etap 3: Regeneracja w Deathmatchu
 

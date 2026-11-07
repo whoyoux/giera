@@ -23,6 +23,7 @@ const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
 
 var _player: Player
 var _crosshair: Crosshair
+var _scope: ScopeOverlay
 var _health_bar: ProgressBar
 var _health_label: Label
 var _speed_bar: ProgressBar
@@ -133,6 +134,8 @@ func _process(delta: float) -> void:
 	if _player.input.wheel_open != _dance_wheel.is_open:
 		_player.input.set_wheel_open(_dance_wheel.is_open)
 	_crosshair.aiming = _player.aiming
+	_scope.amount = move_toward(_scope.amount, 1.0 if _player.is_scoped() else 0.0, get_process_delta_time() * (5.0 if _player.is_scoped() else 12.0))
+	_crosshair.visible = _crosshair.visible and _scope.amount < 0.5
 	_crosshair.spread_radius = _spread_on_screen(_player)
 	_update_death_panel(info)
 	var show_scores := Input.is_action_pressed("scoreboard") and not _chat.is_open
@@ -428,7 +431,7 @@ func _update_death_panel(info: Dictionary) -> void:
 	var watching: bool = Match.is_elimination() and not info.alive
 	_status_panel.visible = not watching
 	_hotbar.visible = not watching
-	_crosshair.visible = not watching
+	_crosshair.visible = not watching and _scope.amount < 0.5
 	if not Match.is_elimination():
 		_death_panel.visible = not info.alive
 		if not info.alive:
@@ -544,6 +547,9 @@ func _build() -> void:
 	_indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_indicator.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_indicator)
+
+	_scope = ScopeOverlay.new()
+	add_child(_scope)
 
 	_crosshair = Crosshair.new()
 	_crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE

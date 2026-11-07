@@ -14,6 +14,9 @@ const DANCER_STEP_SECONDS := 6.0
 const DANCER_MOVE_AFTER := 4.5
 const DANCER_MOVE_UNTIL := 5.0
 const OVERHEAD_AIM_HEIGHT := 1.5
+## Kolysanie lunety: maly ruch celownika, ktory gracz musi poprawiac.
+const SCOPE_SWAY := 0.0035
+const SCOPE_SWAY_SPEED := 1.3
 
 # Wysylane do serwera (input_properties w RollbackSynchronizer).
 var move := Vector2.ZERO
@@ -48,6 +51,8 @@ var _wanted_slot := 0
 var _wanted_uid := 0
 var _fire_blocked := false
 var _wanted_dance := DanceCatalog.NONE
+var _sway_time := 0.0
+var _sway := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -173,12 +178,23 @@ func _gather() -> void:
 		sprint = false
 		crouch = false
 		reload = false
+	_update_scope_sway()
 	_keep_dance_valid()
 	dance = _wanted_dance
 	slot = _wanted_slot
 	yaw = look_yaw
 	pitch = look_pitch
 	view_tick = -1 if multiplayer.is_server() else RemoteMotion.view_tick()
+
+
+## Luneta lekko plywa. Ruch trafia do wejscia, wiec serwer liczy strzal tam, gdzie gracz widzi celownik.
+func _update_scope_sway() -> void:
+	var scoped := (get_parent() as Player).is_scoped()
+	_sway_time = _sway_time + NetworkTime.ticktime if scoped else 0.0
+	var target := Vector2(sin(_sway_time * SCOPE_SWAY_SPEED), sin(_sway_time * SCOPE_SWAY_SPEED * 1.7 + 0.6) * 0.6) * SCOPE_SWAY if scoped else Vector2.ZERO
+	look_yaw += target.x - _sway.x
+	look_pitch = clampf(look_pitch + target.y - _sway.y, -MAX_PITCH, MAX_PITCH)
+	_sway = target
 
 
 ## Prosty bot do testow i cwiczen w pojedynke.
@@ -309,6 +325,24 @@ func _gather_bot() -> void:
 					var wanted := 1.0 if Net.args.get("aim-when", "crouched") == "crouched" else 0.0
 					aim = true
 					use_primary = victim.shown_crouch() == wanted and fmod(_bot_time, 0.5) < NetworkTime.ticktime * 2.0 and me.equipment.spread_bloom == 0.0 and me.is_on_floor() and Vector2(me.velocity.x, me.velocity.z).length() < 0.1
+		"sniper":
+			# Test sieci: z AWP w lunecie strzela w tulow wskazanego gracza, gdy widac go w calosci.
+			var awp := _find_item(me, &"awp")
+			var mark := _named_player(Net.args.get("bot-target", ""))
+			if awp >= 0 and _wanted_slot != awp:
+				select_slot(awp)
+			move = Vector2.ZERO
+			use_primary = false
+			aim = mark != null and awp >= 0
+			if mark != null:
+				var body := mark.shown_position() + Vector3.UP * 0.35
+				_look_at(me, body)
+				var seen := Hitscan.trace(me.get_world_3d(), me.eye_position(), me.eye_position().direction_to(body), me.peer_id, get_tree())
+				if seen.player != mark:
+					move = Vector2(1.0 if fmod(_bot_time, 6.0) < 1.5 else 0.0, -1.0).normalized()
+					aim = false
+				else:
+					use_primary = me.is_scoped() and me.camera_zoomed_in() and fmod(_bot_time, 0.5) < NetworkTime.ticktime * 2.0
 		"headhunter":
 			# Strzela tylko, gdy na ekranie ma dokladnie glowe celu w celowniku.
 			var target := _nearest_enemy(me)

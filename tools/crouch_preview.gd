@@ -1,6 +1,6 @@
 extends Node
 ## Narzedzie: zrzut postaci stojacej i kucajacej z boku, zeby obejrzec poze kucania.
-## Uzycie: -- --tool=res://tools/crouch_preview.gd --shot=C:/plik.png
+## Uzycie: -- --tool=res://tools/crouch_preview.gd --shot=C:/plik.png [--item=awp]
 
 const STATES: Array[Array] = [
 	["stoi", 0.0, Vector2.ZERO],
@@ -19,7 +19,7 @@ func _ready() -> void:
 		var rig := CharacterRig.new()
 		main.add_child(rig)
 		rig.setup(CharacterAssets.ROSTER[i].id)
-		rig.set_item(ItemStack.create(1, ItemRegistry.DEFAULT_WEAPON, 0))
+		rig.set_item(ItemStack.create(1, StringName(Net.args.get("item", ItemRegistry.DEFAULT_WEAPON)), 0))
 		var at := base + Vector3(i * 1.6, 0.0, 0.0)
 		at.y = ForestTerrain.surface(at.x, at.z)
 		rig.position = at

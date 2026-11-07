@@ -6,7 +6,8 @@ extends RefCounted
 ## fizyki aktualizuje ich kolizje dopiero w swoim kroku, wiec zwykly raycast
 ## widzialby nieaktualne polozenia. Fizyki uzywamy tylko dla statycznej mapy.
 
-const RANGE := 250.0
+## Wystarcza na cala srednice najwiekszej mapy.
+const RANGE := 500.0
 const WORLD_MASK := 1
 const BODY_RADIUS := 0.36
 const BODY_BOTTOM := 0.2

@@ -28,7 +28,7 @@ func update(player: Player, delta: float) -> void:
 		camera.top_level = active
 		if not active:
 			camera.position = Vector3.ZERO
-	player.view_model.set_shown(not active)
+	player.view_model.set_shown(not active and not player.hides_weapon())
 	var model_shown := blend >= MODEL_SHOWN_FROM
 	if player.model.visible != model_shown:
 		player.model.visible = model_shown

@@ -5,6 +5,8 @@ extends ItemDefinition
 @export var common: WeaponStats
 @export var epic: WeaponStats
 @export var legendary: WeaponStats
+## Szybkosc biegu z ta bronia w reku. Ciezka snajperka spowalnia.
+@export_range(0.5, 1.5) var move_scale := 1.0
 
 static var _behavior: ItemBehavior
 
@@ -34,3 +36,7 @@ func full_charges(tier: int) -> int:
 
 func draw_seconds(tier: int) -> float:
 	return stats(tier).draw_seconds
+
+
+func move_speed_scale() -> float:
+	return move_scale

@@ -131,9 +131,12 @@ func rewind_tick(tick: int) -> int:
 	return clampi(input.view_tick, tick - NetworkTime.seconds_to_ticks(MAX_REWIND_SECONDS), tick)
 
 
-## Celowac mozna tylko bronia i nie w trakcie przeladowania.
-func can_aim() -> bool:
-	return active_stats() != null and not is_busy()
+## Celowac mozna tylko bronia i nie w trakcie przeladowania. Luneta wraca dopiero po przeladowaniu zamka.
+func can_aim(tick := NetworkTime.tick) -> bool:
+	var stats := active_stats()
+	if stats == null or is_busy():
+		return false
+	return not stats.scope or tick - last_fire >= stats.fire_interval_ticks
 
 
 func is_busy() -> bool:

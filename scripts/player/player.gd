@@ -203,6 +203,22 @@ func aim_sensitivity_scale() -> float:
 	return _view_zoom * float(Settings.value("aim_sensitivity"))
 
 
+## Celowanie przez lunete snajperki.
+func is_scoped() -> bool:
+	var stats := equipment.active_stats()
+	return aiming and stats != null and stats.scope
+
+
+## Luneta przyblizyla juz widok. Bot bez ekranu przyblizenia nie liczy, wiec od razu jest gotowy.
+func camera_zoomed_in() -> bool:
+	return Net.is_headless or _view_zoom < 0.5
+
+
+## W pelni przyblizona luneta zaslania bron, wiec jej nie rysujemy.
+func hides_weapon() -> bool:
+	return is_scoped() and _view_zoom < 0.5
+
+
 func shake_camera(amount: float) -> void:
 	_shake.add(amount)
 
@@ -307,7 +323,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	else:
 		velocity.y -= GRAVITY * delta
 
-	aiming = input.aim and not dead and equipment.can_aim()
+	aiming = input.aim and not dead and equipment.can_aim(tick)
 	_update_sprint(tick, delta, locked)
 	var wish := Vector3.ZERO
 	if not locked:

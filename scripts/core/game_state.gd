@@ -336,6 +336,9 @@ func _give_debug_items(id: int) -> void:
 		server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
 		server_give_item(id, &"medkit", Rarity.Tier.COMMON)
 		server_give_item(id, &"grenade", Rarity.Tier.COMMON)
+	if Net.args.has("debug-snipers"):
+		server_give_item(id, &"deagle", Rarity.Tier.COMMON)
+		server_give_item(id, &"awp", Rarity.Tier.COMMON)
 	if Net.args.has("debug-weapons"):
 		server_give_item(id, &"shotgun", Rarity.Tier.COMMON)
 		server_give_item(id, &"shotgun", Rarity.Tier.LEGENDARY)

@@ -164,7 +164,7 @@ func _check_loot() -> void:
 		else:
 			_check_once_tier(rolled)
 	print("[test] lup: %s, klasy broni: %s" % [items, tiers])
-	_check("ze skrzynki wypada piec rodzajow", items.size() == 5)
+	_check("ze skrzynki wypada kazdy rodzaj z tabeli", items.size() == Chests.LOOT_TABLE.item_ids.size())
 	var total_weapons: int = tiers[0] + tiers[1] + tiers[2]
 	_check("legendarna wciaz jest rzadka", absf(float(tiers[Rarity.Tier.LEGENDARY]) / total_weapons - 0.1) < 0.02)
 	_check("zwykla wciaz najczestsza", absf(float(tiers[Rarity.Tier.COMMON]) / total_weapons - 0.55) < 0.03)
