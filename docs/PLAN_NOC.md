@@ -111,9 +111,10 @@ br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
 
 ### Etap 4: Rundy i ranking w Deathmatchu
 
-- [ ] Runda ma czas: domyślnie 5 min, jedna stała. Kończy się też po 25 zabójstwach lidera. Czas liczony w tickach z serwera.
-- [ ] HUD stale pokazuje: licznik czasu, kto prowadzi i z iloma zabójstwami, miejsce gracza. Skrócona lista 3 najlepszych, a pełna pod Tab. Dołączający w trakcie widzi poprawny stan. („Kolejka” z prośby użytkownika to kolejność graczy, czyli ten ranking.)
-- [ ] Koniec rundy: ekran zwycięzcy i tabela, ok. 12 s, potem pełny reset (wyniki, łup, przedmioty, skrzynki, zdrowie) bez restartu serwera i nowa runda. Ostatnie 30 s ma wyraźny sygnał. Remis jest obsłużony. Test: 3 rundy z rzędu z botami, z rozłączeniem w trakcie.
+- [x] Runda ma czas: domyślnie 5 min, jedna stała. Kończy się też po 25 zabójstwach lidera. Czas liczony w tickach z serwera.
+- [x] HUD stale pokazuje: licznik czasu, kto prowadzi i z iloma zabójstwami, miejsce gracza. Skrócona lista 3 najlepszych, a pełna pod Tab. Dołączający w trakcie widzi poprawny stan. („Kolejka” z prośby użytkownika to kolejność graczy, czyli ten ranking.)
+- [x] Koniec rundy: ekran zwycięzcy i tabela, ok. 12 s, potem pełny reset (wyniki, łup, przedmioty, skrzynki, zdrowie) bez restartu serwera i nowa runda. Ostatnie 30 s ma wyraźny sygnał. Remis jest obsłużony. Test: 3 rundy z rzędu z botami, z rozłączeniem w trakcie.
+  Dowód: `round_test` OK (zegar z ticków, lider, miejsce, 3 najlepszych, miejsca pod Tab, sygnał ostatnich 30 s, limit zabójstw, ekran zwycięzcy, 12 s wyników, pełny reset łupu, skrzynek, zdrowia, przedmiotów i wyników, remis, koniec czasu). `dm_rounds_test` przez lag_proxy 80 ms: 4 rundy, bot C wychodzi w rundzie 2, bot D dołącza w trakcie i zna ten sam koniec rundy co serwer, czysty stan po każdej rundzie u serwera i klientów, te same wyniki, 3 razy z rzędu. Nowa runda zaczyna się od 3 s zamrożenia, żeby nikt nie walczył w chwili przeniesienia. Zrzuty `round_hud.png` i `round_results.png` obejrzane.
 
 ### Etap 5: System map i mapa miejska
 

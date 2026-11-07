@@ -83,6 +83,7 @@ exit 0
 #- crouch_test
 #- new_weapons_test
 #- regen_test
+#- round_test --round-seconds=40 --round-kill-limit=3
 # KONIEC
 # SIEC
 #- bot_test
@@ -104,4 +105,5 @@ exit 0
 #- crouch_net_test
 #- sniper_net_test
 #- regen_net_test
+#- dm_rounds_test
 # KONIEC

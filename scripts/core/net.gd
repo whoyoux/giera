@@ -14,6 +14,8 @@ extends Node
 ##   --debug-weapons       serwer daje kazdemu strzelby i noz do testow
 ##   --debug-medkit        apteczka z --debug-items takze w Deathmatchu, do testow apteczki
 ##   --debug-snipers       serwer daje kazdemu Desert Eagle i AWP do testow
+##   --round-seconds=300   dlugosc rundy Deathmatchu, do testow
+##   --round-kill-limit=25 tyle zabojstw lidera konczy runde Deathmatchu, do testow
 ##   --debug-chests        dodatkowe skrzynki przy punktach odrodzenia (na serwerze i u klientow)
 
 signal session_started
@@ -24,7 +26,7 @@ const MAX_CLIENTS := 32
 const CONNECT_TIMEOUT_SECONDS := 8.0
 const DEDICATED_MAX_FPS := 60
 ## Podnies przy kazdej zmianie, po ktorej stary build nie dogada sie z serwerem.
-const PROTOCOL_VERSION := 23
+const PROTOCOL_VERSION := 24
 const JOIN_ANSWER_SECONDS := 6.0
 const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Uruchom grę ponownie, żeby ją zaktualizować."
 

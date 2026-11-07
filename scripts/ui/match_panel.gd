@@ -63,13 +63,15 @@ func _process(_delta: float) -> void:
 	_update_watch_hint()
 	_update_match_info()
 	if _results_center.visible:
-		_results_timer.text = "Powrót do lobby za %d" % ceili(Match.seconds_left())
-	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING
+		_results_timer.text = ("Powrót do lobby za %d" if Match.is_elimination() else "Nowa runda za %d") % ceili(Match.seconds_left())
+	var round_start := not Match.is_elimination() and Match.is_frozen_at(NetworkTime.tick)
+	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING or round_start
 	_big_panel.visible = counting
 	if not counting:
 		_shown_second = -1
 		return
-	var second := ceili(Match.seconds_left())
+	var left := (Match.freeze_end_tick - NetworkTime.tick) * NetworkTime.ticktime if round_start else Match.seconds_left()
+	var second := ceili(left)
 	if second == _shown_second:
 		return
 	_shown_second = second
@@ -135,11 +137,11 @@ func _refresh() -> void:
 
 
 func _play_phase_sound() -> void:
-	if Match.phase == _shown_phase or not Match.is_elimination() or Net.is_headless:
+	if Match.phase == _shown_phase or Net.is_headless:
 		_shown_phase = Match.phase
 		return
 	_shown_phase = Match.phase
-	if Match.phase == Match.Phase.LIVE:
+	if Match.phase == Match.Phase.LIVE and Match.is_elimination():
 		_phase_audio.stream = Sfx.match_start()
 		_phase_audio.play()
 	elif Match.phase == Match.Phase.RESULTS:

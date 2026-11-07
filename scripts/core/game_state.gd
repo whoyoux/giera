@@ -236,6 +236,7 @@ func server_set_ready(id: int, value: bool) -> void:
 
 
 ## Przygotowuje gracza do rundy: czysty stan i przeniesienie na miejsce w podanym ticku.
+## Dziala dla meczu Battle Royale i dla nowej rundy Deathmatchu.
 ## Martwy ma juz inny respawn_id niz postac, wiec wystarczy mu nowy czas odrodzenia.
 func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
 	var info: Dictionary = players[id]

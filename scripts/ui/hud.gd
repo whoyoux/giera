@@ -491,6 +491,9 @@ func _refresh_scoreboard() -> void:
 		child.free()
 	var ids := GameState.players.keys()
 	var elimination := Match.is_elimination()
+	var places := {}
+	for row: Dictionary in Match.standings():
+		places[row.id] = row.place
 	ids.sort_custom(func(a: int, b: int) -> bool:
 		var first: Dictionary = GameState.players[a]
 		var second: Dictionary = GameState.players[b]
@@ -503,7 +506,8 @@ func _refresh_scoreboard() -> void:
 		var ping: int = GameState.pings.get(id, -1)
 		var ping_text := "%d ms" % ping if ping >= 0 else "–"
 		var middle := _match_status(info) if elimination else str(info.deaths)
-		var row := _score_row(info.name, str(info.kills), middle, ping_text, UiStyle.INK, _ping_color(ping))
+		var shown_name: String = info.name if elimination else "%d. %s" % [places.get(id, 0), info.name]
+		var row := _score_row(shown_name, str(info.kills), middle, ping_text, UiStyle.INK, _ping_color(ping))
 		row.add_child(_avatar_of(id, SCORE_AVATAR_SIDE))
 		row.move_child(row.get_child(-1), 0)
 		_score_rows.add_child(row)
@@ -612,6 +616,7 @@ func _build() -> void:
 	_build_status_sticker()
 	_build_ammo_sticker()
 	add_child(MatchPanel.new())
+	add_child(RoundPanel.new())
 	_chat = ChatPanel.new()
 	_chat.closed.connect(_on_chat_closed)
 	add_child(_chat)
