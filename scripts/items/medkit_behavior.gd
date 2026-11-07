@@ -15,12 +15,14 @@ func rollback_tick(equipment: Equipment, stack: Dictionary, tick: int) -> void:
 	if equipment.is_busy():
 		# Trafienie w trakcie leczenia przerywa je, tak jak przerywa regeneracje w Deathmatchu.
 		var started := equipment.action_end - NetworkTime.seconds_to_ticks(definition.use_seconds)
-		if not wants_use or equipment.player.info.get("hit_tick", -1) >= started:
+		var interrupted: bool = equipment.player.info.get("hit_tick", -1) >= started
+		if not wants_use or interrupted:
 			equipment.cancel_timed_action()
+		if interrupted:
+			# Przerwane trafieniem leczenie mozna zaczac dopiero po chwili, nawet trzymajac przycisk.
+			equipment.last_fire = tick + NetworkTime.seconds_to_ticks(HIT_BLOCK_SECONDS - RETRY_BLOCK_SECONDS)
 		return
 	if tick - equipment.last_fire < NetworkTime.seconds_to_ticks(RETRY_BLOCK_SECONDS):
-		return
-	if equipment.player.info.get("hit_tick", -1) > tick - NetworkTime.seconds_to_ticks(HIT_BLOCK_SECONDS):
 		return
 	if wants_use and equipment.player.info.health < GameState.MAX_HEALTH:
 		equipment.start_timed_action(tick, definition.use_seconds)

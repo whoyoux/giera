@@ -214,7 +214,8 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 	var victim: Dictionary = players.get(victim_id, {})
 	if victim.is_empty() or not victim.alive or not Match.allows_combat():
 		return
-	if NetworkTime.tick < victim.get("protected_until", -1) and attacker_id != ZONE_ATTACKER:
+	# Ochrona chroni przed innymi graczami, ale nie przed strefa ani wlasnym granatem.
+	if NetworkTime.tick < victim.get("protected_until", -1) and attacker_id != ZONE_ATTACKER and attacker_id != victim_id:
 		return
 	var dealt := mini(amount, victim.health)
 	victim.health = maxi(0, victim.health - amount)

@@ -106,6 +106,8 @@ func _ready() -> void:
 	await _press("drop_item")
 	var dropped_starter := _item_with_uid(starter_uid)
 	_check("startowy mozna wyrzucic", dropped_starter != 0)
+	# Po odrodzeniu w Deathmatchu gracz ma chwile ochrony.
+	GameState.players[1].protected_until = -1
 	GameState.server_damage(1, 500, 2)
 	await _wait(0.2)
 	_check("bez startowego dostaje nowy", not ItemStack.is_empty(slots[0]) and ItemStack.uid_of(slots[0]) != starter_uid and slots[0].get("starter", false))

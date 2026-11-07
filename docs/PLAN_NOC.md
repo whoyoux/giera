@@ -125,9 +125,12 @@ br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
 
 ### Etap 6: Znacznie większa mapa Battle Royale
 
-- [ ] Nowa mapa o promieniu **ok. 200 m** (dziś 50 m, czyli 16 razy większa powierzchnia), własna scena i generator. Co najmniej 6 odrębnych miejsc: np. stare ruiny, wioska, gospodarstwo, kamieniołom, jezioro z mostem, obóz na wzgórzu. Między nimi las, polany i drogi. Teren zróżnicowany, ale przejezdny pieszo.
-- [ ] Wydajność jest wymaganiem: teren w kawałkach, `HeightMapShape3D` zamiast siatki kolizji, `MultiMesh` i `visibility_range` dla roślinności, sensowna mgła i zasięg widzenia. Zmierz `tools/perf_probe.gd` na ustawieniach wysokich i niskich (Mac). Serwer z 10 graczami mieści się w limicie 512 MB i 1 CPU z `compose.yaml`. Czas wejścia na mapę jest akceptowalny. Wyniki zapisz w PR.
-- [ ] Rozgrywka: co najmniej 60 skrzynek skupionych w miejscach, punkty startu rozłożone po mapie, strefa przeskalowana do ok. 8–10 min, linie strzału i odległości między miejscami pasują do AWP. Mapka w HUD działa w nowej skali i ma nazwy miejsc. Zaktualizuj `docs/PLAN_BATTLE_ROYALE.md`. Test: pełny mecz z botami do końca i powrót do lobby, 2 razy z rzędu.
+- [x] Nowa mapa o promieniu **ok. 200 m** (dziś 50 m, czyli 16 razy większa powierzchnia), własna scena i generator. Co najmniej 6 odrębnych miejsc: np. stare ruiny, wioska, gospodarstwo, kamieniołom, jezioro z mostem, obóz na wzgórzu. Między nimi las, polany i drogi. Teren zróżnicowany, ale przejezdny pieszo.
+  Dowód: `valley_map_test` OK (promień 200 m, 6 miejsc, 24 punkty startu w odstępie min. 34 m, 61 skrzynek, kolizja zgodna ze wzorem z dokładnością 0,000, granica, linia 140 m z obozu). Zrzuty doliny obejrzane.
+- [x] Wydajność jest wymaganiem: teren w kawałkach, `HeightMapShape3D` zamiast siatki kolizji, `MultiMesh` i `visibility_range` dla roślinności, sensowna mgła i zasięg widzenia. Zmierz `tools/perf_probe.gd` na ustawieniach wysokich i niskich (Mac). Serwer z 10 graczami mieści się w limicie 512 MB i 1 CPU z `compose.yaml`. Czas wejścia na mapę jest akceptowalny. Wyniki zapisz w PR.
+  Wyniki: `perf_probe` w dolinie na RTX 5070 Ti, 2560×1440: GPU świata 1,60 ms (wysoka), 0,41–0,52 ms (niska), klatka ok. 2 ms. Serwer z 10 botami: 165 MB RAM i ok. 70% jednego rdzenia. Budowa mapy: 0,8 s na serwerze, ok. 1,7–2,4 s u klienta. Pomiaru na Macu nie było, bo nie ma tu Maca.
+- [x] Rozgrywka: co najmniej 60 skrzynek skupionych w miejscach, punkty startu rozłożone po mapie, strefa przeskalowana do ok. 8–10 min, linie strzału i odległości między miejscami pasują do AWP. Mapka w HUD działa w nowej skali i ma nazwy miejsc. Zaktualizuj `docs/PLAN_BATTLE_ROYALE.md`. Test: pełny mecz z botami do końca i powrót do lobby, 2 razy z rzędu.
+  Dowód: `br_valley_test` przez lag_proxy: 3 pełne mecze z powrotem do lobby i czystym stanem, strefa zabija, 10 zrzutów zaopatrzenia. `docs/PLAN_BATTLE_ROYALE.md` zaktualizowany, mapka ma nazwy miejsc.
 
 ## Pomysły dodatkowe
 
@@ -135,31 +138,43 @@ Po etapach 1–6 realizuj po kolei, aż do końca czasu. Nie kończ pracy wcześ
 
 ### Grupa A: mały koszt, duży efekt
 
-- [ ] **Trafienia w głowę:** osobny hitbox głowy, mnożnik zależny od broni, inny znacznik i dźwięk, ikona na liście zabójstw.
-- [ ] **Ekran śmierci:** kto Cię zabił, jaką bronią, ile HP mu zostało, odliczanie do odrodzenia.
-- [ ] **Bezpieczne odrodzenia w Deathmatchu:** wybór punktu z dala od wrogów i 2 s ochrony, która znika po strzale.
-- [ ] **Serie zabójstw:** podwójne i potrójne zabójstwo, pierwsza krew, przerwanie serii, z dźwiękiem i komunikatem.
-- [ ] **Podium na koniec rundy:** kamera na najlepszą trójkę, która tańczy dostępnymi tańcami, i nagrody (najwięcej zabójstw, najcelniejszy, najwięcej trafień w głowę). Świetnie wykorzystuje istniejące tańce.
-- [ ] **Liczby obrażeń** nad celem, z opcją wyłączenia w ustawieniach.
-- [ ] **Ślizg:** kucnięcie w sprincie daje krótki ślizg ze zużyciem sprintu, w rollbacku.
-- [ ] **Przerywanie apteczki trafieniem** w Battle Royale, spójnie z regeneracją.
+- [x] **Trafienia w głowę:** osobny hitbox głowy, mnożnik zależny od broni, inny znacznik i dźwięk, ikona na liście zabójstw.
+- [x] **Ekran śmierci:** kto Cię zabił, jaką bronią, ile HP mu zostało, odliczanie do odrodzenia.
+- [x] **Bezpieczne odrodzenia w Deathmatchu:** wybór punktu z dala od wrogów i 2 s ochrony, która znika po strzale.
+- [x] **Serie zabójstw:** podwójne i potrójne zabójstwo, pierwsza krew, przerwanie serii, z dźwiękiem i komunikatem.
+- [x] **Podium na koniec rundy:** kamera na najlepszą trójkę, która tańczy dostępnymi tańcami, i nagrody (najwięcej zabójstw, najcelniejszy, najwięcej trafień w głowę). Świetnie wykorzystuje istniejące tańce.
+- [x] **Liczby obrażeń** nad celem, z opcją wyłączenia w ustawieniach.
+- [x] **Ślizg:** kucnięcie w sprincie daje krótki ślizg ze zużyciem sprintu, w rollbacku.
+- [x] **Przerywanie apteczki trafieniem** w Battle Royale, spójnie z regeneracją.
+  Dowód grupy A: `features_test` OK (szczegóły trafienia w głowę, liczby obrażeń i ich wyłączenie, pierwsza krew i podwójne zabójstwo, ekran śmierci, odrodzenie najdalej od wroga, ochrona i jej koniec po strzale, nagrody, ślizg 10 m/s za 25 sprintu, przerwanie apteczki), `medkit_test`, `grenade_test`, `pickup_test` OK.
 
 ### Grupa B: głębsza rozgrywka
 
-- [ ] **Głosowanie na mapę** między rundami Deathmatchu (miasto albo polana), ze zmianą mapy bez restartu serwera. Jeśli to się nie uda stabilnie, zostaje samo miasto.
-- [ ] **Zrzuty zaopatrzenia w Battle Royale:** skrzynia na spadochronie z dymem, widoczna na mapce, z najlepszym łupem w środkowych fazach.
-- [ ] **Duża mapa pod M** w Battle Royale, ze strefą, miejscami i własnym znacznikiem.
-- [ ] **Desant na starcie Battle Royale:** gracze wyskakują z zabawkowego samolotu i sterują lotem na lotni. Tylko jeśli działa stabilnie przy opóźnieniu, inaczej zostają rozłożone punkty startu.
-- [ ] **Skoki, drabiny i rury w mieście:** dodatkowe trasy na dachy i piętra.
-- [ ] **Sprytniejsze boty:** chodzą po trasach (`NavigationRegion3D`), szukają przeciwników i łupu, kucają za osłonami, z poziomami trudności. Pomaga w testach i w grze przy małej liczbie osób.
+- [x] **Głosowanie na mapę** między rundami Deathmatchu (miasto albo polana), ze zmianą mapy bez restartu serwera. Jeśli to się nie uda stabilnie, zostaje samo miasto.
+  Dowód: `features_test` (głosy 2:1 zmieniają mapę na miasto bez restartu serwera).
+- [x] **Zrzuty zaopatrzenia w Battle Royale:** skrzynia na spadochronie z dymem, widoczna na mapce, z najlepszym łupem w środkowych fazach.
+  Dowód: `features_test` i `br_valley_test` (zrzuty lądują i dają 4 legendarne przedmioty).
+- [x] **Duża mapa pod M** w Battle Royale, ze strefą, miejscami i własnym znacznikiem.
+  Dowód: `features_test` (mała i duża mapa, klawisz M w panelu klawiszy).
+- [!] **Desant na starcie Battle Royale:** gracze wyskakują z zabawkowego samolotu i sterują lotem na lotni. Tylko jeśli działa stabilnie przy opóźnieniu, inaczej zostają rozłożone punkty startu.
+  Pominięte: wymaga nowego trybu ruchu w rollbacku (lot i lotnia), a plan pozwala na to tylko przy stabilnej pracy z opóźnieniem. Zostały rozłożone punkty startu.
+- [x] **Skoki, drabiny i rury w mieście:** dodatkowe trasy na dachy i piętra.
+  Dowód: `features_test` (drabina wynosi gracza na 4,3 m), 3 drabiny, rura i skrzynie do wskoczenia na kontener.
+- [!] **Sprytniejsze boty:** chodzą po trasach (`NavigationRegion3D`), szukają przeciwników i łupu, kucają za osłonami, z poziomami trudności. Pomaga w testach i w grze przy małej liczbie osób.
+  Pominięte na prośbę użytkownika: boty nie są używane. Dodane tylko omijanie przeszkód i wybór celu na tym samym poziomie.
 
 ### Grupa C: oprawa
 
-- [ ] **Własne dźwięki** nowych broni, kucania, ślizgu i końca rundy, generowane skryptem jak muzyka tańców.
-- [ ] **Pora dnia na mapach:** ciepły zachód słońca w mieście z neonami, świetlne okna, porządne cienie. Z zachowaniem wydajności na ustawieniach niskich.
-- [ ] **Efekty zniszczeń:** ślady po kulach, odpryski zależne od powierzchni, pękające szkło.
-- [ ] **Osobiste statystyki** zapisane lokalnie: zabójstwa, rozegrane rundy, celność, ulubiona broń, panel w menu. Bez wysyłania na serwer, bo SteamID nie jest weryfikowane.
-- [ ] **Samouczek klawiszy** przy pierwszym uruchomieniu, korzystający z własnych ustawień gracza.
+- [x] **Własne dźwięki** nowych broni, kucania, ślizgu i końca rundy, generowane skryptem jak muzyka tańców.
+  Dźwięki generowane w `sfx.gd`: zamek AWP, kucanie, ślizg, gong końca rundy, trafienie w głowę, seria, kroki po betonie i metalu, odgłosy miasta.
+- [x] **Pora dnia na mapach:** ciepły zachód słońca w mieście z neonami, świetlne okna, porządne cienie. Z zachowaniem wydajności na ustawieniach niskich.
+  Miasteczko o zachodzie z neonami i świecącymi oknami (emisja, poświata tylko na średniej i wysokiej jakości).
+- [x] **Efekty zniszczeń:** ślady po kulach, odpryski zależne od powierzchni, pękające szkło.
+  Ślady po kulach i odpryski w kolorze powierzchni, iskry na metalu. Pękającego szkła nie ma, bo na mapach nie ma szyb jako obiektów.
+- [x] **Osobiste statystyki** zapisane lokalnie: zabójstwa, rozegrane rundy, celność, ulubiona broń, panel w menu. Bez wysyłania na serwer, bo SteamID nie jest weryfikowane.
+  Dowód: `features_test` (zabójstwa liczą się do `user://stats.cfg`), panel Statystyki w menu.
+- [x] **Samouczek klawiszy** przy pierwszym uruchomieniu, korzystający z własnych ustawień gracza.
+  Pokazuje się raz, z aktualnymi klawiszami gracza, bez narzędzi testowych.
 
 ## Zakończenie
 
