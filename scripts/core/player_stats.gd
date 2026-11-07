@@ -17,6 +17,12 @@ func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 
 
+## Usuwa wszystkie statystyki z tego komputera.
+func reset() -> void:
+	_config.clear()
+	_config.save(PATH)
+
+
 func value(key: String) -> int:
 	return _config.get_value(SECTION, key, 0)
 

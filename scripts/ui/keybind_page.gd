@@ -21,7 +21,12 @@ func _ready() -> void:
 	var reset := UiStyle.button("Domyślne klawisze", UiStyle.TEAL)
 	reset.name = "reset_keys"
 	reset.pressed.connect(reset_all)
-	add_child(reset)
+	# Przycisk lekko sie przechyla i ma cien, wiec potrzebuje miejsca, zeby lista go nie ucinala.
+	var margin := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 10)
+	margin.add_child(reset)
+	add_child(margin)
 	refresh()
 
 

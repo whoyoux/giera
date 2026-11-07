@@ -58,7 +58,7 @@ func _check_definitions() -> void:
 	var table := Chests.LOOT_TABLE
 	var awp_weight: int = table.item_weights[table.item_ids.find(&"awp")] if table.item_ids.has(&"awp") else -1
 	var lightest: int = table.item_weights.min()
-	_check("obie w skrzynkach, AWP najrzadszy", table.item_ids.has(&"deagle") and awp_weight > 0 and awp_weight == lightest and table.item_weights.count(lightest) == 1)
+	_check("obie w skrzynkach, AWP wsrod najrzadszych", table.item_ids.has(&"deagle") and awp_weight > 0 and awp_weight == lightest)
 
 
 func _test_deagle(slot: int) -> void:

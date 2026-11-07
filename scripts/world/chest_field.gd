@@ -4,10 +4,13 @@ extends Node3D
 ## bo ruch jest przewidywany, a wyglad powstaje tylko tam, gdzie jest ekran.
 
 const BODY_SIZE := Vector3(1.3, 0.95, 0.9)
+## Otwarta skrzynka ma odchylone wieko, wiec zostaje tylko nizszy kufer.
+const OPEN_SIZE := Vector3(1.24, 0.56, 0.84)
 const DEBUG_DISTANCE := 2.2
 const OPEN_SHAKE := 0.4
 
 var _views := {}
+var _shapes := {}
 
 
 func _ready() -> void:
@@ -27,6 +30,12 @@ func _ready() -> void:
 			at.y = maxf(Maps.info().surface(at.x, at.z), floor_y)
 			_add_chest(id, at, atan2(at.x, at.z))
 			id += 1
+	# Kolizja zmienia sie takze na serwerze, bo ruch jest przewidywany.
+	Chests.chest_opened.connect(func(chest_id: int, _opener: int, _tier: int) -> void: _set_open_shape(chest_id, true))
+	Chests.chest_closed.connect(func(chest_id: int) -> void: _set_open_shape(chest_id, false))
+	Chests.chests_reset.connect(func() -> void:
+		for chest_id: int in _shapes:
+			_set_open_shape(chest_id, Chests.chests[chest_id].open))
 	if Net.is_headless:
 		return
 	Chests.chest_opened.connect(_on_opened)
@@ -53,12 +62,22 @@ func _add_chest(id: int, at: Vector3, rotation_y: float) -> void:
 	collision.shape = shape
 	collision.position.y = BODY_SIZE.y * 0.5
 	body.add_child(collision)
+	_shapes[id] = collision
 	add_child(body)
 	Chests.register(id, at, rotation_y, body.get_rid())
 	if not Net.is_headless:
 		var view := ChestView.new()
 		body.add_child(view)
 		_views[id] = view
+
+
+func _set_open_shape(id: int, opened: bool) -> void:
+	var collision := _shapes.get(id) as CollisionShape3D
+	if collision == null:
+		return
+	var size := OPEN_SIZE if opened else BODY_SIZE
+	(collision.shape as BoxShape3D).size = size
+	collision.position.y = size.y * 0.5
 
 
 func _on_opened(id: int, opener_id: int, tier: int) -> void:

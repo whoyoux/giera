@@ -227,8 +227,10 @@ func camera_zoomed_in() -> bool:
 
 
 ## W pelni przyblizona luneta zaslania bron, wiec jej nie rysujemy.
+## Na podium po rundzie kamera patrzy z boku, wiec broni w rekach tez nie widac.
 func hides_weapon() -> bool:
-	return is_scoped() and _view_zoom < 0.5
+	var podium := not Match.is_elimination() and Match.phase == Match.Phase.RESULTS
+	return podium or (is_scoped() and _view_zoom < 0.5)
 
 
 func shake_camera(amount: float) -> void:

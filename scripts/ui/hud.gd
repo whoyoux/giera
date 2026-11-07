@@ -149,6 +149,7 @@ func _process(delta: float) -> void:
 	if _player.input.wheel_open != _dance_wheel.is_open:
 		_player.input.set_wheel_open(_dance_wheel.is_open)
 	_crosshair.aiming = _player.aiming
+	_update_clutter()
 	_scope.amount = move_toward(_scope.amount, 1.0 if _player.is_scoped() else 0.0, get_process_delta_time() * (5.0 if _player.is_scoped() else 12.0))
 	_crosshair.visible = _crosshair.visible and _scope.amount < 0.5
 	_crosshair.spread_radius = _spread_on_screen(_player)
@@ -159,6 +160,21 @@ func _process(delta: float) -> void:
 		if show_scores:
 			UiStyle.pop_in(_score_card)
 			UiSound.play(Sfx.UiCue.PRESS)
+
+
+## W lunecie znika caly interfejs poza nia, a na ekranie wynikow rundy pasek przedmiotow i zdrowie,
+## zeby nie nachodzily na karte wynikow.
+func _update_clutter() -> void:
+	var scoped := _scope.amount > 0.5
+	var results := Match.phase == Match.Phase.RESULTS
+	for child in get_children():
+		if child is CanvasItem and child != _scope:
+			(child as CanvasItem).modulate.a = 0.0 if scoped else 1.0
+	var bottom := 0.0 if results and not scoped else (0.0 if scoped else 1.0)
+	_hotbar.modulate.a = bottom
+	_status_panel.modulate.a = bottom
+	_ammo_panel.modulate.a = bottom
+	_drop_hint.modulate.a = bottom
 
 
 ## Celownik pokazuje, gdzie naprawde moze poleciec pocisk.

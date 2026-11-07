@@ -226,10 +226,50 @@ static func _footstep_metal() -> AudioStreamWAV:
 	, func(_t: float) -> float: return 0.0)
 
 
-## Daleki szum ruchu ulicznego: niski i rowny, z wolnymi falami.
+## Gwar miasta: buczenie silnikow i transformatora z delikatnym szumem ulicy. Ma wyrazny ton,
+## wiec w niczym nie przypomina wiatru z lasu.
 static func city_hum_loop() -> AudioStreamWAV:
-	return _noise_loop("city_hum", 0.02, func(t: float) -> float:
-		return 0.75 + 0.25 * sin(TAU * t / LOOP_SECONDS * 3.0))
+	var id := "city_hum"
+	if _cache.has(id):
+		return _cache[id]
+	var count := int(LOOP_SECONDS * RATE)
+	var data := PackedByteArray()
+	data.resize(count * 2)
+	var low := 0.0
+	for i in count:
+		var t := float(i) / RATE
+		# Czestotliwosci sa wielokrotnosciami 1/LOOP_SECONDS, wiec petla laczy sie bez trzasku.
+		var engines := sin(TAU * 54.0 * t) * 0.35 + sin(TAU * 81.0 * t + 0.4) * 0.22 + sin(TAU * 108.0 * t) * 0.12
+		var swell := 0.7 + 0.3 * sin(TAU * t / LOOP_SECONDS * 2.0)
+		low += (randf_range(-1.0, 1.0) - low) * 0.08
+		var street := low * 0.35
+		var sample := (engines * swell + street) * 0.5
+		data.encode_s16(i * 2, int(clampf(sample, -1.0, 1.0) * 20000.0))
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = RATE
+	stream.data = data
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_end = count
+	_cache[id] = stream
+	return stream
+
+
+## Przejezdzajace auto: szum, ktory narasta i opada, z tonem silnika obnizajacym sie przy mijaniu.
+static func car_pass() -> AudioStreamWAV:
+	return _make("car_pass", 2.4, func(t: float, phase: float) -> float:
+		var near := exp(-pow((t - 1.1) / 0.55, 2.0))
+		return (randf_range(-0.5, 0.5) * 0.6 + sin(TAU * phase) * 0.4) * near
+	, func(t: float) -> float: return 140.0 if t < 1.1 else 105.0)
+
+
+## Daleki gwar rozmow: kilka krotkich, miekkich sylab.
+static func chatter() -> AudioStreamWAV:
+	return _make("chatter", 1.6, func(t: float, phase: float) -> float:
+		var syllable := fmod(t * 5.3, 1.0)
+		var voice := sin(TAU * phase) * 0.5 + sin(TAU * phase * 2.0) * 0.2
+		return voice * sin(PI * syllable) * (0.5 + 0.5 * sin(t * 3.1)) * 0.5
+	, func(t: float) -> float: return 180.0 + 60.0 * sin(t * 9.0))
 
 
 ## Kilka gruchniec golebi.

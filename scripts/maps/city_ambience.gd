@@ -3,11 +3,11 @@ extends Node
 ## Odglosy miasteczka: staly szum ruchu w tle, a co chwile golebie, klakson albo dzwonek roweru
 ## gdzies dookola gracza. Glosnosc idzie za suwakiem dzwiekow otoczenia.
 
-const HUM_DB := -22.0
+const HUM_DB := -19.0
 const EVENT_DB := -16.0
 const SILENT_DB := -60.0
-const MIN_GAP := 3.0
-const MAX_GAP := 9.0
+const MIN_GAP := 2.0
+const MAX_GAP := 6.0
 const EVENT_DISTANCE := Vector2(10.0, 28.0)
 
 var _hum: AudioStreamPlayer
@@ -42,6 +42,6 @@ func _process(delta: float) -> void:
 	var angle := _rng.randf() * TAU
 	var distance := _rng.randf_range(EVENT_DISTANCE.x, EVENT_DISTANCE.y)
 	_event.global_position = camera.global_position + Vector3(sin(angle) * distance, 3.0, cos(angle) * distance)
-	_event.stream = [Sfx.pigeons(), Sfx.car_horn(), Sfx.bike_bell()][_rng.randi() % 3]
+	_event.stream = [Sfx.pigeons(), Sfx.car_horn(), Sfx.bike_bell(), Sfx.car_pass(), Sfx.car_pass(), Sfx.chatter()][_rng.randi() % 6]
 	_event.pitch_scale = _rng.randf_range(0.92, 1.08)
 	_event.play()

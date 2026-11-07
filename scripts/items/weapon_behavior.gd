@@ -59,6 +59,7 @@ func _resolve_shot(equipment: Equipment, stack: Dictionary, stats: WeaponStats, 
 	GameState.server_on_shot(player.peer_id)
 	for direction in Hitscan.pellet_directions(Hitscan.direction(player.yaw, player.pitch), stats.pellets, equipment.shot_spread, tick):
 		var hit := Hitscan.trace(player.get_world_3d(), player.eye_position(), direction, player.peer_id, player.get_tree(), view_tick)
+		Grenades.server_shoot(player.eye_position(), hit.position, player.peer_id)
 		var victim := hit.player as Player
 		if victim != null:
 			var damage: int = stats.headshot_damage if hit.headshot else stats.damage
