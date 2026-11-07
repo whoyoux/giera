@@ -23,9 +23,13 @@ const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
 
 var _player: Player
 var _crosshair: Crosshair
+var _scope: ScopeOverlay
 var _health_bar: ProgressBar
 var _health_label: Label
 var _speed_bar: ProgressBar
+var _regen_label: Label
+var _regen_was_active := false
+var _regen_interrupted_until := 0.0
 var _speed_fill: StyleBoxFlat
 var _hotbar: Hotbar
 var _item_name_panel: PanelContainer
@@ -71,13 +75,19 @@ var _audio: AudioStreamPlayer
 var _hurt_audio: AudioStreamPlayer
 var _last_ammo := -1
 var _dance_wheel: DanceWheel
+var _streak_panel: PanelContainer
+var _streak_label: Label
+var _streak_tween: Tween
+var _streak_audio: AudioStreamPlayer
+var _protection_label: Label
 var _chat: ChatPanel
 
 
 func _ready() -> void:
 	add_to_group(&"hud")
 	_build()
-	GameState.hit_confirmed.connect(_on_hit_confirmed)
+	GameState.hit_details.connect(_on_hit_details)
+	GameState.streak_announced.connect(_on_streak)
 	GameState.damaged.connect(_on_damaged)
 	GameState.kill_announced.connect(_on_kill)
 	GameState.player_changed.connect(func(_id: int) -> void: _refresh_scoreboard())
@@ -95,6 +105,11 @@ func bind(player: Player) -> void:
 	_hit_amount = 0.0
 	_pause.visible = false
 	_refresh_scoreboard()
+
+
+func show_tutorial() -> void:
+	var anchor := _anchored(Control.PRESET_CENTER_LEFT, Vector2(28, -150), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_BOTH)
+	anchor.add_child(TutorialPanel.new())
 
 
 func unbind() -> void:
@@ -125,6 +140,7 @@ func _process(delta: float) -> void:
 	_drop_hint.visible = not ItemStack.is_empty(_player.equipment.active_stack())
 	_update_use_panel(_player.equipment)
 	_update_heal_feedback(info)
+	_update_regen(info)
 
 	_crosshair.hidden_for_sprint = _player.sprinting or _player.dance_id != DanceCatalog.NONE
 	if _dance_wheel.is_open and (not info.alive or Input.mouse_mode != Input.MOUSE_MODE_CAPTURED):
@@ -133,6 +149,8 @@ func _process(delta: float) -> void:
 	if _player.input.wheel_open != _dance_wheel.is_open:
 		_player.input.set_wheel_open(_dance_wheel.is_open)
 	_crosshair.aiming = _player.aiming
+	_scope.amount = move_toward(_scope.amount, 1.0 if _player.is_scoped() else 0.0, get_process_delta_time() * (5.0 if _player.is_scoped() else 12.0))
+	_crosshair.visible = _crosshair.visible and _scope.amount < 0.5
 	_crosshair.spread_radius = _spread_on_screen(_player)
 	_update_death_panel(info)
 	var show_scores := Input.is_action_pressed("scoreboard") and not _chat.is_open
@@ -166,7 +184,8 @@ func _update_use_panel(equipment: Equipment) -> void:
 ## Leczenie widac na pasku zdrowia. Powrot po smierci to nie leczenie.
 func _update_heal_feedback(info: Dictionary) -> void:
 	var health: int = info.health
-	if _seen_health > 0 and health > _seen_health:
+	# Regeneracja dodaje po pare punktow kilka razy na sekunde, wiec nie gra dzwieku za kazdym razem.
+	if _seen_health > 0 and health > _seen_health and not GameState.is_regenerating(info):
 		_bump(_status_panel)
 		_heal_audio.stream = Sfx.heal()
 		_heal_audio.play()
@@ -177,6 +196,34 @@ func _update_heal_feedback(info: Dictionary) -> void:
 		tween.tween_property(_heal_label, "position:y", -36.0, 0.9)
 		tween.tween_property(_heal_label, "modulate:a", 0.0, 0.9).set_delay(0.3)
 	_seen_health = health
+
+
+## Regeneracja w Deathmatchu: widac, ze trwa, ile zostalo do jej startu i ze trafienie ja przerwalo.
+func _update_regen(info: Dictionary) -> void:
+	var from: int = info.get("regen_tick", -1)
+	var active := GameState.is_regenerating(info)
+	var waiting: bool = info.alive and from >= 0 and not active and info.health < GameState.MAX_HEALTH
+	var now := Time.get_ticks_msec() / 1000.0
+	if _regen_was_active and waiting:
+		_regen_interrupted_until = now + 1.2
+		_bump(_status_panel)
+	_regen_was_active = active
+	_regen_label.visible = active or waiting
+	if not _regen_label.visible:
+		return
+	if now < _regen_interrupted_until:
+		_regen_label.text = "Leczenie przerwane!"
+		_regen_label.add_theme_color_override("font_color", UiStyle.CORAL)
+	elif active:
+		_regen_label.text = "+ Leczenie %d/s" % roundi(GameState.REGEN_PER_SECOND)
+		_regen_label.add_theme_color_override("font_color", UiStyle.TEAL.darkened(0.2))
+		_regen_label.modulate.a = 0.75 + sin(now * 6.0) * 0.25
+		return
+	else:
+		var seconds := ceili((from - NetworkTime.tick) * NetworkTime.ticktime)
+		_regen_label.text = "Leczenie za %d s" % seconds
+		_regen_label.add_theme_color_override("font_color", Color(UiStyle.INK, 0.6))
+	_regen_label.modulate.a = 1.0
 
 
 ## Podpowiedz nad paskiem przedmiotow, gdy gracz patrzy na cos do podniesienia.
@@ -253,7 +300,7 @@ func _update_ammo(equipment: Equipment) -> void:
 	if equipment.is_reloading():
 		_ammo_hint.text = "ładuję…"
 	elif ammo == 0:
-		_ammo_hint.text = "naciśnij R"
+		_ammo_hint.text = "naciśnij %s" % Keybinds.label_of("reload")
 	else:
 		_ammo_hint.text = "/ %d" % stats.magazine
 	if ammo < _last_ammo:
@@ -336,12 +383,44 @@ func _on_focus_lost() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
-func _on_hit_confirmed(killed: bool) -> void:
-	_crosshair.flash_hit(killed)
+func _on_hit_details(details: Dictionary) -> void:
+	var killed: bool = details.get("killed", false)
+	var headshot: bool = details.get("headshot", false)
+	_crosshair.flash_hit(killed, headshot)
 	if killed and _player != null and is_instance_valid(_player):
 		_player.shake_camera(KILL_SHAKE)
-	_audio.stream = Sfx.kill() if killed else Sfx.hit()
+	_audio.stream = Sfx.kill() if killed else (Sfx.headshot() if headshot else Sfx.hit())
 	_audio.play()
+
+
+## Pierwsza krew, podwojne i potrojne zabojstwo, seria i jej przerwanie: napis na srodku ekranu.
+func _on_streak(kind: String, killer_id: int, victim_id: int, count: int) -> void:
+	var killer := _short_name(killer_id)
+	var text := ""
+	match kind:
+		"first_blood":
+			text = "Pierwsza krew! %s" % killer
+		"double":
+			text = "Podwójne zabójstwo! %s" % killer
+		"triple":
+			text = "Potrójne zabójstwo! %s" % killer if count == 3 else "%s: %d zabójstwa naraz!" % [killer, count]
+		"streak":
+			text = "%s ma serię %d!" % [killer, count]
+		"ended":
+			text = "%s przerywa serię %s (%d)" % [killer, _short_name(victim_id), count]
+	if text.is_empty():
+		return
+	_streak_label.text = text
+	_streak_panel.visible = true
+	UiStyle.pop_in(_streak_panel)
+	if _streak_tween != null:
+		_streak_tween.kill()
+	_streak_tween = create_tween()
+	_streak_tween.tween_interval(2.4)
+	_streak_tween.tween_callback(func() -> void: _streak_panel.visible = false)
+	if killer_id == multiplayer.get_unique_id() or kind == "first_blood":
+		_streak_audio.stream = Sfx.streak()
+		_streak_audio.play()
 
 
 func _on_damaged(amount: int, attacker_id: int, source: Vector3) -> void:
@@ -386,6 +465,8 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 	line.add_child(_avatar_of(killer_id, FEED_AVATAR_SIDE))
 	line.add_child(UiStyle.label(_short_name(killer_id), 17, UiStyle.BLUE))
 	line.add_child(_kill_cause(victim_id))
+	if GameState.players.get(victim_id, {}).get("death_headshot", false):
+		line.add_child(UiStyle.label("◎", 17, Color("d99a00")))
 	line.add_child(_avatar_of(victim_id, FEED_AVATAR_SIDE))
 	line.add_child(UiStyle.label(_short_name(victim_id), 17, UiStyle.CORAL))
 	if Match.is_elimination():
@@ -428,18 +509,31 @@ func _update_death_panel(info: Dictionary) -> void:
 	var watching: bool = Match.is_elimination() and not info.alive
 	_status_panel.visible = not watching
 	_hotbar.visible = not watching
-	_crosshair.visible = not watching
+	_crosshair.visible = not watching and _scope.amount < 0.5
 	if not Match.is_elimination():
 		_death_panel.visible = not info.alive
 		if not info.alive:
 			var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
-			_death_label.text = "Auć!\nWracasz za %d…" % ceili(seconds)
+			_death_label.text = "%s\nWracasz za %d…" % [_death_cause(info, multiplayer.get_unique_id()), ceili(seconds)]
+		_protection_label.visible = info.alive and NetworkTime.tick < info.get("protected_until", -1)
 		return
 	var fresh: bool = NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(ELIMINATED_SECONDS)
 	# Ekran wynikow podaje juz miejsce, a napis by go zaslonil.
 	_death_panel.visible = watching and info.in_match and fresh and Match.phase != Match.Phase.RESULTS
 	if _death_panel.visible:
 		_death_label.text = "Odpadasz!\nMiejsce %d" % info.place if info.place > 0 else "Odpadasz!"
+
+
+## Kto zabil, czym i ile zdrowia mu zostalo. Smierc od strefy albo wlasnego granatu ma krotszy opis.
+func _death_cause(info: Dictionary, victim_id: int) -> String:
+	var killer: int = info.get("killer_id", 0)
+	if killer == GameState.ZONE_ATTACKER or not GameState.players.has(killer):
+		return "Auć!"
+	if killer == victim_id:
+		return "Własny granat!"
+	var weapon := ItemStack.display_name_of(info.get("death_weapon", {}))
+	var head := " w głowę" if info.get("death_headshot", false) else ""
+	return "Zabija Cię %s%s\n%s · zostało mu %d HP" % [_short_name(killer), head, weapon, info.get("killer_health", 0)]
 
 
 ## Nazwy ze Steama bywaja dlugie, a lista zabojstw musi sie zmiescic przy krawedzi ekranu.
@@ -455,6 +549,9 @@ func _refresh_scoreboard() -> void:
 		child.free()
 	var ids := GameState.players.keys()
 	var elimination := Match.is_elimination()
+	var places := {}
+	for row: Dictionary in Match.standings():
+		places[row.id] = row.place
 	ids.sort_custom(func(a: int, b: int) -> bool:
 		var first: Dictionary = GameState.players[a]
 		var second: Dictionary = GameState.players[b]
@@ -467,7 +564,8 @@ func _refresh_scoreboard() -> void:
 		var ping: int = GameState.pings.get(id, -1)
 		var ping_text := "%d ms" % ping if ping >= 0 else "–"
 		var middle := _match_status(info) if elimination else str(info.deaths)
-		var row := _score_row(info.name, str(info.kills), middle, ping_text, UiStyle.INK, _ping_color(ping))
+		var shown_name: String = info.name if elimination else "%d. %s" % [places.get(id, 0), info.name]
+		var row := _score_row(shown_name, str(info.kills), middle, ping_text, UiStyle.INK, _ping_color(ping))
 		row.add_child(_avatar_of(id, SCORE_AVATAR_SIDE))
 		row.move_child(row.get_child(-1), 0)
 		_score_rows.add_child(row)
@@ -545,6 +643,9 @@ func _build() -> void:
 	_indicator.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_indicator)
 
+	_scope = ScopeOverlay.new()
+	add_child(_scope)
+
 	_crosshair = Crosshair.new()
 	_crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_crosshair.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -573,6 +674,7 @@ func _build() -> void:
 	_build_status_sticker()
 	_build_ammo_sticker()
 	add_child(MatchPanel.new())
+	add_child(RoundPanel.new())
 	_chat = ChatPanel.new()
 	_chat.closed.connect(_on_chat_closed)
 	add_child(_chat)
@@ -624,9 +726,36 @@ func _build() -> void:
 	_death_panel.rotation_degrees = -3.0
 	_death_panel.visible = false
 	death_center.add_child(_death_panel)
-	_death_label = UiStyle.label("", 38, Color.WHITE)
+	_death_label = UiStyle.label("", 30, Color.WHITE)
 	_death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_death_panel.add_child(_death_label)
+
+	var streak_center := CenterContainer.new()
+	streak_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	streak_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	streak_center.position.y = 210.0
+	streak_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(streak_center)
+	_streak_panel = PanelContainer.new()
+	_streak_panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.SUN, 20, 5))
+	_streak_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_streak_panel.visible = false
+	streak_center.add_child(_streak_panel)
+	_streak_label = UiStyle.label("", 26, UiStyle.INK)
+	_streak_panel.add_child(_streak_label)
+	_streak_audio = AudioStreamPlayer.new()
+	add_child(_streak_audio)
+	var protection_center := CenterContainer.new()
+	protection_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	protection_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	protection_center.position.y += 60.0
+	protection_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(protection_center)
+	_protection_label = UiStyle.label("Ochrona po odrodzeniu", 18, UiStyle.TEAL)
+	_protection_label.add_theme_color_override("font_outline_color", Color.WHITE)
+	_protection_label.add_theme_constant_override("outline_size", 6)
+	_protection_label.visible = false
+	protection_center.add_child(_protection_label)
 
 	_score_center = CenterContainer.new()
 	_score_center.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -701,7 +830,7 @@ func _build_prompt() -> void:
 	_prompt_bar.step = 0.0
 	_prompt_bar.visible = false
 	rows.add_child(_prompt_bar)
-	row.add_child(UiStyle.key_chip("E", 36, 20))
+	row.add_child(ActionChip.create("interact", 36, 20))
 	_prompt_action = UiStyle.label("Podnieś", 20, UiStyle.INK, false)
 	row.add_child(_prompt_action)
 	_prompt_name = UiStyle.label("", 21, UiStyle.INK)
@@ -758,7 +887,7 @@ func _build_drop_hint() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.modulate.a = 0.8
 	anchor.add_child(row)
-	row.add_child(UiStyle.key_chip("G", 28, 16))
+	row.add_child(ActionChip.create("drop_item", 28, 16))
 	var label := UiStyle.label("wyrzuć", 16, Color.WHITE)
 	label.add_theme_color_override("font_outline_color", UiStyle.INK)
 	label.add_theme_constant_override("outline_size", 5)
@@ -805,6 +934,10 @@ func _build_status_sticker() -> void:
 	_speed_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_speed_fill = _speed_bar.get_theme_stylebox("fill") as StyleBoxFlat
 	speed_row.add_child(_speed_bar)
+
+	_regen_label = UiStyle.label("", 16, UiStyle.TEAL, false)
+	_regen_label.visible = false
+	rows.add_child(_regen_label)
 
 
 func _build_ammo_sticker() -> void:

@@ -12,7 +12,7 @@ CLIENT_PORT="${3:-$SERVER_PORT}"
 LOGS=tools/logs
 mkdir -p "$LOGS"
 
-timeout $((SECONDS_TO_RUN + 6)) "$GODOT" --path . --headless -- --server --port="$SERVER_PORT" > "$LOGS/server.log" 2>&1 &
+timeout $((SECONDS_TO_RUN + 6)) "$GODOT" --path . --headless -- --server --map=forest --port="$SERVER_PORT" > "$LOGS/server.log" 2>&1 &
 SERVER=$!
 sleep 2
 timeout $((SECONDS_TO_RUN + 3)) "$GODOT" --path . --headless -- --connect=127.0.0.1 --port="$CLIENT_PORT" --name=Cel --bot=runner > "$LOGS/runner.log" 2>&1 &

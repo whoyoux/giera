@@ -26,12 +26,16 @@ extends Resource
 @export_range(0.0, 15.0) var max_bloom_degrees := 0.0
 ## Jak szybko rozrzut z serii opada po przerwaniu ognia, w stopniach na sekunde.
 @export_range(0.0, 30.0) var bloom_recovery := 5.0
-## O tyle zmniejsza sie caly rozrzut przy celowaniu.
-@export_range(0.2, 1.0) var aim_spread_scale := 1.0
+## O tyle zmniejsza sie caly rozrzut przy celowaniu. Zero to idealna celnosc w lunecie.
+@export_range(0.0, 1.0) var aim_spread_scale := 1.0
+## Rozrzut przy celowaniu w pelnym biegu, doliczany juz po skali celowania. Dla snajperki.
+@export_range(0.0, 15.0) var scoped_move_spread_degrees := 0.0
 
 @export_group("Celowanie")
 ## O tyle zweza sie pole widzenia. Mniej znaczy mocniejsze przyblizenie.
 @export_range(0.3, 1.0) var aim_fov_scale := 0.75
+## Celowanie przez lunete: nakladka na caly ekran, ukryta bron i wyrzucenie z lunety po strzale.
+@export var scope := false
 ## O tyle zwalnia gracz, ktory celuje.
 @export_range(0.2, 1.0) var aim_move_scale := 0.65
 
@@ -50,4 +54,6 @@ extends Resource
 ## Rozrzut w stopniach. "move_ratio" to szybkosc ruchu, gdzie 1 oznacza pelny bieg.
 func spread_at(move_ratio: float, bloom: float, aiming: bool) -> float:
 	var spread := spread_degrees + move_spread_degrees * move_ratio + bloom
-	return spread * (aim_spread_scale if aiming else 1.0)
+	if aiming:
+		return spread * aim_spread_scale + scoped_move_spread_degrees * move_ratio
+	return spread

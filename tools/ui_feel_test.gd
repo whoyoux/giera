@@ -158,6 +158,9 @@ func _test_settings() -> void:
 		get_viewport().get_texture().get_image().save_png(shot_dir.path_join("settings_feel.png"))
 
 	var toggle := _panel.find_child("invert_y", true, false) as Button
+	# Przelacznik lezy nizej na przewijanej liscie, wiec najpierw trzeba go pokazac.
+	_panel._scroll.ensure_control_visible(toggle)
+	await _wait(0.2)
 	await _move_to(toggle)
 	_silence()
 	await _mouse_button(toggle, true)

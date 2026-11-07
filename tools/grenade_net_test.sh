@@ -14,7 +14,7 @@ LOGS=tools/logs
 PROBE=--tool=res://tools/inventory_probe.gd
 mkdir -p "$LOGS"
 
-timeout 28 "$GODOT" --path . --headless -- --server --port=$SERVER_PORT --debug-items $PROBE > "$LOGS/nade_server.log" 2>&1 &
+timeout 28 "$GODOT" --path . --headless -- --server --map=forest --port=$SERVER_PORT --debug-items $PROBE > "$LOGS/nade_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" 26 > /dev/null 2>&1 &
 sleep 1

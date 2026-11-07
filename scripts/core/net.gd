@@ -6,12 +6,17 @@ extends Node
 ##   --connect=ADRES       od razu dolacz do serwera
 ##   --port=7777           port UDP, domyslnie ten przypisany do trybu
 ##   --mode=battle_royale  tryb serwera: deathmatch albo battle_royale
+##   --map=city            mapa serwera, domyslnie ta przypisana do trybu
 ##   --name=Nick           nazwa gracza, bez konta Steam
 ##   --character=knight    postac gracza, np. skeleton_warrior
 ##   --bot=runner|shooter|headhunter|brawler|pumper  sterowanie automatyczne, np. cel do cwiczen
 ##   --tool=res://sciezka  dodatkowy skrypt testowy
 ##   --debug-items         serwer daje kazdemu dodatkowe bronie do testow
 ##   --debug-weapons       serwer daje kazdemu strzelby i noz do testow
+##   --debug-medkit        apteczka z --debug-items takze w Deathmatchu, do testow apteczki
+##   --debug-snipers       serwer daje kazdemu Desert Eagle i AWP do testow
+##   --round-seconds=300   dlugosc rundy Deathmatchu, do testow
+##   --round-kill-limit=25 tyle zabojstw lidera konczy runde Deathmatchu, do testow
 ##   --debug-chests        dodatkowe skrzynki przy punktach odrodzenia (na serwerze i u klientow)
 
 signal session_started
@@ -22,7 +27,7 @@ const MAX_CLIENTS := 32
 const CONNECT_TIMEOUT_SECONDS := 8.0
 const DEDICATED_MAX_FPS := 60
 ## Podnies przy kazdej zmianie, po ktorej stary build nie dogada sie z serwerem.
-const PROTOCOL_VERSION := 20
+const PROTOCOL_VERSION := 28
 const JOIN_ANSWER_SECONDS := 6.0
 const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Uruchom grę ponownie, żeby ją zaktualizować."
 
@@ -73,6 +78,11 @@ func start_server(port := DEFAULT_PORT, dedicated := false, mode := GameMode.Id.
 			get_tree().quit(1)
 		return reason
 	is_dedicated = dedicated
+	var map_id: String = args.get("map", GameMode.map_of(mode))
+	if not Maps.has(map_id):
+		push_error("Nieznana mapa: %s" % map_id)
+		map_id = GameMode.map_of(mode)
+	Maps.select(map_id)
 	if dedicated:
 		# Bez limitu petla silnika zajmowalaby caly rdzen procesora.
 		Engine.max_fps = DEDICATED_MAX_FPS

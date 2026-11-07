@@ -17,6 +17,8 @@ const ACTION_CORRECTION_TICKS := 8
 const MAX_REWIND_SECONDS := 0.4
 ## Rozrzut z serii zaczyna opadac chwile po tym, jak mogl pasc kolejny strzal.
 const SPREAD_HOLD_TICKS := 3
+## Kucajac strzela sie celniej.
+const CROUCH_SPREAD_SCALE := 0.6
 ## W powietrzu strzela sie gorzej niz w pelnym biegu.
 const AIR_MOVE_RATIO := 1.5
 
@@ -111,7 +113,9 @@ func move_speed_scale() -> float:
 ## Rozrzut trzymanej broni w tej chwili, w stopniach. Zero, gdy w reku nie ma broni.
 func current_spread() -> float:
 	var stats := active_stats()
-	return stats.spread_at(_move_ratio(), spread_bloom, player.aiming) if stats != null else 0.0
+	if stats == null:
+		return 0.0
+	return stats.spread_at(_move_ratio(), spread_bloom, player.aiming) * lerpf(1.0, CROUCH_SPREAD_SCALE, player.crouch_amount)
 
 
 ## Zapamietuje rozrzut tego strzalu, a kolejny w serii bedzie mial wiekszy.
@@ -127,9 +131,12 @@ func rewind_tick(tick: int) -> int:
 	return clampi(input.view_tick, tick - NetworkTime.seconds_to_ticks(MAX_REWIND_SECONDS), tick)
 
 
-## Celowac mozna tylko bronia i nie w trakcie przeladowania.
-func can_aim() -> bool:
-	return active_stats() != null and not is_busy()
+## Celowac mozna tylko bronia i nie w trakcie przeladowania. Luneta wraca dopiero po przeladowaniu zamka.
+func can_aim(tick := NetworkTime.tick) -> bool:
+	var stats := active_stats()
+	if stats == null or is_busy():
+		return false
+	return not stats.scope or tick - last_fire >= stats.fire_interval_ticks
 
 
 func is_busy() -> bool:

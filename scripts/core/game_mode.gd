@@ -11,12 +11,14 @@ const INFO := {
 		"title": "Deathmatch",
 		"hint": "Odradzasz się i zbierasz zabójstwa.",
 		"port": 7777,
+		"map": "city",
 	},
 	Id.BATTLE_ROYALE: {
 		"key": "battle_royale",
 		"title": "Battle Royale",
 		"hint": "Jedno życie. Wygrywa ostatni żywy.",
 		"port": 7778,
+		"map": "valley",
 	},
 }
 
@@ -35,6 +37,11 @@ static func hint_of(id: int) -> String:
 
 static func port_of(id: int) -> int:
 	return INFO[id].port
+
+
+## Mapa, na ktorej serwer tego trybu gra, gdy nie podano --map=.
+static func map_of(id: int) -> String:
+	return INFO[id].map
 
 
 ## Port wpisany w adresie liczy sie tylko wtedy, gdy nie jest portem zadnego trybu. Inaczej

@@ -10,7 +10,7 @@ PORT=7897
 SECONDS_TOTAL=60
 mkdir -p "$LOGS"
 
-timeout $SECONDS_TOTAL "$GODOT" --path . --headless -- --server --mode=deathmatch --port=$PORT --debug-weapons > "$LOGS/feed_server.log" 2>&1 &
+timeout $SECONDS_TOTAL "$GODOT" --path . --headless -- --server --map=forest --mode=deathmatch --port=$PORT --debug-weapons > "$LOGS/feed_server.log" 2>&1 &
 sleep 2
 for name in A B; do
 	timeout $((SECONDS_TOTAL - 4)) "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=$name --bot=brawler > "$LOGS/feed_$name.log" 2>&1 &

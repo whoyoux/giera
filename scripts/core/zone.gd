@@ -3,7 +3,6 @@ extends RefCounted
 ## Zacieśniajaca sie strefa. Przebieg wynika tylko z ziarna, wiec serwer wysyla je raz, a kazdy
 ## liczy to samo. Obrazenia zadaje wylacznie serwer. Kazde kolejne kolo lezy w poprzednim.
 
-const START_RADIUS := ForestTerrain.BORDER_RADIUS
 const PHASES: Array[Dictionary] = [
 	{ "wait": 60.0, "shrink": 40.0, "radius": 34.0, "damage": 2 },
 	{ "wait": 45.0, "shrink": 30.0, "radius": 20.0, "damage": 4 },
@@ -13,15 +12,18 @@ const PHASES: Array[Dictionary] = [
 
 ## Kola przed i po kazdej fazie: { center: Vector2, radius: float }.
 var _circles: Array[Dictionary] = []
+var _phases: Array[Dictionary] = []
 
 
 func _init(seed_value: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	var center := Vector2.ZERO
-	var radius := START_RADIUS
+	var map := Maps.info()
+	_phases = map.zone_phases
+	var center := map.zone_center
+	var radius := map.zone_radius
 	_circles.append({ "center": center, "radius": radius })
-	for phase: Dictionary in PHASES:
+	for phase: Dictionary in _phases:
 		var next_radius: float = phase.radius
 		center += Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(0.0, radius - next_radius)
 		radius = next_radius
@@ -32,8 +34,8 @@ func _init(seed_value: int) -> void:
 ## "seconds_left" to czas do konca oczekiwania albo zawezania, a po wszystkim zero.
 func state_at(seconds: float) -> Dictionary:
 	var phase_start := 0.0
-	for index in PHASES.size():
-		var phase: Dictionary = PHASES[index]
+	for index in _phases.size():
+		var phase: Dictionary = _phases[index]
 		var wait_end: float = phase_start + phase.wait
 		var shrink_end: float = wait_end + phase.shrink
 		if seconds < shrink_end:
@@ -50,7 +52,7 @@ func state_at(seconds: float) -> Dictionary:
 			}
 		phase_start = shrink_end
 	var last: Dictionary = _circles[-1]
-	return { "center": last.center, "radius": last.radius, "target_center": last.center, "target_radius": last.radius, "damage": PHASES[-1].damage, "shrinking": false, "seconds_left": 0.0 }
+	return { "center": last.center, "radius": last.radius, "target_center": last.center, "target_radius": last.radius, "damage": _phases[-1].damage, "shrinking": false, "seconds_left": 0.0 }
 
 
 ## Czy miejsce lezy poza strefa z podanego stanu.

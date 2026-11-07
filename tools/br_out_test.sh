@@ -17,7 +17,7 @@ check() {
 	if grep -qE "$2" "$1"; then echo "ok: $3"; else echo "BRAK: $3"; FAILED=1; fi
 }
 
-timeout 75 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$PORT --tool=res://tools/match_probe.gd --kill-name=A --kill-name-at=6 > "$LOGS/out_server.log" 2>&1 &
+timeout 75 "$GODOT" --path . --headless -- --server --map=forest --mode=battle_royale --port=$PORT --tool=res://tools/match_probe.gd --kill-name=A --kill-name-at=6 > "$LOGS/out_server.log" 2>&1 &
 sleep 2
 timeout 70 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=A --bot=runner $PROBE > "$LOGS/out_a.log" 2>&1 &
 timeout 70 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$PORT --name=B --bot=runner $PROBE > "$LOGS/out_b.log" 2>&1 &
@@ -31,7 +31,7 @@ check "$LOGS/out_server.log" 'koniec meczu, zywych: 1' "serwer widzi zwyciezce"
 # Po powrocie do lobby odrodzenie jest prawidlowe, wiec liczy sie tylko czas do konca meczu.
 sed '/koniec meczu/q' "$LOGS/out_server.log" | grep -q 'wraca do gry' && { echo "ktos sie odrodzil w trakcie meczu"; FAILED=1; }
 
-timeout 26 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$((PORT + 1)) --tool=res://tools/match_probe.gd --kill-all-at=1 > "$LOGS/draw_server.log" 2>&1 &
+timeout 26 "$GODOT" --path . --headless -- --server --map=forest --mode=battle_royale --port=$((PORT + 1)) --tool=res://tools/match_probe.gd --kill-all-at=1 > "$LOGS/draw_server.log" 2>&1 &
 sleep 2
 timeout 22 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$((PORT + 1)) --name=A --bot=runner $PROBE > "$LOGS/draw_a.log" 2>&1 &
 timeout 22 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port=$((PORT + 1)) --name=B --bot=runner $PROBE > "$LOGS/draw_b.log" 2>&1 &

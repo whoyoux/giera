@@ -11,6 +11,10 @@ signal player_removed(id: int)
 signal player_changed(id: int)
 signal kill_announced(killer_id: int, victim_id: int)
 signal hit_confirmed(killed: bool)
+## Szczegoly trafienia dla atakujacego: { killed, headshot, amount, position, victim }.
+signal hit_details(details: Dictionary)
+## Seria zabojstw lub inne wydarzenie: kind to first_blood, double, triple, streak albo ended.
+signal streak_announced(kind: String, killer_id: int, victim_id: int, count: int)
 signal damaged(amount: int, attacker_id: int, source: Vector3)
 signal pings_updated
 
@@ -21,6 +25,16 @@ const MAX_NAME_LENGTH := 32
 const ZONE_ATTACKER := 0
 const PING_INTERVAL := 1.0
 const REJECT_FLUSH_SECONDS := 0.5
+## Regeneracja w Deathmatchu: rusza po tylu sekundach bez obrazen i leczy tyle punktow na sekunde.
+const REGEN_DELAY_SECONDS := 6.0
+const REGEN_PER_SECOND := 8.0
+## Co tyle sekund serwer rozsyla nowe zdrowie, zeby nie wysylac stanu co klatke.
+const REGEN_STEP_SECONDS := 0.25
+## Ochrona po odrodzeniu w Deathmatchu. Znika szybciej, gdy gracz strzeli.
+const SPAWN_PROTECTION_SECONDS := 2.0
+## Zabojstwa w takim odstepie licza sie jako podwojne i potrojne.
+const MULTI_KILL_SECONDS := 4.0
+const STREAK_ANNOUNCE := 3
 
 var players := {}
 ## Ping graczy w milisekundach, mierzony przez serwer. Host ma zawsze 0.
@@ -29,6 +43,11 @@ var pings := {}
 var _ping_timer := 0.0
 var _next_item_uid := 1
 var _adding_player := false
+var _regen_timer := 0.0
+## Ulamki punktow zdrowia z regeneracji, ktore jeszcze nie daly calego punktu.
+var _regen_carry := {}
+## Czy w tej rundzie padlo juz pierwsze zabojstwo.
+var _first_blood := false
 
 
 func _ready() -> void:
@@ -36,6 +55,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_update_regeneration(delta)
 	_ping_timer += delta
 	if _ping_timer < PING_INTERVAL:
 		return
@@ -53,6 +73,37 @@ func _process(delta: float) -> void:
 	pings = fresh
 	pings_updated.emit()
 	_sync_pings.rpc(fresh)
+
+
+## Leczy rannych, ktorzy dlugo nie oberwali. Tylko serwer i tylko poza Battle Royale.
+func _update_regeneration(delta: float) -> void:
+	if not Net.in_session or not multiplayer.is_server() or Match.is_elimination():
+		return
+	_regen_timer += delta
+	if _regen_timer < REGEN_STEP_SECONDS:
+		return
+	var step := _regen_timer
+	_regen_timer = 0.0
+	for id: int in players:
+		var info: Dictionary = players[id]
+		if not is_regenerating(info):
+			continue
+		var carry: float = _regen_carry.get(id, 0.0) + REGEN_PER_SECOND * step
+		var whole := int(carry)
+		_regen_carry[id] = carry - whole
+		if whole <= 0:
+			continue
+		info.health = mini(info.health + whole, MAX_HEALTH)
+		if info.health >= MAX_HEALTH:
+			info.regen_tick = -1
+			_regen_carry.erase(id)
+		_broadcast(id)
+
+
+## Czy gracz wlasnie sie leczy. Klient liczy to samo z rozeslanego stanu.
+static func is_regenerating(info: Dictionary) -> bool:
+	var from: int = info.get("regen_tick", -1)
+	return info.get("alive", false) and from >= 0 and NetworkTime.tick >= from and info.health < MAX_HEALTH
 
 
 ## Nazwa od klienta: bez znakow sterujacych i nie dluzsza niz limit.
@@ -123,6 +174,24 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		"place": 0,
 		# Czym gracz zginal ostatnio: { item, tier }. Pusty, gdy nie bronia, np. w strefie.
 		"death_weapon": {},
+		# Od tego ticku zdrowie odnawia sie samo. -1, gdy nie ma czego leczyc.
+		"regen_tick": -1,
+		# Kto zabil gracza ostatnio i ile zdrowia mu wtedy zostalo, do ekranu smierci.
+		"killer_id": 0,
+		"killer_health": 0,
+		"death_headshot": false,
+		# Ostatnie trafienie, ktore przerywa uzywanie apteczki.
+		"hit_tick": -1,
+		# Do tego ticku gracz po odrodzeniu nie przyjmuje obrazen.
+		"protected_until": -1,
+		# Seria zabojstw od ostatniej smierci i zabojstwa w krotkim odstepie.
+		"streak": 0,
+		"multi": 0,
+		"multi_tick": -1,
+		# Statystyki rundy do nagrod: strzaly, trafienia i trafienia w glowe.
+		"shots": 0,
+		"hits": 0,
+		"headshots": 0,
 	}
 	if not Match.accepts_new_players():
 		_set_spectator(players[id], NetworkTime.tick)
@@ -140,12 +209,24 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 ## Zadaje obrazenia. Wywolywane tylko na serwerze, raz na kazdy rozliczony strzal.
 ## "source" to miejsce wybuchu. Bez niego kierunek trafienia wskazuje na atakujacego.
 ## "weapon" to egzemplarz, ktorym zadano obrazenia, pokazywany na liscie zabojstw.
-func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vector3.INF, weapon := {}) -> void:
+## "details" moze miec headshot i position, czyli miejsce trafienia do liczb obrazen.
+func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vector3.INF, weapon := {}, details := {}) -> void:
 	var victim: Dictionary = players.get(victim_id, {})
 	if victim.is_empty() or not victim.alive or not Match.allows_combat():
 		return
+	if NetworkTime.tick < victim.get("protected_until", -1) and attacker_id != ZONE_ATTACKER:
+		return
+	var dealt := mini(amount, victim.health)
 	victim.health = maxi(0, victim.health - amount)
+	victim.hit_tick = NetworkTime.tick
 	var killed: bool = victim.health == 0
+	var headshot: bool = details.get("headshot", false)
+	if players.has(attacker_id) and attacker_id != victim_id:
+		players[attacker_id].hits += 1
+		players[attacker_id].headshots += 1 if headshot else 0
+	# Kazde trafienie przerywa leczenie i odlicza czas od nowa.
+	victim.regen_tick = -1 if killed or Match.is_elimination() else NetworkTime.tick + NetworkTime.seconds_to_ticks(REGEN_DELAY_SECONDS)
+	_regen_carry.erase(victim_id)
 	if killed:
 		victim.alive = false
 		victim.deaths += 1
@@ -153,12 +234,19 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		victim.death_tick = NetworkTime.tick
 		victim.death_weapon = { "item": weapon.item, "tier": ItemStack.tier_of(weapon) } if weapon.has("item") else {}
 		victim.respawn_tick = Match.respawn_tick_after_death(NetworkTime.tick, RESPAWN_SECONDS)
+		victim.killer_id = attacker_id
+		victim.killer_health = players[attacker_id].health if players.has(attacker_id) else 0
+		victim.death_headshot = headshot
+		if not Match.is_elimination():
+			victim.spawn_index = _safest_spawn(victim_id)
 		_drop_loot_on_death(victim_id)
 		Match.server_on_player_out(victim_id)
 		# Wlasny granat to smierc, ale nie punkt.
 		if players.has(attacker_id) and attacker_id != victim_id:
 			players[attacker_id].kills += 1
+			_update_streak(attacker_id, victim_id)
 			_broadcast(attacker_id)
+		victim.streak = 0
 		print("[serwer] %s zabil %s" % [display_name(attacker_id), display_name(victim_id)])
 	# Najpierw stan ofiary, bo lista zabojstw czyta z niego bron.
 	_broadcast(victim_id)
@@ -166,7 +254,59 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		_announce_kill.rpc(attacker_id, victim_id)
 	_notify_damage(victim_id, amount, attacker_id, source)
 	if attacker_id != victim_id:
-		_notify_hit(attacker_id, killed)
+		_notify_hit(attacker_id, killed, { "killed": killed, "headshot": headshot, "amount": dealt, "position": details.get("position", Vector3.INF), "victim": victim_id })
+
+
+## Strzal liczy sie do celnosci i konczy ochrone po odrodzeniu.
+func server_on_shot(id: int) -> void:
+	var info: Dictionary = players.get(id, {})
+	if info.is_empty():
+		return
+	info.shots += 1
+	if NetworkTime.tick < info.protected_until:
+		info.protected_until = -1
+		_broadcast(id)
+
+
+## Punkt odrodzenia najdalej od zywych przeciwnikow. Liczy sie najblizszy przeciwnik.
+func _safest_spawn(victim_id: int) -> int:
+	var points := get_tree().get_nodes_in_group(&"spawn_points")
+	var best := -1
+	var best_distance := -1.0
+	for index in points.size():
+		var at := (points[index] as Node3D).global_position
+		var nearest := INF
+		for id: int in players:
+			var node := player_node(id)
+			if id != victim_id and node != null and players[id].alive:
+				nearest = minf(nearest, node.position.distance_to(at))
+		# Rowne odleglosci rozstrzyga numer gracza, zeby nie wybierac zawsze tego samego punktu.
+		nearest += float(absi(hash(index * 31 + victim_id)) % 100) * 0.001
+		if nearest > best_distance:
+			best_distance = nearest
+			best = index
+	return best
+
+
+## Pierwsza krew, podwojne i potrojne zabojstwo, seria i jej przerwanie.
+func _update_streak(killer_id: int, victim_id: int) -> void:
+	var killer: Dictionary = players[killer_id]
+	var victim: Dictionary = players[victim_id]
+	if victim.streak >= STREAK_ANNOUNCE:
+		_announce_streak.rpc("ended", killer_id, victim_id, victim.streak)
+	if not _first_blood:
+		_first_blood = true
+		_announce_streak.rpc("first_blood", killer_id, victim_id, 1)
+	killer.streak += 1
+	var window := NetworkTime.seconds_to_ticks(MULTI_KILL_SECONDS)
+	killer.multi = killer.multi + 1 if NetworkTime.tick - killer.multi_tick <= window else 1
+	killer.multi_tick = NetworkTime.tick
+	if killer.multi == 2:
+		_announce_streak.rpc("double", killer_id, victim_id, 2)
+	elif killer.multi >= 3:
+		_announce_streak.rpc("triple", killer_id, victim_id, killer.multi)
+	elif killer.streak >= STREAK_ANNOUNCE and killer.streak % 2 == 1:
+		_announce_streak.rpc("streak", killer_id, victim_id, killer.streak)
 
 
 ## Konczy respawn, gdy symulacja przeniosla juz gracza na punkt odrodzenia.
@@ -176,7 +316,10 @@ func server_finish_respawn(id: int) -> void:
 		return
 	info.alive = true
 	info.health = MAX_HEALTH
+	info.regen_tick = -1
+	info.hit_tick = -1
 	if not Match.is_elimination():
+		info.protected_until = NetworkTime.tick + NetworkTime.seconds_to_ticks(SPAWN_PROTECTION_SECONDS)
 		_give_debug_items(id)
 	print("[serwer] %s wraca do gry" % display_name(id))
 	_broadcast(id)
@@ -190,6 +333,7 @@ func server_set_ready(id: int, value: bool) -> void:
 
 
 ## Przygotowuje gracza do rundy: czysty stan i przeniesienie na miejsce w podanym ticku.
+## Dziala dla meczu Battle Royale i dla nowej rundy Deathmatchu.
 ## Martwy ma juz inny respawn_id niz postac, wiec wystarczy mu nowy czas odrodzenia.
 func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
 	var info: Dictionary = players[id]
@@ -198,8 +342,16 @@ func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
 	info.place = 0
 	info.spawn_index = spawn_index
 	info.health = MAX_HEALTH
+	info.regen_tick = -1
+	info.hit_tick = -1
 	info.kills = 0
 	info.deaths = 0
+	info.streak = 0
+	info.multi = 0
+	info.shots = 0
+	info.hits = 0
+	info.headshots = 0
+	_first_blood = false
 	info.slots = Inventory.empty_slots()
 	info.inventory_tick = tick
 	if info.alive:
@@ -334,8 +486,13 @@ func _give_starting_items(id: int) -> void:
 func _give_debug_items(id: int) -> void:
 	if Net.args.has("debug-items"):
 		server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
-		server_give_item(id, &"medkit", Rarity.Tier.COMMON)
+		# W Deathmatchu nie ma apteczek, bo zdrowie odnawia sie samo. Test apteczki wymusza ja flaga.
+		if Match.is_elimination() or Net.args.has("debug-medkit"):
+			server_give_item(id, &"medkit", Rarity.Tier.COMMON)
 		server_give_item(id, &"grenade", Rarity.Tier.COMMON)
+	if Net.args.has("debug-snipers"):
+		server_give_item(id, &"deagle", Rarity.Tier.COMMON)
+		server_give_item(id, &"awp", Rarity.Tier.COMMON)
 	if Net.args.has("debug-weapons"):
 		server_give_item(id, &"shotgun", Rarity.Tier.COMMON)
 		server_give_item(id, &"shotgun", Rarity.Tier.LEGENDARY)
@@ -386,11 +543,12 @@ func _notify_damage(victim_id: int, amount: int, attacker_id: int, source: Vecto
 		_receive_damage.rpc_id(victim_id, amount, attacker_id, source)
 
 
-func _notify_hit(attacker_id: int, killed: bool) -> void:
+func _notify_hit(attacker_id: int, killed: bool, details: Dictionary) -> void:
 	if attacker_id == multiplayer.get_unique_id():
 		hit_confirmed.emit(killed)
+		hit_details.emit(details)
 	elif players.has(attacker_id):
-		_confirm_hit.rpc_id(attacker_id, killed)
+		_confirm_hit.rpc_id(attacker_id, killed, details)
 
 
 func _on_peer_disconnected(id: int) -> void:
@@ -457,8 +615,14 @@ func _announce_kill(killer_id: int, victim_id: int) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
-func _confirm_hit(killed: bool) -> void:
+func _confirm_hit(killed: bool, details: Dictionary) -> void:
 	hit_confirmed.emit(killed)
+	hit_details.emit(details)
+
+
+@rpc("authority", "call_local", "reliable")
+func _announce_streak(kind: String, killer_id: int, victim_id: int, count: int) -> void:
+	streak_announced.emit(kind, killer_id, victim_id, count)
 
 
 @rpc("authority", "call_remote", "reliable")

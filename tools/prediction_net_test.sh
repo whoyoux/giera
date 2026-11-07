@@ -15,7 +15,7 @@ SECONDS_PLAYED=30
 MAX_ERRORS=2
 mkdir -p "$LOGS"
 
-timeout $((SECONDS_PLAYED + 10)) "$GODOT" --path . --headless -- --server --port=$SERVER_PORT > "$LOGS/prediction_server.log" 2>&1 &
+timeout $((SECONDS_PLAYED + 10)) "$GODOT" --path . --headless -- --server --map=forest --port=$SERVER_PORT > "$LOGS/prediction_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" $((SECONDS_PLAYED + 6)) > /dev/null 2>&1 &
 sleep 1
