@@ -12,6 +12,7 @@ const TARGET_WIDTH := 2.5
 const ARROW_LENGTH := 11.0
 const ARROW_WIDTH := 7.0
 const CIRCLE_POINTS := 64
+const PLACE_FONT_SIZE := 10
 
 
 func _ready() -> void:
@@ -41,7 +42,23 @@ func _draw() -> void:
 	draw_circle(middle + center * map_scale, state.radius * map_scale, SAFE_COLOR)
 	var target: Vector2 = state.target_center
 	draw_arc(middle + target * map_scale, state.target_radius * map_scale, 0.0, TAU, CIRCLE_POINTS, Color.WHITE, TARGET_WIDTH, true)
+	_draw_places(middle, map_scale)
 	_draw_player(middle, map_scale)
+
+
+## Nazwy miejsc na duzej mapie, zeby latwiej sie umowic, gdzie isc.
+func _draw_places(middle: Vector2, map_scale: float) -> void:
+	var places := Maps.info().places
+	if places.size() < 4:
+		return
+	var font := ThemeDB.fallback_font
+	for place: Dictionary in places:
+		var at: Vector2 = middle + (place.at as Vector2) * map_scale
+		draw_circle(at, 2.5, UiStyle.INK)
+		var text: String = place.name
+		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, PLACE_FONT_SIZE).x
+		draw_string_outline(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, PLACE_FONT_SIZE, 3, Color.WHITE)
+		draw_string(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, PLACE_FONT_SIZE, UiStyle.INK)
 
 
 func _draw_player(middle: Vector2, map_scale: float) -> void:

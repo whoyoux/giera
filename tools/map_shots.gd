@@ -16,6 +16,16 @@ const VIEWS := {
 		["city_garage", Vector3(18.0, 1.4, 11.0), Vector3(26.0, 1.0, 11.0)],
 		["city_alley", Vector3(-31.0, 1.6, 33.0), Vector3(-30.0, 1.2, -10.0)],
 	],
+	"valley": [
+		["valley_air", Vector3(150.0, 120.0, 190.0), Vector3(0.0, 0.0, 0.0)],
+		["valley_village", Vector3(-80.0, 6.0, 95.0), Vector3(-105.0, 1.0, 70.0)],
+		["valley_farm", Vector3(90.0, 5.0, 110.0), Vector3(110.0, 2.0, 82.0)],
+		["valley_lake", Vector3(-60.0, 5.0, -60.0), Vector3(-95.0, 0.0, -85.0)],
+		["valley_ruins", Vector3(15.0, 5.0, 10.0), Vector3(-12.0, 2.0, -18.0)],
+		["valley_quarry", Vector3(140.0, 12.0, -70.0), Vector3(115.0, -4.0, -95.0)],
+		["valley_camp", Vector3(30.0, 20.0, 115.0), Vector3(10.0, 13.0, 140.0)],
+		["valley_forest", Vector3(60.0, 3.0, 20.0), Vector3(90.0, 2.0, 40.0)],
+	],
 }
 
 

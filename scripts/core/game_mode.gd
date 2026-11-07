@@ -18,7 +18,7 @@ const INFO := {
 		"title": "Battle Royale",
 		"hint": "Jedno życie. Wygrywa ostatni żywy.",
 		"port": 7778,
-		"map": "forest",
+		"map": "valley",
 	},
 }
 

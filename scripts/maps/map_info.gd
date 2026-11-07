@@ -15,6 +15,8 @@ var zone_center := Vector2.ZERO
 var menu_orbit := Vector3(30.0, 22.0, 2.0)
 ## Miejsca z nazwami do mapki: { name, at: Vector2 }.
 var places: Array[Dictionary] = []
+## Fazy strefy: { wait, shrink, radius, damage }. Kazde kolo lezy w poprzednim.
+var zone_phases: Array[Dictionary] = Zone.PHASES
 
 
 ## Wysokosc ziemi w danym miejscu, np. do stawiania skrzynek.
