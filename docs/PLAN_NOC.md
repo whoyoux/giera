@@ -1,6 +1,6 @@
 # Plan nocnego rozwoju gry
 
-Praca bez nadzoru przez całą noc. Ten plik jest pamięcią między turami: po każdym punkcie zmień `[ ]` na `[x]` albo `[!]` z powodem i commitnij. Po kompaktowaniu rozmowy zacznij od przeczytania tego pliku.
+Praca bez nadzoru przez całą noc. Komputer spał od 02:39 do 10:31, więc limit 10 h minął po ok. 1,5 h realnej pracy. Ten plik jest pamięcią między turami: po każdym punkcie zmień `[ ]` na `[x]` albo `[!]` z powodem i commitnij. Po kompaktowaniu rozmowy zacznij od przeczytania tego pliku.
 
 Start pracy: sob 7 lis 2026 01:26:06 (`date +%s` = 1794011166).
 
@@ -86,11 +86,12 @@ br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
 
 - [x] **Zmiana klawiszy:** w ustawieniach dziś jej nie ma. Dodaj panel dla wszystkich akcji gry (w tym myszy): wykrywanie konfliktów, reset do domyślnych, zapis w `settings.cfg`, działanie w menu i w pauzie. Podpowiedzi w HUD pokazują aktualny klawisz.
   Dowód: `keybinds_test` 28/28 OK, `settings_test` i `ui_feel_test` OK (ten drugi był błędny w bazie, bo przełącznik leżał poza przewijaną listą), zrzut `keybinds.png` obejrzany.
-- [x] **Kucanie:** nowa akcja `crouch`, domyślnie przytrzymanie **Ctrl**. Pole w `player_input.gd`, stan w rollbacku.
+- [!] **Kucanie:** nowa akcja `crouch`, domyślnie przytrzymanie **Ctrl**. Pole w `player_input.gd`, stan w rollbacku.
   - Niższa kapsuła i kamera z płynnym przejściem, wolniejszy ruch, mniejszy rozrzut, brak sprintu.
   - Nie można wstać pod sufitem. Można wejść kucając pod niskie przeszkody.
   - **Hitbox jest niższy także w cofaniu czasu** w `hitscan.gd`. Test: strzał nad głową kucającego przy opóźnieniu pudłuje.
   - Inni gracze widzą pozę kucania (animacja albo poza liczona kodem). Taniec się wtedy przerywa.
+  Powód `[!]`: mechanika działa i `crouch_test` przechodzi, ale `crouch_net_test` (120 ms, 2% strat) przechodzi tylko w ok. 3 na 4 przebiegi: czasem bot strzelający nad kucającym trafia, bo serwer w tym ticku uważa cel za stojącego. Trzy próby naprawy (wybór celu, widoczność, brak nadpisywania stanu u klienta) zmniejszyły problem, ale go nie usunęły. Do zbadania: rozjazd zegara `RemoteMotion` jednego gracza ze wspólnym `view_tick`.
   Dowód: `crouch_test` (kapsuła, kamera, szybkość, brak sprintu, rozrzut, sufit, taniec, hitbox w cofaniu czasu, poza modelu) OK, `crouch_net_test` przez `lag_proxy.py` 120 ms i 2% strat: strzał nad kucającym 0 trafień, w stojącego trafia, 3 razy z rzędu. Zrzuty `crouch_side.png` i `crouch_model.png` obejrzane. Pełny zestaw: 39/40, jedyny błąd to wcześniejsza, niestabilna wersja `crouch_net_test`, poprawiona.
 
 ### Etap 2: Nowe bronie
@@ -160,8 +161,10 @@ Po etapach 1–6 realizuj po kolei, aż do końca czasu. Nie kończ pracy wcześ
 
 Punkt obowiązkowy, gdy skończą się zadania albo minie 10 h od startu (wtedy dokończ tylko bieżący punkt):
 
-- [ ] Zaktualizuj README (funkcje, sterowanie, licencje nowych zasobów, bez notatek roboczych) i `docs/DEVELOPMENT.md`.
-- [ ] Odśwież zrzuty przez `tools/readme_shots.gd`, z przykładowymi nickami i adresami.
-- [ ] Testy całości, także ponowne testy z etapu 0 i porównanie z bazą.
-- [ ] Sprawdzenie historii i plików pod kątem adresu IP.
-- [ ] Opis draft PR: co zrobiono, jak zagrać lokalnie (gotowe polecenia dla początkującego), co wymaga oceny człowieka, „Do decyzji”, wyniki wydajności, punkty `[!]`.
+- [x] Zaktualizuj README (funkcje, sterowanie, licencje nowych zasobów, bez notatek roboczych) i `docs/DEVELOPMENT.md`.
+- [x] Odśwież zrzuty przez `tools/readme_shots.gd`, z przykładowymi nickami i adresami.
+- [x] Testy całości, także ponowne testy z etapu 0 i porównanie z bazą.
+  Baza na `main`: 31/37. Koniec: 39/40 (nowe: `keybinds_test`, `crouch_test`, `crouch_net_test`). Wszystkie 6 starych błędów naprawione. Jedyny błąd to niestabilny `crouch_net_test` opisany przy kucaniu.
+- [x] Sprawdzenie historii i plików pod kątem adresu IP.
+  W historii `main` i gałęzi są tylko `127.0.0.1` i dokumentacyjny `203.0.113.10`.
+- [x] Opis draft PR: co zrobiono, jak zagrać lokalnie (gotowe polecenia dla początkującego), co wymaga oceny człowieka, „Do decyzji”, wyniki wydajności, punkty `[!]`.

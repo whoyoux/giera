@@ -268,6 +268,7 @@ func eye_height(amount := crouch_amount) -> float:
 
 
 ## Kucanie widoczne na ekranie tego klienta. Inni gracze sa pokazywani z bufora ruchu.
+## Nie wpisujemy go do crouch_amount, bo netfox zapisalby te wartosc w historii stanow.
 func shown_crouch() -> float:
 	return remote_motion.shown_crouch if remote_motion != null and remote_motion.has_samples() else crouch_amount
 
@@ -538,7 +539,6 @@ func _show_remote_motion(delta: float) -> void:
 	position = remote_motion.shown_position
 	yaw = remote_motion.shown_yaw
 	pitch = remote_motion.shown_pitch
-	crouch_amount = remote_motion.shown_crouch
 
 
 func _snapshot_value(state: Variant, property: String, fallback: Variant) -> Variant:
