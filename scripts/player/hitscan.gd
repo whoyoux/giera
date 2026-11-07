@@ -43,12 +43,13 @@ static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, 
 		if player.peer_id == shooter_id or not player.is_alive():
 			continue
 		var feet := player.shown_position() if view_tick < 0 else player.position_at(view_tick)
-		var head := Geometry3D.segment_intersects_sphere(from, to, feet + Vector3.UP * HEAD_CENTER, HEAD_RADIUS)
+		var drop := Player.CROUCH_DROP * (player.shown_crouch() if view_tick < 0 else player.crouch_at(view_tick))
+		var head := Geometry3D.segment_intersects_sphere(from, to, feet + Vector3.UP * (HEAD_CENTER - drop), HEAD_RADIUS)
 		if not head.is_empty() and from.distance_to(head[0]) < nearest:
 			nearest = from.distance_to(head[0])
 			result = { "position": head[0], "player": player, "headshot": true, "hit_world": false }
 			continue
-		var points := Geometry3D.get_closest_points_between_segments(from, to, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * BODY_TOP)
+		var points := Geometry3D.get_closest_points_between_segments(from, to, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * (BODY_TOP - drop))
 		if points[0].distance_to(points[1]) <= BODY_RADIUS and from.distance_to(points[0]) < nearest:
 			nearest = from.distance_to(points[0])
 			result = { "position": points[0], "player": player, "headshot": false, "hit_world": false }
@@ -91,7 +92,8 @@ static func melee(world: World3D, from: Vector3, dir: Vector3, reach: float, con
 		if player.peer_id == attacker_id or not player.is_alive():
 			continue
 		var feet := player.shown_position() if view_tick < 0 else player.position_at(view_tick)
-		var points := Geometry3D.get_closest_points_between_segments(from, end, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * HEAD_CENTER)
+		var drop := Player.CROUCH_DROP * (player.shown_crouch() if view_tick < 0 else player.crouch_at(view_tick))
+		var points := Geometry3D.get_closest_points_between_segments(from, end, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * (HEAD_CENTER - drop))
 		var target: Vector3 = points[1]
 		var distance := from.distance_to(target)
 		if distance > reach + BODY_RADIUS:

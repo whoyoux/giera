@@ -22,7 +22,7 @@ const MAX_CLIENTS := 32
 const CONNECT_TIMEOUT_SECONDS := 8.0
 const DEDICATED_MAX_FPS := 60
 ## Podnies przy kazdej zmianie, po ktorej stary build nie dogada sie z serwerem.
-const PROTOCOL_VERSION := 20
+const PROTOCOL_VERSION := 21
 const JOIN_ANSWER_SECONDS := 6.0
 const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Uruchom grę ponownie, żeby ją zaktualizować."
 

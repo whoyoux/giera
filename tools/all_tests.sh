@@ -99,4 +99,5 @@ exit 0
 #- br_out_test
 #- br_leave_test
 #- br_reset_test
+#- crouch_net_test
 # KONIEC

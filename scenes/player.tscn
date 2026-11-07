@@ -12,15 +12,24 @@
 radius = 0.4
 height = 1.8
 
+[sub_resource type="CapsuleShape3D" id="capsule_crouched"]
+radius = 0.4
+height = 1.2
+
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
 collision_mask = 1
 floor_snap_length = 0.3
 script = ExtResource("1_player")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="Standing" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("capsule")
+
+[node name="Crouched" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("capsule_crouched")
+disabled = true
 
 [node name="Model" type="Node3D" parent="."]
 script = ExtResource("4_model")
@@ -59,8 +68,8 @@ script = ExtResource("3_equipment")
 [node name="RollbackSynchronizer" type="Node" parent="." node_paths=PackedStringArray("root")]
 script = ExtResource("6_sync")
 root = NodePath("..")
-state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", ":stamina", ":sprinting", ":aiming", ":exhausted", ":sprint_stop_tick", ":dance_id", ":on_ground", "Equipment:active_slot", "Equipment:last_fire", "Equipment:spread_bloom", "Equipment:shot_spread", "Equipment:last_throw", "Equipment:prime_tick", "Equipment:action_end", "Equipment:draw_end", "Equipment:slot_uid_0", "Equipment:slot_uid_1", "Equipment:slot_uid_2", "Equipment:slot_uid_3", "Equipment:charges_0", "Equipment:charges_1", "Equipment:charges_2", "Equipment:charges_3"])
-input_properties = Array[String](["Input:move", "Input:jump", "Input:use_primary", "Input:aim", "Input:slot", "Input:sprint", "Input:reload", "Input:yaw", "Input:pitch", "Input:view_tick", "Input:dance"])
+state_properties = Array[String]([":position", ":velocity", ":yaw", ":pitch", ":applied_respawn", ":stamina", ":sprinting", ":aiming", ":exhausted", ":sprint_stop_tick", ":dance_id", ":on_ground", ":crouching", ":crouch_amount", "Equipment:active_slot", "Equipment:last_fire", "Equipment:spread_bloom", "Equipment:shot_spread", "Equipment:last_throw", "Equipment:prime_tick", "Equipment:action_end", "Equipment:draw_end", "Equipment:slot_uid_0", "Equipment:slot_uid_1", "Equipment:slot_uid_2", "Equipment:slot_uid_3", "Equipment:charges_0", "Equipment:charges_1", "Equipment:charges_2", "Equipment:charges_3"])
+input_properties = Array[String](["Input:move", "Input:jump", "Input:use_primary", "Input:aim", "Input:slot", "Input:sprint", "Input:reload", "Input:yaw", "Input:pitch", "Input:view_tick", "Input:dance", "Input:crouch"])
 enable_input_broadcast = false
 
 [node name="TickInterpolator" type="Node" parent="." node_paths=PackedStringArray("root")]

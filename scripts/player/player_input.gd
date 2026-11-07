@@ -13,6 +13,7 @@ const DANCE_START_MAX_FALL := 0.6
 const DANCER_STEP_SECONDS := 6.0
 const DANCER_MOVE_AFTER := 4.5
 const DANCER_MOVE_UNTIL := 5.0
+const OVERHEAD_AIM_HEIGHT := 1.5
 
 # Wysylane do serwera (input_properties w RollbackSynchronizer).
 var move := Vector2.ZERO
@@ -22,6 +23,7 @@ var aim := false
 ## Slot, ktory gracz chce miec w reku.
 var slot := 0
 var sprint := false
+var crouch := false
 var reload := false
 var yaw := 0.0
 var pitch := 0.0
@@ -124,7 +126,7 @@ func block_fire() -> void:
 
 func _keep_dance_valid() -> void:
 	var me := get_parent() as Player
-	if move != Vector2.ZERO or jump or use_primary or aim or reload or not me.info.alive or me.velocity.y < -DANCE_FALL_SPEED:
+	if move != Vector2.ZERO or jump or use_primary or aim or reload or crouch or not me.info.alive or me.velocity.y < -DANCE_FALL_SPEED:
 		_wanted_dance = DanceCatalog.NONE
 
 
@@ -161,6 +163,7 @@ func _gather() -> void:
 		use_primary = Input.is_action_pressed("fire") and not _fire_blocked and not wheel_open
 		aim = Input.is_action_pressed("aim") and not wheel_open
 		sprint = Input.is_action_pressed("sprint")
+		crouch = Input.is_action_pressed("crouch")
 		reload = Input.is_action_pressed("reload")
 	else:
 		move = Vector2.ZERO
@@ -168,6 +171,7 @@ func _gather() -> void:
 		use_primary = false
 		aim = false
 		sprint = false
+		crouch = false
 		reload = false
 	_keep_dance_valid()
 	dance = _wanted_dance
@@ -277,6 +281,34 @@ func _gather_bot() -> void:
 			move = Vector2.RIGHT if dancing_time and phase >= DANCER_MOVE_AFTER and phase < DANCER_MOVE_UNTIL else Vector2.ZERO
 			if dancing_time and phase >= 1.0 and phase < DANCER_MOVE_AFTER and _wanted_dance == DanceCatalog.NONE:
 				request_dance(1 + int(_bot_time / DANCER_STEP_SECONDS) % DanceCatalog.DANCES.size())
+		"ducker":
+			# Test sieci: stoi w miejscu i na zmiane kuca i wstaje co 4 s.
+			move = Vector2.ZERO
+			crouch = fmod(_bot_time, 8.0) < 4.0
+		"overhead":
+			# Test sieci: podchodzi do celu i strzela w gorna czesc glowy stojacego, 25 cm nad glowa kucajacego.
+			# Strzela tylko, gdy cel na ekranie kuca (--aim-when=crouched) albo stoi (standing).
+			var victim := _named_player(Net.args.get("bot-target", ""))
+			use_primary = false
+			aim = false
+			move = Vector2.ZERO
+			if victim != null:
+				var head := victim.shown_position() + Vector3.UP * OVERHEAD_AIM_HEIGHT
+				_look_at(me, head)
+				# Widocznosc sprawdzamy na wysokosci tulowia, bo strzal nad kucajacym i tak trafia w cos za nim.
+				var chest := victim.shown_position() + Vector3.UP * 0.35
+				var clear: bool = Hitscan.trace(me.get_world_3d(), me.eye_position(), me.eye_position().direction_to(chest), me.peer_id, get_tree()).player == victim
+				# Strzal w stojacego ma sens tylko wtedy, gdy nic nie zaslania tez jego glowy.
+				if Net.args.get("aim-when", "crouched") != "crouched" and victim.shown_crouch() == 0.0:
+					clear = clear and Hitscan.trace(me.get_world_3d(), me.eye_position(), me.eye_position().direction_to(head), me.peer_id, get_tree()).player == victim
+				var distance := me.position.distance_to(victim.position)
+				if not clear or distance > 18.0:
+					# Prosto do celu, a co kilka sekund w bok, zeby obejsc przeszkode.
+					move = Vector2(1.0 if fmod(_bot_time, 6.0) < 1.5 else 0.0, -1.0).normalized()
+				else:
+					var wanted := 1.0 if Net.args.get("aim-when", "crouched") == "crouched" else 0.0
+					aim = true
+					use_primary = victim.shown_crouch() == wanted and fmod(_bot_time, 0.5) < NetworkTime.ticktime * 2.0 and me.equipment.spread_bloom == 0.0 and me.is_on_floor() and Vector2(me.velocity.x, me.velocity.z).length() < 0.1
 		"headhunter":
 			# Strzela tylko, gdy na ekranie ma dokladnie glowe celu w celowniku.
 			var target := _nearest_enemy(me)
@@ -313,6 +345,14 @@ func _nearest_closed_chest(me: Player) -> Dictionary:
 			best_distance = distance
 			best = chest
 	return best
+
+
+func _named_player(player_name: String) -> Player:
+	for node in get_tree().get_nodes_in_group(&"players"):
+		var other := node as Player
+		if other.info.name == player_name and other.is_alive():
+			return other
+	return null
 
 
 func _nearest_enemy(me: Player) -> Player:

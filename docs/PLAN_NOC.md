@@ -86,11 +86,12 @@ br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
 
 - [x] **Zmiana klawiszy:** w ustawieniach dziś jej nie ma. Dodaj panel dla wszystkich akcji gry (w tym myszy): wykrywanie konfliktów, reset do domyślnych, zapis w `settings.cfg`, działanie w menu i w pauzie. Podpowiedzi w HUD pokazują aktualny klawisz.
   Dowód: `keybinds_test` 28/28 OK, `settings_test` i `ui_feel_test` OK (ten drugi był błędny w bazie, bo przełącznik leżał poza przewijaną listą), zrzut `keybinds.png` obejrzany.
-- [ ] **Kucanie:** nowa akcja `crouch`, domyślnie przytrzymanie **Ctrl**. Pole w `player_input.gd`, stan w rollbacku.
+- [x] **Kucanie:** nowa akcja `crouch`, domyślnie przytrzymanie **Ctrl**. Pole w `player_input.gd`, stan w rollbacku.
   - Niższa kapsuła i kamera z płynnym przejściem, wolniejszy ruch, mniejszy rozrzut, brak sprintu.
   - Nie można wstać pod sufitem. Można wejść kucając pod niskie przeszkody.
   - **Hitbox jest niższy także w cofaniu czasu** w `hitscan.gd`. Test: strzał nad głową kucającego przy opóźnieniu pudłuje.
   - Inni gracze widzą pozę kucania (animacja albo poza liczona kodem). Taniec się wtedy przerywa.
+  Dowód: `crouch_test` (kapsuła, kamera, szybkość, brak sprintu, rozrzut, sufit, taniec, hitbox w cofaniu czasu, poza modelu) OK, `crouch_net_test` przez `lag_proxy.py` 120 ms i 2% strat: strzał nad kucającym 0 trafień, w stojącego trafia, 3 razy z rzędu. Zrzuty `crouch_side.png` i `crouch_model.png` obejrzane. Pełny zestaw: 39/40, jedyny błąd to wcześniejsza, niestabilna wersja `crouch_net_test`, poprawiona.
 
 ### Etap 2: Nowe bronie
 

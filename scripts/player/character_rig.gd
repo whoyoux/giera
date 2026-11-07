@@ -15,6 +15,7 @@ const LOOPED: Array[String] = [
 var _tree: AnimationTree
 var _muzzle: Node3D
 var _aim: AimModifier
+var _crouch: CrouchModifier
 var _move := Vector2.ZERO
 var _air := 0.0
 var _aim_blend := 1.0
@@ -35,6 +36,8 @@ func setup(character_id: String) -> void:
 	var skeleton := CharacterAssets.skeleton_of(character)
 	_aim = AimModifier.new()
 	skeleton.add_child(_aim)
+	_crouch = CrouchModifier.new()
+	skeleton.add_child(_crouch)
 	_build_tree(character)
 
 
@@ -49,6 +52,12 @@ func set_item(stack: Dictionary) -> void:
 		if visual != _visual:
 			_visual = visual
 			CharacterAssets.set_gun_model(_gun_holder, visual)
+
+
+## Poza kucania od 0 do 1, liczona po animacji biegu.
+func set_crouch(amount: float) -> void:
+	if _crouch != null:
+		_crouch.amount = 0.0 if _dead else amount
 
 
 func play_shot() -> void:
