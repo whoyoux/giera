@@ -21,6 +21,11 @@ const MAX_NAME_LENGTH := 32
 const ZONE_ATTACKER := 0
 const PING_INTERVAL := 1.0
 const REJECT_FLUSH_SECONDS := 0.5
+## Regeneracja w Deathmatchu: rusza po tylu sekundach bez obrazen i leczy tyle punktow na sekunde.
+const REGEN_DELAY_SECONDS := 6.0
+const REGEN_PER_SECOND := 8.0
+## Co tyle sekund serwer rozsyla nowe zdrowie, zeby nie wysylac stanu co klatke.
+const REGEN_STEP_SECONDS := 0.25
 
 var players := {}
 ## Ping graczy w milisekundach, mierzony przez serwer. Host ma zawsze 0.
@@ -29,6 +34,9 @@ var pings := {}
 var _ping_timer := 0.0
 var _next_item_uid := 1
 var _adding_player := false
+var _regen_timer := 0.0
+## Ulamki punktow zdrowia z regeneracji, ktore jeszcze nie daly calego punktu.
+var _regen_carry := {}
 
 
 func _ready() -> void:
@@ -36,6 +44,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_update_regeneration(delta)
 	_ping_timer += delta
 	if _ping_timer < PING_INTERVAL:
 		return
@@ -53,6 +62,37 @@ func _process(delta: float) -> void:
 	pings = fresh
 	pings_updated.emit()
 	_sync_pings.rpc(fresh)
+
+
+## Leczy rannych, ktorzy dlugo nie oberwali. Tylko serwer i tylko poza Battle Royale.
+func _update_regeneration(delta: float) -> void:
+	if not Net.in_session or not multiplayer.is_server() or Match.is_elimination():
+		return
+	_regen_timer += delta
+	if _regen_timer < REGEN_STEP_SECONDS:
+		return
+	var step := _regen_timer
+	_regen_timer = 0.0
+	for id: int in players:
+		var info: Dictionary = players[id]
+		if not is_regenerating(info):
+			continue
+		var carry: float = _regen_carry.get(id, 0.0) + REGEN_PER_SECOND * step
+		var whole := int(carry)
+		_regen_carry[id] = carry - whole
+		if whole <= 0:
+			continue
+		info.health = mini(info.health + whole, MAX_HEALTH)
+		if info.health >= MAX_HEALTH:
+			info.regen_tick = -1
+			_regen_carry.erase(id)
+		_broadcast(id)
+
+
+## Czy gracz wlasnie sie leczy. Klient liczy to samo z rozeslanego stanu.
+static func is_regenerating(info: Dictionary) -> bool:
+	var from: int = info.get("regen_tick", -1)
+	return info.get("alive", false) and from >= 0 and NetworkTime.tick >= from and info.health < MAX_HEALTH
 
 
 ## Nazwa od klienta: bez znakow sterujacych i nie dluzsza niz limit.
@@ -123,6 +163,8 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		"place": 0,
 		# Czym gracz zginal ostatnio: { item, tier }. Pusty, gdy nie bronia, np. w strefie.
 		"death_weapon": {},
+		# Od tego ticku zdrowie odnawia sie samo. -1, gdy nie ma czego leczyc.
+		"regen_tick": -1,
 	}
 	if not Match.accepts_new_players():
 		_set_spectator(players[id], NetworkTime.tick)
@@ -146,6 +188,9 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		return
 	victim.health = maxi(0, victim.health - amount)
 	var killed: bool = victim.health == 0
+	# Kazde trafienie przerywa leczenie i odlicza czas od nowa.
+	victim.regen_tick = -1 if killed or Match.is_elimination() else NetworkTime.tick + NetworkTime.seconds_to_ticks(REGEN_DELAY_SECONDS)
+	_regen_carry.erase(victim_id)
 	if killed:
 		victim.alive = false
 		victim.deaths += 1
@@ -176,6 +221,7 @@ func server_finish_respawn(id: int) -> void:
 		return
 	info.alive = true
 	info.health = MAX_HEALTH
+	info.regen_tick = -1
 	if not Match.is_elimination():
 		_give_debug_items(id)
 	print("[serwer] %s wraca do gry" % display_name(id))
@@ -198,6 +244,7 @@ func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
 	info.place = 0
 	info.spawn_index = spawn_index
 	info.health = MAX_HEALTH
+	info.regen_tick = -1
 	info.kills = 0
 	info.deaths = 0
 	info.slots = Inventory.empty_slots()
@@ -334,7 +381,9 @@ func _give_starting_items(id: int) -> void:
 func _give_debug_items(id: int) -> void:
 	if Net.args.has("debug-items"):
 		server_give_item(id, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.LEGENDARY)
-		server_give_item(id, &"medkit", Rarity.Tier.COMMON)
+		# W Deathmatchu nie ma apteczek, bo zdrowie odnawia sie samo. Test apteczki wymusza ja flaga.
+		if Match.is_elimination() or Net.args.has("debug-medkit"):
+			server_give_item(id, &"medkit", Rarity.Tier.COMMON)
 		server_give_item(id, &"grenade", Rarity.Tier.COMMON)
 	if Net.args.has("debug-snipers"):
 		server_give_item(id, &"deagle", Rarity.Tier.COMMON)

@@ -7,7 +7,9 @@ signal chest_closed(id: int)
 signal chest_busy_changed(id: int, busy: bool)
 signal chests_reset
 
+## Battle Royale. Deathmatch ma wlasna tabele bez apteczek, bo zdrowie odnawia sie samo.
 const LOOT_TABLE := preload("res://data/loot/chest.tres")
+const DEATHMATCH_LOOT_TABLE := preload("res://data/loot/chest_deathmatch.tres")
 const OPEN_SECONDS := 1.0
 const RESPAWN_SECONDS := 60.0
 const OPEN_RANGE := 2.8
@@ -45,6 +47,11 @@ func _ready() -> void:
 ## Numery wynikaja z kolejnosci miejsc na mapie, wiec sa takie same u wszystkich.
 func register(id: int, at: Vector3, rotation_y: float, body: RID) -> void:
 	chests[id] = { "id": id, "position": at, "rotation_y": rotation_y, "open": false, "busy": false, "reopen_tick": 0, "body": body }
+
+
+## Tabela lupu biezacego trybu.
+func loot_table() -> LootTable:
+	return LOOT_TABLE if Match.is_elimination() else DEATHMATCH_LOOT_TABLE
 
 
 func reset() -> void:
@@ -187,7 +194,7 @@ func _finish_opening(chest: Dictionary, player: Player) -> void:
 		if _openings[peer].chest == chest.id:
 			_openings.erase(peer)
 	chest.reopen_tick = Match.respawn_tick_after_death(NetworkTime.tick, RESPAWN_SECONDS)
-	var loot: Dictionary = LOOT_TABLE.roll(_rng)
+	var loot: Dictionary = loot_table().roll(_rng)
 	print("[serwer] %s otworzyl skrzynke %d: %s %s" % [player.info.name, chest.id, loot.item, Rarity.display_name(loot.tier)])
 	_chest_opened.rpc(chest.id, player.peer_id, loot.tier)
 	if chest.busy:

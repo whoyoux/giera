@@ -27,6 +27,9 @@ var _scope: ScopeOverlay
 var _health_bar: ProgressBar
 var _health_label: Label
 var _speed_bar: ProgressBar
+var _regen_label: Label
+var _regen_was_active := false
+var _regen_interrupted_until := 0.0
 var _speed_fill: StyleBoxFlat
 var _hotbar: Hotbar
 var _item_name_panel: PanelContainer
@@ -126,6 +129,7 @@ func _process(delta: float) -> void:
 	_drop_hint.visible = not ItemStack.is_empty(_player.equipment.active_stack())
 	_update_use_panel(_player.equipment)
 	_update_heal_feedback(info)
+	_update_regen(info)
 
 	_crosshair.hidden_for_sprint = _player.sprinting or _player.dance_id != DanceCatalog.NONE
 	if _dance_wheel.is_open and (not info.alive or Input.mouse_mode != Input.MOUSE_MODE_CAPTURED):
@@ -169,7 +173,8 @@ func _update_use_panel(equipment: Equipment) -> void:
 ## Leczenie widac na pasku zdrowia. Powrot po smierci to nie leczenie.
 func _update_heal_feedback(info: Dictionary) -> void:
 	var health: int = info.health
-	if _seen_health > 0 and health > _seen_health:
+	# Regeneracja dodaje po pare punktow kilka razy na sekunde, wiec nie gra dzwieku za kazdym razem.
+	if _seen_health > 0 and health > _seen_health and not GameState.is_regenerating(info):
 		_bump(_status_panel)
 		_heal_audio.stream = Sfx.heal()
 		_heal_audio.play()
@@ -180,6 +185,34 @@ func _update_heal_feedback(info: Dictionary) -> void:
 		tween.tween_property(_heal_label, "position:y", -36.0, 0.9)
 		tween.tween_property(_heal_label, "modulate:a", 0.0, 0.9).set_delay(0.3)
 	_seen_health = health
+
+
+## Regeneracja w Deathmatchu: widac, ze trwa, ile zostalo do jej startu i ze trafienie ja przerwalo.
+func _update_regen(info: Dictionary) -> void:
+	var from: int = info.get("regen_tick", -1)
+	var active := GameState.is_regenerating(info)
+	var waiting: bool = info.alive and from >= 0 and not active and info.health < GameState.MAX_HEALTH
+	var now := Time.get_ticks_msec() / 1000.0
+	if _regen_was_active and waiting:
+		_regen_interrupted_until = now + 1.2
+		_bump(_status_panel)
+	_regen_was_active = active
+	_regen_label.visible = active or waiting
+	if not _regen_label.visible:
+		return
+	if now < _regen_interrupted_until:
+		_regen_label.text = "Leczenie przerwane!"
+		_regen_label.add_theme_color_override("font_color", UiStyle.CORAL)
+	elif active:
+		_regen_label.text = "+ Leczenie %d/s" % roundi(GameState.REGEN_PER_SECOND)
+		_regen_label.add_theme_color_override("font_color", UiStyle.TEAL.darkened(0.2))
+		_regen_label.modulate.a = 0.75 + sin(now * 6.0) * 0.25
+		return
+	else:
+		var seconds := ceili((from - NetworkTime.tick) * NetworkTime.ticktime)
+		_regen_label.text = "Leczenie za %d s" % seconds
+		_regen_label.add_theme_color_override("font_color", Color(UiStyle.INK, 0.6))
+	_regen_label.modulate.a = 1.0
 
 
 ## Podpowiedz nad paskiem przedmiotow, gdy gracz patrzy na cos do podniesienia.
@@ -811,6 +844,10 @@ func _build_status_sticker() -> void:
 	_speed_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_speed_fill = _speed_bar.get_theme_stylebox("fill") as StyleBoxFlat
 	speed_row.add_child(_speed_bar)
+
+	_regen_label = UiStyle.label("", 16, UiStyle.TEAL, false)
+	_regen_label.visible = false
+	rows.add_child(_regen_label)
 
 
 func _build_ammo_sticker() -> void:

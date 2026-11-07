@@ -82,6 +82,7 @@ exit 0
 #- keybinds_test
 #- crouch_test
 #- new_weapons_test
+#- regen_test
 # KONIEC
 # SIEC
 #- bot_test
@@ -102,4 +103,5 @@ exit 0
 #- br_reset_test
 #- crouch_net_test
 #- sniper_net_test
+#- regen_net_test
 # KONIEC

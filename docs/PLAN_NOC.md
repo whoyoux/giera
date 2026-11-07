@@ -104,9 +104,10 @@ br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
 
 ### Etap 3: Regeneracja w Deathmatchu
 
-- [ ] W Deathmatchu nie ma apteczek: osobna tabela łupu na tryb, także bez przedmiotów startowych i debugowych. Battle Royale je zachowuje.
-- [ ] Regeneracja liczona na serwerze: po 6 s od ostatnich obrażeń +8 HP/s do pełna. **Każde trafienie natychmiast ją przerywa i zaczyna 6 s od nowa.** Działa tylko w Deathmatchu, a po śmierci się zeruje.
-- [ ] HUD: widać, że leczenie trwa, i widać przerwanie. Test sieciowy: trafienie w trakcie leczenia przerywa je, a HP nie rośnie przez kolejne 6 s.
+- [x] W Deathmatchu nie ma apteczek: osobna tabela łupu na tryb, także bez przedmiotów startowych i debugowych. Battle Royale je zachowuje.
+- [x] Regeneracja liczona na serwerze: po 6 s od ostatnich obrażeń +8 HP/s do pełna. **Każde trafienie natychmiast ją przerywa i zaczyna 6 s od nowa.** Działa tylko w Deathmatchu, a po śmierci się zeruje.
+- [x] HUD: widać, że leczenie trwa, i widać przerwanie. Test sieciowy: trafienie w trakcie leczenia przerywa je, a HP nie rośnie przez kolejne 6 s.
+  Dowód: `regen_test` OK (brak apteczek w łupie i na starcie Deathmatchu, Battle Royale bez regeneracji i z apteczkami, 6 s opóźnienia, 8 HP/s, przerwanie trafieniem i nowe 6 s, wyzerowanie po śmierci, napisy w HUD), `regen_net_test` przez lag_proxy 120 ms: serwer i klient widzą przerwanie, 2 razy z rzędu. `medkit_net_test` dostał flagę `--debug-medkit`. Zrzuty `regen.png` i `regen_stop.png` obejrzane.
 
 ### Etap 4: Rundy i ranking w Deathmatchu
 
