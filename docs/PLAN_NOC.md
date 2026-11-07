@@ -1,0 +1,124 @@
+# Plan nocnego rozwoju gry
+
+Praca bez nadzoru przez całą noc. Ten plik jest pamięcią między turami: po każdym punkcie zmień `[ ]` na `[x]` albo `[!]` z powodem i commitnij. Po kompaktowaniu rozmowy zacznij od przeczytania tego pliku.
+
+Start pracy: sob 7 lis 2026 01:26:06 (`date +%s` = 1794011166).
+
+Liczenie punktów: `grep -cE '^\s*- \[x\]' docs/PLAN_NOC.md` i analogicznie `[!]` oraz `[ ]`.
+
+## Zasady pracy
+
+### Git i bezpieczeństwo
+
+- Pracuj tylko w nowym worktree `.claude/worktrees/noc` na gałęzi `feature/noc` z `origin/main`. Nie dotykaj głównego folderu `Desktop\Giera` (są tam niezapisane zmiany użytkownika) ani innych worktree.
+- **Nigdy nie scalaj do `main`.** Push na `main` od razu wdraża serwery publiczne. Bez tagów i wydań, bez narzędzi Dokploy, bez zmian na VPS.
+- Wypychaj `feature/noc` po każdym punkcie, żeby nic nie przepadło. Na końcu etapu 0 otwórz **draft PR** do `main` i aktualizuj jego opis. Nie włączaj auto-merge.
+- Nie zmieniaj launchera ani procesu wydań (otwarty PR #43 o autoupdaterze to osobna praca).
+- Repo jest publiczne: żadnego adresu IP serwera ani danych logowania. Przed każdym pushem przejrzyj diff.
+
+### Zasoby i styl
+
+- **Modele z `synty_models/` są zakazane**, bo licencja nie pozwala na publikację.
+- Styl to własne, kolorowe low-poly. Modele buduj kodem (`scripts/world/low_poly.gd`) albo z już obecnych paczek CC0. Możesz pobrać paczkę CC0 tylko z kenney.nl lub od KayKit, z plikiem licencji i wpisem w README. Gdy pobranie się nie uda, nie czekaj, tylko zbuduj to kodem.
+- Nie kopiuj map, modeli, ikon ani dźwięków z innych gier. Inspirować może się tylko mechanika.
+- Teksty w grze po polsku. Komunikaty commitów po angielsku, jak w historii. Styl kodu jak w sąsiednich plikach.
+
+### Jakość
+
+- Serwer decyduje o wszystkim. Stan wpływający na ruch idzie przez rollback netfox.
+- Po każdej zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
+- Godot: `$LOCALAPPDATA/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.2-stable_win64_console.exe`. Po utworzeniu worktree i po dodaniu zasobów uruchom `--headless --path . --import`.
+- Punkt jest skończony dopiero, gdy ma test w `tools/` (wzór w `docs/DEVELOPMENT.md`), test sieciowy z botami, jeśli dotyczy sieci, a przy zmianach ruchu także przebieg przez `tools/lag_proxy.py`. Wszystko, co widać, sprawdź zrzutem ekranu i obejrzyj go, a nie tylko wygeneruj.
+- Po każdym etapie uruchom wszystkie dotknięte testy i zrób przegląd własnego diffu (możesz użyć `/code-review` albo subagentów).
+- Gdy coś stoi po 3 różnych próbach, oznacz `[!]`, opisz i idź dalej. Decyzje podejmuj sam, a wątpliwe zapisz w sekcji „Do decyzji” w opisie PR. Nie pytaj użytkownika, bo śpi.
+- Nie psuj Battle Royale ani istniejących funkcji. Regresja jest ważniejsza od nowego punktu.
+
+## Wymagane przez użytkownika
+
+### Etap 0: Start
+
+- [x] Worktree, import, zapis czasu startu, skopiowanie i commit tego planu.
+- [ ] Testy bazowe na czystym `main` z zapisem wyniku, żeby odróżnić stare błędy od nowych.
+- [ ] Draft PR.
+
+### Etap 1: Kucanie i zmiana klawiszy
+
+- [ ] **Zmiana klawiszy:** w ustawieniach dziś jej nie ma. Dodaj panel dla wszystkich akcji gry (w tym myszy): wykrywanie konfliktów, reset do domyślnych, zapis w `settings.cfg`, działanie w menu i w pauzie. Podpowiedzi w HUD pokazują aktualny klawisz.
+- [ ] **Kucanie:** nowa akcja `crouch`, domyślnie przytrzymanie **Ctrl**. Pole w `player_input.gd`, stan w rollbacku.
+  - Niższa kapsuła i kamera z płynnym przejściem, wolniejszy ruch, mniejszy rozrzut, brak sprintu.
+  - Nie można wstać pod sufitem. Można wejść kucając pod niskie przeszkody.
+  - **Hitbox jest niższy także w cofaniu czasu** w `hitscan.gd`. Test: strzał nad głową kucającego przy opóźnieniu pudłuje.
+  - Inni gracze widzą pozę kucania (animacja albo poza liczona kodem). Taniec się wtedy przerywa.
+
+### Etap 2: Nowe bronie
+
+- [ ] **Desert Eagle:** pistolet, duże obrażenia i rzadkie strzały. Punkt wyjścia: 55 obrażeń, 0,65 s między strzałami, magazynek 7, mocny odrzut, celny pierwszy strzał. Dwa trafienia zabijają.
+- [ ] **AWP:** snajperka, **jedno trafienie zabija** z każdej odległości. Punkt wyjścia: 5 naboi, 1,6 s między strzałami, długie przeładowanie, bardzo duży rozrzut bez celowania, wolniejszy ruch.
+- [ ] **Celownik snajperski AWP:** PPM daje nakładkę lunety na cały ekran, mocne przybliżenie, niższą czułość myszy, ukryty model broni i lekkie kołysanie. Strzał wyrzuca z lunety, a podczas przeładowania nie da się celować.
+- [ ] Obie bronie: definicje w `data/items/`, własne modele (przebudowa z paczki blasterów albo kodem, wyraźnie różne od reszty), ikony, smuga, dźwięk, chwyt w obu rękach, wypadanie i podnoszenie. Zasięg trafienia wystarcza na całą dużą mapę. AWP jest rzadki w tabeli łupu.
+
+### Etap 3: Regeneracja w Deathmatchu
+
+- [ ] W Deathmatchu nie ma apteczek: osobna tabela łupu na tryb, także bez przedmiotów startowych i debugowych. Battle Royale je zachowuje.
+- [ ] Regeneracja liczona na serwerze: po 6 s od ostatnich obrażeń +8 HP/s do pełna. **Każde trafienie natychmiast ją przerywa i zaczyna 6 s od nowa.** Działa tylko w Deathmatchu, a po śmierci się zeruje.
+- [ ] HUD: widać, że leczenie trwa, i widać przerwanie. Test sieciowy: trafienie w trakcie leczenia przerywa je, a HP nie rośnie przez kolejne 6 s.
+
+### Etap 4: Rundy i ranking w Deathmatchu
+
+- [ ] Runda ma czas: domyślnie 5 min, jedna stała. Kończy się też po 25 zabójstwach lidera. Czas liczony w tickach z serwera.
+- [ ] HUD stale pokazuje: licznik czasu, kto prowadzi i z iloma zabójstwami, miejsce gracza. Skrócona lista 3 najlepszych, a pełna pod Tab. Dołączający w trakcie widzi poprawny stan. („Kolejka” z prośby użytkownika to kolejność graczy, czyli ten ranking.)
+- [ ] Koniec rundy: ekran zwycięzcy i tabela, ok. 12 s, potem pełny reset (wyniki, łup, przedmioty, skrzynki, zdrowie) bez restartu serwera i nowa runda. Ostatnie 30 s ma wyraźny sygnał. Remis jest obsłużony. Test: 3 rundy z rzędu z botami, z rozłączeniem w trakcie.
+
+### Etap 5: System map i mapa miejska
+
+- [ ] **Mapa zależna od trybu:** dziś wszystko zakłada jeden `world.tscn`, a `Zone` i inne skrypty czytają stałe z `ForestTerrain`. Wprowadź opis mapy (scena, granice, punkty startu, skrzynki, muzyka tła, powierzchnie). Serwer wybiera mapę z trybu lub parametru `--map=`, a klient dostaje ją przy dołączaniu, zanim wczyta świat. Działa też hostowanie z menu. **Obecnego `world.tscn` nie zmieniaj**, bo użytkownik ma w nim niezapisane poprawki. Nowe mapy idą do `scenes/maps/`.
+- [ ] **Mapa miejska dla Deathmatchu:** własne, kolorowe, zabawkowe miasteczko, ok. 70×70 m. Ulice, skrzyżowanie, plac, zaułki i co najmniej 3 równoległe trasy. Budynki z wejściami i piętrami, dachy, na które da się wejść, auta, kontenery i murki jako osłony. Co najmniej jedna długa linia pod AWP i miejsca, gdzie ma on przeciwników blisko. Niskie przejścia pod kucanie.
+- [ ] Co najmniej 12 punktów startu, skrzynki, odgłosy miasta, kroki po betonie i metalu. Kolizje bez miejsc do utknięcia i bez wyjścia poza mapę. Test obchodzi punkty startu i skrzynek, a boty grają na mapie bez blokowania się. Dużo zrzutów: czytelność i wygląd mają być naprawdę ładne.
+
+### Etap 6: Znacznie większa mapa Battle Royale
+
+- [ ] Nowa mapa o promieniu **ok. 200 m** (dziś 50 m, czyli 16 razy większa powierzchnia), własna scena i generator. Co najmniej 6 odrębnych miejsc: np. stare ruiny, wioska, gospodarstwo, kamieniołom, jezioro z mostem, obóz na wzgórzu. Między nimi las, polany i drogi. Teren zróżnicowany, ale przejezdny pieszo.
+- [ ] Wydajność jest wymaganiem: teren w kawałkach, `HeightMapShape3D` zamiast siatki kolizji, `MultiMesh` i `visibility_range` dla roślinności, sensowna mgła i zasięg widzenia. Zmierz `tools/perf_probe.gd` na ustawieniach wysokich i niskich (Mac). Serwer z 10 graczami mieści się w limicie 512 MB i 1 CPU z `compose.yaml`. Czas wejścia na mapę jest akceptowalny. Wyniki zapisz w PR.
+- [ ] Rozgrywka: co najmniej 60 skrzynek skupionych w miejscach, punkty startu rozłożone po mapie, strefa przeskalowana do ok. 8–10 min, linie strzału i odległości między miejscami pasują do AWP. Mapka w HUD działa w nowej skali i ma nazwy miejsc. Zaktualizuj `docs/PLAN_BATTLE_ROYALE.md`. Test: pełny mecz z botami do końca i powrót do lobby, 2 razy z rzędu.
+
+## Pomysły dodatkowe
+
+Po etapach 1–6 realizuj po kolei, aż do końca czasu. Nie kończ pracy wcześniej, jeśli zostały punkty. Każdy to osobny commit i te same wymogi testów. Jeśli punkt okaże się zły dla rozgrywki, uzasadnij i pomiń.
+
+### Grupa A: mały koszt, duży efekt
+
+- [ ] **Trafienia w głowę:** osobny hitbox głowy, mnożnik zależny od broni, inny znacznik i dźwięk, ikona na liście zabójstw.
+- [ ] **Ekran śmierci:** kto Cię zabił, jaką bronią, ile HP mu zostało, odliczanie do odrodzenia.
+- [ ] **Bezpieczne odrodzenia w Deathmatchu:** wybór punktu z dala od wrogów i 2 s ochrony, która znika po strzale.
+- [ ] **Serie zabójstw:** podwójne i potrójne zabójstwo, pierwsza krew, przerwanie serii, z dźwiękiem i komunikatem.
+- [ ] **Podium na koniec rundy:** kamera na najlepszą trójkę, która tańczy dostępnymi tańcami, i nagrody (najwięcej zabójstw, najcelniejszy, najwięcej trafień w głowę). Świetnie wykorzystuje istniejące tańce.
+- [ ] **Liczby obrażeń** nad celem, z opcją wyłączenia w ustawieniach.
+- [ ] **Ślizg:** kucnięcie w sprincie daje krótki ślizg ze zużyciem sprintu, w rollbacku.
+- [ ] **Przerywanie apteczki trafieniem** w Battle Royale, spójnie z regeneracją.
+
+### Grupa B: głębsza rozgrywka
+
+- [ ] **Głosowanie na mapę** między rundami Deathmatchu (miasto albo polana), ze zmianą mapy bez restartu serwera. Jeśli to się nie uda stabilnie, zostaje samo miasto.
+- [ ] **Zrzuty zaopatrzenia w Battle Royale:** skrzynia na spadochronie z dymem, widoczna na mapce, z najlepszym łupem w środkowych fazach.
+- [ ] **Duża mapa pod M** w Battle Royale, ze strefą, miejscami i własnym znacznikiem.
+- [ ] **Desant na starcie Battle Royale:** gracze wyskakują z zabawkowego samolotu i sterują lotem na lotni. Tylko jeśli działa stabilnie przy opóźnieniu, inaczej zostają rozłożone punkty startu.
+- [ ] **Skoki, drabiny i rury w mieście:** dodatkowe trasy na dachy i piętra.
+- [ ] **Sprytniejsze boty:** chodzą po trasach (`NavigationRegion3D`), szukają przeciwników i łupu, kucają za osłonami, z poziomami trudności. Pomaga w testach i w grze przy małej liczbie osób.
+
+### Grupa C: oprawa
+
+- [ ] **Własne dźwięki** nowych broni, kucania, ślizgu i końca rundy, generowane skryptem jak muzyka tańców.
+- [ ] **Pora dnia na mapach:** ciepły zachód słońca w mieście z neonami, świetlne okna, porządne cienie. Z zachowaniem wydajności na ustawieniach niskich.
+- [ ] **Efekty zniszczeń:** ślady po kulach, odpryski zależne od powierzchni, pękające szkło.
+- [ ] **Osobiste statystyki** zapisane lokalnie: zabójstwa, rozegrane rundy, celność, ulubiona broń, panel w menu. Bez wysyłania na serwer, bo SteamID nie jest weryfikowane.
+- [ ] **Samouczek klawiszy** przy pierwszym uruchomieniu, korzystający z własnych ustawień gracza.
+
+## Zakończenie
+
+Punkt obowiązkowy, gdy skończą się zadania albo minie 10 h od startu (wtedy dokończ tylko bieżący punkt):
+
+- [ ] Zaktualizuj README (funkcje, sterowanie, licencje nowych zasobów, bez notatek roboczych) i `docs/DEVELOPMENT.md`.
+- [ ] Odśwież zrzuty przez `tools/readme_shots.gd`, z przykładowymi nickami i adresami.
+- [ ] Testy całości, także ponowne testy z etapu 0 i porównanie z bazą.
+- [ ] Sprawdzenie historii i plików pod kątem adresu IP.
+- [ ] Opis draft PR: co zrobiono, jak zagrać lokalnie (gotowe polecenia dla początkującego), co wymaga oceny człowieka, „Do decyzji”, wyniki wydajności, punkty `[!]`.
