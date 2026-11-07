@@ -44,6 +44,11 @@ const CROUCH_EYE_HEIGHT := 0.95
 const CROUCH_DROP := 0.55
 const CROUCH_SPEED_SCALE := 0.5
 const CROUCH_SECONDS := 0.18
+## Slizg: kucniecie w sprincie popycha gracza do przodu, a predkosc szybko opada.
+const SLIDE_SECONDS := 0.75
+const SLIDE_SPEED := 11.0
+const SLIDE_END_SPEED := 3.2
+const SLIDE_STAMINA := 25.0
 ## Kapsula sprawdzajaca, czy nad glowa kucajacego jest miejsce, zeby wstac. Waska, zeby nie lapala scian.
 const STAND_CHECK_RADIUS := 0.36
 const STAND_CHECK_HEIGHT := 0.9
@@ -71,6 +76,9 @@ var dance_id := DanceCatalog.NONE
 ## Kucanie wybrane w tym ticku i plynne przejscie od 0 (stoi) do 1 (kuca).
 var crouching := false
 var crouch_amount := 0.0
+## Tick konca slizgu albo -1 i kucanie z poprzedniego ticku, zeby wykryc samo nacisniecie.
+var slide_end := -1
+var crouch_was := false
 ## Czy poprzedni tick skonczyl sie na ziemi. Sam CharacterBody3D pamieta to tylko z ostatniej symulacji.
 var on_ground := true
 
@@ -299,6 +307,7 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		exhausted = false
 		crouching = false
 		crouch_amount = 0.0
+		slide_end = -1
 		equipment.on_respawn()
 
 	if _teleport_to != Vector3.INF and multiplayer.is_server():
@@ -324,9 +333,17 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		velocity.y -= GRAVITY * delta
 
 	aiming = input.aim and not dead and equipment.can_aim(tick)
+	_start_slide(tick, on_floor, locked)
 	_update_sprint(tick, delta, locked)
 	var wish := Vector3.ZERO
-	if not locked:
+	var sliding := is_sliding(tick)
+	if sliding:
+		# W slizgu sterowanie nie dziala, a predkosc opada do tempa kucania.
+		var flat := Vector2(velocity.x, velocity.z)
+		flat = flat.move_toward(flat.normalized() * SLIDE_END_SPEED, (SLIDE_SPEED - SLIDE_END_SPEED) / SLIDE_SECONDS * delta)
+		velocity.x = flat.x
+		velocity.z = flat.y
+	elif not locked:
 		var top_speed := SPEED * SPRINT_MULTIPLIER if sprinting else SPEED
 		if crouching:
 			top_speed *= CROUCH_SPEED_SCALE
@@ -335,8 +352,9 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		top_speed *= equipment.move_speed_scale()
 		wish = Vector3(input.move.x, 0.0, input.move.y).limit_length(1.0).rotated(Vector3.UP, yaw) * top_speed
 	var accel := (GROUND_ACCEL if on_floor else AIR_ACCEL) * delta
-	velocity.x = move_toward(velocity.x, wish.x, accel)
-	velocity.z = move_toward(velocity.z, wish.z, accel)
+	if not sliding:
+		velocity.x = move_toward(velocity.x, wish.x, accel)
+		velocity.z = move_toward(velocity.z, wish.z, accel)
 
 	# move_and_slide zaklada krok fizyki, a netfox ma wlasny krok ticku.
 	velocity *= NetworkTime.physics_factor
@@ -356,6 +374,23 @@ func _update_crouch(delta: float, dead: bool) -> void:
 		crouching = false
 	crouch_amount = move_toward(crouch_amount, 1.0 if crouching else 0.0, delta / CROUCH_SECONDS)
 	_apply_crouch_shape()
+
+
+func is_sliding(tick := NetworkTime.tick) -> bool:
+	return slide_end >= 0 and tick < slide_end
+
+
+## Nacisniecie kucania w pelnym sprincie na ziemi zaczyna slizg i zabiera czesc paska sprintu.
+func _start_slide(tick: int, on_floor: bool, locked: bool) -> void:
+	var pressed := input.crouch and not crouch_was
+	crouch_was = input.crouch
+	if not pressed or locked or not on_floor or not sprinting or stamina < SLIDE_STAMINA or is_sliding(tick):
+		return
+	slide_end = tick + NetworkTime.seconds_to_ticks(SLIDE_SECONDS)
+	stamina -= SLIDE_STAMINA
+	var forward := Vector3(velocity.x, 0.0, velocity.z).normalized()
+	velocity.x = forward.x * SLIDE_SPEED
+	velocity.z = forward.z * SLIDE_SPEED
 
 
 func _apply_crouch_shape() -> void:
@@ -537,6 +572,9 @@ func _update_crouch_view() -> void:
 		return
 	var amount := shown_crouch()
 	model.set_crouch(amount)
+	# Gracz pod ochrona po odrodzeniu jest polprzezroczysty dla innych.
+	var protected: bool = NetworkTime.tick < info.get("protected_until", -1)
+	name_label.modulate = Color(0.55, 1.0, 0.95) if protected else Color.WHITE
 	var drop := Vector3.DOWN * CROUCH_DROP * amount
 	name_label.position.y = NAME_LABEL_HEIGHT + drop.y
 	if _tag_root != null:

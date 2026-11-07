@@ -9,6 +9,7 @@ func _init() -> void:
 	scene_path = "res://scenes/maps/valley.tscn"
 	zone_radius = ValleyTerrain.RADIUS - 8.0
 	menu_orbit = Vector3(70.0, 48.0, 4.0)
+	podium = Vector3(-12.0, ValleyTerrain.surface(-12.0, -18.0), -18.0)
 	# Strefa zamyka sie w okolo 9 minut, a pierwsze kolo zostawia czas na przejscie przez mape.
 	zone_phases = [
 		{ "wait": 90.0, "shrink": 60.0, "radius": 120.0, "damage": 2 },

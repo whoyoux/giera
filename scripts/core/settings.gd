@@ -27,6 +27,7 @@ const DEFAULTS := {
 	"render_scale": 1.0,
 	"show_fps": true,
 	"show_net_graph": false,
+	"show_damage_numbers": true,
 }
 
 ## Ekrany Retina maja wiecej pikseli, niz wyciagnie zintegrowana karta M1.

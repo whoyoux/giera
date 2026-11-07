@@ -53,11 +53,16 @@ func _resolve_shot(equipment: Equipment, stack: Dictionary, stats: WeaponStats, 
 	var player := equipment.player
 	var view_tick := equipment.rewind_tick(tick)
 	var damage_by_victim := {}
+	var details_by_victim := {}
+	GameState.server_on_shot(player.peer_id)
 	for direction in Hitscan.pellet_directions(Hitscan.direction(player.yaw, player.pitch), stats.pellets, equipment.shot_spread, tick):
 		var hit := Hitscan.trace(player.get_world_3d(), player.eye_position(), direction, player.peer_id, player.get_tree(), view_tick)
 		var victim := hit.player as Player
 		if victim != null:
 			var damage: int = stats.headshot_damage if hit.headshot else stats.damage
 			damage_by_victim[victim.peer_id] = damage_by_victim.get(victim.peer_id, 0) + damage
+			var details: Dictionary = details_by_victim.get(victim.peer_id, { "headshot": false, "position": hit.position })
+			details.headshot = details.headshot or hit.headshot
+			details_by_victim[victim.peer_id] = details
 	for victim_id: int in damage_by_victim:
-		GameState.server_damage(victim_id, damage_by_victim[victim_id], player.peer_id, Vector3.INF, stack)
+		GameState.server_damage(victim_id, damage_by_victim[victim_id], player.peer_id, Vector3.INF, stack, details_by_victim[victim_id])

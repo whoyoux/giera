@@ -17,6 +17,9 @@ var menu_orbit := Vector3(30.0, 22.0, 2.0)
 var places: Array[Dictionary] = []
 ## Fazy strefy: { wait, shrink, radius, damage }. Kazde kolo lezy w poprzednim.
 var zone_phases: Array[Dictionary] = Zone.PHASES
+## Gdzie staje podium na koniec rundy Deathmatchu i w ktora strone patrzy.
+var podium := Vector3.ZERO
+var podium_yaw := 0.0
 
 
 ## Wysokosc ziemi w danym miejscu, np. do stawiania skrzynek.

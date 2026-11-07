@@ -12,6 +12,7 @@ func _init() -> void:
 	scene_path = "res://scenes/maps/city.tscn"
 	zone_radius = CityBuilder.HALF
 	menu_orbit = Vector3(34.0, 24.0, 2.0)
+	podium = Vector3(0.0, 0.0, 0.0)
 	places = [
 		{ "name": "Skrzyżowanie", "at": Vector2(0.0, 0.0) },
 		{ "name": "Kamienica", "at": Vector2(-19.0, -25.0) },

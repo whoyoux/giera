@@ -130,6 +130,7 @@ func _build() -> void:
 	_add_toggle("Pełny ekran", "fullscreen")
 	_add_toggle("Synchronizacja pionowa", "vsync")
 	_add_toggle("Licznik FPS", "show_fps")
+	_add_toggle("Liczby obrażeń", "show_damage_numbers")
 	_add_toggle("Wykres sieci (debug)", "show_net_graph")
 
 	var buttons := HBoxContainer.new()

@@ -204,7 +204,10 @@ func _round_seconds() -> float:
 
 
 func _finish_round(rows: Array) -> void:
-	results = rows.map(func(row: Dictionary) -> Dictionary: return { "id": row.id, "name": row.name, "kills": row.kills, "place": row.place })
+	results = rows.map(func(row: Dictionary) -> Dictionary:
+		var info: Dictionary = GameState.players.get(row.id, {})
+		return { "id": row.id, "name": row.name, "kills": row.kills, "place": row.place, "character": info.get("character", ""),
+			"shots": info.get("shots", 0), "hits": info.get("hits", 0), "headshots": info.get("headshots", 0) })
 	print("[serwer] koniec rundy %d, lider: %s" % [round_number, results[0].name if not results.is_empty() else "-"])
 	_enter_phase(Phase.RESULTS, NetworkTime.tick + NetworkTime.seconds_to_ticks(ROUND_RESULTS_SECONDS))
 

@@ -44,6 +44,22 @@ static func knife_hit() -> AudioStreamWAV:
 	, func(t: float) -> float: return lerpf(380.0, 1100.0, minf(t / 0.08, 1.0)))
 
 
+## Trafienie w glowe: wyzszy, podwojny dzwiek.
+static func headshot() -> AudioStreamWAV:
+	return _make("headshot", 0.16, func(t: float, phase: float) -> float:
+		var gate := 1.0 if t < 0.06 or t > 0.09 else 0.0
+		return sin(TAU * phase) * (1.0 - t / 0.16) * gate
+	, func(t: float) -> float: return 2100.0 if t < 0.08 else 2800.0)
+
+
+## Fanfara serii zabojstw: trzy nuty w gore.
+static func streak() -> AudioStreamWAV:
+	return _make("streak", 0.5, func(t: float, phase: float) -> float:
+		var note := fmod(t, 0.16) / 0.16
+		return (1.0 if fposmod(phase, 1.0) < 0.5 else -1.0) * 0.3 * (1.0 - note * 0.6)
+	, func(t: float) -> float: return [523.0, 659.0, 784.0, 1046.0][mini(int(t / 0.16), 3)])
+
+
 static func hit() -> AudioStreamWAV:
 	return _make("hit", 0.08, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.08)

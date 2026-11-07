@@ -9,6 +9,8 @@ func _init() -> void:
 	scene_path = "res://scenes/world.tscn"
 	zone_radius = ForestTerrain.BORDER_RADIUS
 	menu_orbit = Vector3(30.0, 22.0, 2.0)
+	podium = Vector3(16.0, ForestTerrain.surface(16.0, 1.0), 1.0)
+	podium_yaw = PI * 0.5
 	places = [
 		{ "name": "Ruiny", "at": Vector2(0.0, 0.0) },
 		{ "name": "Wzgórze", "at": ForestTerrain.HILL_CENTER },

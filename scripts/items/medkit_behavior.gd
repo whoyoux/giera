@@ -11,7 +11,9 @@ func rollback_tick(equipment: Equipment, stack: Dictionary, tick: int) -> void:
 	var definition := ItemStack.definition_of(stack) as MedkitDefinition
 	var wants_use := equipment.input.use_primary
 	if equipment.is_busy():
-		if not wants_use:
+		# Trafienie w trakcie leczenia przerywa je, tak jak przerywa regeneracje w Deathmatchu.
+		var started := equipment.action_end - NetworkTime.seconds_to_ticks(definition.use_seconds)
+		if not wants_use or equipment.player.info.get("hit_tick", -1) >= started:
 			equipment.cancel_timed_action()
 		return
 	if tick - equipment.last_fire < NetworkTime.seconds_to_ticks(RETRY_BLOCK_SECONDS):
@@ -21,9 +23,12 @@ func rollback_tick(equipment: Equipment, stack: Dictionary, tick: int) -> void:
 
 
 func on_timed_action_finished(equipment: Equipment, stack: Dictionary, tick: int) -> void:
+	var definition := ItemStack.definition_of(stack) as MedkitDefinition
+	# Serwer nie leczy, jesli w trakcie przyszlo trafienie, nawet gdy klient tego jeszcze nie wie.
+	if equipment.player.info.get("hit_tick", -1) >= tick - NetworkTime.seconds_to_ticks(definition.use_seconds):
+		return
 	equipment.last_fire = tick
 	if equipment.claim_server_action(tick):
-		var definition := ItemStack.definition_of(stack) as MedkitDefinition
 		GameState.server_use_medkit(equipment.player.peer_id, ItemStack.uid_of(stack), definition.heal_amount)
 
 

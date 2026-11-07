@@ -29,6 +29,8 @@ func _ready() -> void:
 	if not Net.is_headless:
 		add_child(PickupField.new())
 		add_child(ExplosionPool.new())
+		add_child(DamageNumbers.new())
+		add_child(PodiumView.new())
 	_apply_quality()
 	hud.visible = false
 	if Net.is_headless:

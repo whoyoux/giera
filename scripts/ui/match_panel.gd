@@ -160,6 +160,7 @@ func _refresh_results() -> void:
 	var showing := Match.phase == Match.Phase.RESULTS
 	if showing and not _results_center.visible:
 		_fill_results()
+		_results_center.offset_top = 0.0 if Match.is_elimination() else 300.0
 		UiStyle.pop_in(_results_card)
 	_results_center.visible = showing
 
@@ -188,6 +189,10 @@ func _fill_results() -> void:
 		row.add_child(name_label)
 		row.add_child(UiStyle.label("zabójstwa: %d" % entry.kills, 19, color, false))
 		_results_rows.add_child(row)
+	if not Match.is_elimination():
+		for line in PodiumView.awards(Match.results):
+			var award := UiStyle.label("★ " + line, 17, Color("b07d00"), false)
+			_results_rows.add_child(award)
 
 
 func _row(info: Dictionary) -> HBoxContainer:
@@ -300,6 +305,8 @@ func _build_phase_audio() -> void:
 func _build_results() -> void:
 	_results_center = CenterContainer.new()
 	_results_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# W Deathmatchu nad karta widac podium, wiec karta stoi nizej.
+	_results_center.offset_top = 0.0
 	_results_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_results_center.visible = false
 	add_child(_results_center)
