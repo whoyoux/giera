@@ -16,6 +16,10 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 |---|---|---|
 | ![Koło tańców](docs/screenshots/dance_wheel.png) | ![Taniec](docs/screenshots/dance.png) | ![Czat](docs/screenshots/chat.png) |
 
+| Kucanie | Zmiana klawiszy |
+|---|---|
+| ![Postacie stojące i kucające](docs/screenshots/crouch.png) | ![Panel zmiany klawiszy](docs/screenshots/keybinds.png) |
+
 | Strzelba | Nóż | Menu | Wyniki | Obrażenia |
 |---|---|---|---|---|
 | ![Strzał ze strzelby](docs/screenshots/shotgun.png) | ![Cięcie nożem](docs/screenshots/knife.png) | ![Menu](docs/screenshots/menu.png) | ![Wyniki](docs/screenshots/scoreboard.png) | ![Obrażenia](docs/screenshots/damage.png) |
@@ -40,6 +44,8 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Celowanie:** prawy przycisk przybliża widok i zmniejsza odrzut, ale spowalnia ruch. Lepsza broń ma mocniejsze przybliżenie.
 - **Konto Steam:** gra na Windows sama pobiera nazwę i zdjęcie profilowe z konta Steam. Zdjęcia widać w menu, w tabeli wyników, na liście zabójstw i nad graczami. Bez Steama wystarczy wpisać nick.
 - **Wybór postaci:** 9 modeli do wyboru strzałkami w menu, w tym rycerze i szkielety. Gra zapamiętuje wybór.
+- **Kucanie:** przytrzymanie Ctrl obniża postać, spowalnia ją i zmniejsza rozrzut. Pod niskim sufitem nie wstaniesz, a w kucki przejdziesz pod niskimi przeszkodami. Strzał nad głową kucającego pudłuje także u gracza z dużym pingiem, a inni widzą Twoją pozę.
+- **Zmiana klawiszy:** w ustawieniach, w menu i w pauzie, można przypisać każdą akcję do klawisza albo przycisku myszy. Zajęty klawisz zamienia się z poprzednim, a podpowiedzi w grze pokazują aktualne przypisanie.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
 - **Leśna polana:** ruiny z wieżą na środku, wzgórze, strumień i gęsty las dookoła, szum wiatru, śpiew ptaków i kroki zależne od podłoża, animowane postacie i żywy interfejs w stylu naklejek, który reaguje ruchem i dźwiękiem, z osobną głośnością.
 - **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
@@ -69,6 +75,7 @@ Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d 
 | **R** | Przeładowanie |
 | **Shift** | Sprint |
 | **Spacja** | Skok |
+| **Ctrl** | Kucanie (przytrzymaj) |
 | **1–4 / scroll** | Zmiana broni |
 | **E** | Podniesienie przedmiotu, przytrzymanie otwiera skrzynkę |
 | **G** | Wyrzucenie przedmiotu |
@@ -76,6 +83,8 @@ Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d 
 | **T** | Czat. Enter wysyła, Esc zamyka |
 | **Tab** | Wyniki |
 | **Esc** | Pauza i ustawienia |
+
+Każdy klawisz zmienisz w **Ustawienia → Klawisze**.
 
 ## Technologia
 
