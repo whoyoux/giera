@@ -16,7 +16,7 @@ SECONDS_TOTAL=170
 PROBE="--tool=res://tools/match_probe.gd --auto-ready --debug-weapons"
 mkdir -p "$LOGS"
 
-timeout $SECONDS_TOTAL "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$SERVER_PORT --debug-weapons --zone-speed=12 --tool=res://tools/match_probe.gd > "$LOGS/reset_server.log" 2>&1 &
+timeout $SECONDS_TOTAL "$GODOT" --path . --headless -- --server --map=forest --mode=battle_royale --port=$SERVER_PORT --debug-weapons --zone-speed=12 --tool=res://tools/match_probe.gd > "$LOGS/reset_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" $SECONDS_TOTAL > /dev/null 2>&1 &
 PROXY=$!

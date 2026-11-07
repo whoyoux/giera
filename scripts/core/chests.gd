@@ -54,6 +54,12 @@ func loot_table() -> LootTable:
 	return LOOT_TABLE if Match.is_elimination() else DEATHMATCH_LOOT_TABLE
 
 
+## Nowa mapa ma wlasne skrzynki, ktore zarejestruje od nowa.
+func clear_all() -> void:
+	reset()
+	chests.clear()
+
+
 func reset() -> void:
 	_openings.clear()
 	_cancel_local(false)
@@ -207,6 +213,13 @@ func _finish_opening(chest: Dictionary, player: Player) -> void:
 
 func _on_player_added(id: int) -> void:
 	if id == 1 or not multiplayer.is_server():
+		return
+	# Dolaczajacy dostaje najpierw stan meczu z mapa, a dopiero potem stan jej skrzynek.
+	_send_chests_to.call_deferred(id)
+
+
+func _send_chests_to(id: int) -> void:
+	if not GameState.players.has(id):
 		return
 	var open := []
 	var busy := []

@@ -353,7 +353,7 @@ func _enter_phase(new_phase: int, end_tick: int) -> void:
 
 
 func _state() -> Dictionary:
-	return { "mode": mode, "round": round_number, "kill_limit": kill_limit, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
+	return { "map": Maps.current_id, "mode": mode, "round": round_number, "kill_limit": kill_limit, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
 
 
 func _clear() -> void:
@@ -384,6 +384,8 @@ func _request_ready(value: bool) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _sync_state(state: Dictionary) -> void:
+	# Mapa musi stac, zanim powstana postacie i skrzynki z nastepnych wiadomosci.
+	Maps.select(state.map)
 	mode = state.mode
 	round_number = state.round
 	kill_limit = state.kill_limit

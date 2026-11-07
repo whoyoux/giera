@@ -15,7 +15,7 @@ PROBE=--tool=res://tools/chat_probe.gd
 SECONDS_PLAYED=18
 mkdir -p "$LOGS"
 
-timeout $((SECONDS_PLAYED + 6)) "$GODOT" --path . --headless -- --server --port=$SERVER_PORT > "$LOGS/chat_server.log" 2>&1 &
+timeout $((SECONDS_PLAYED + 6)) "$GODOT" --path . --headless -- --server --map=forest --port=$SERVER_PORT > "$LOGS/chat_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" $((SECONDS_PLAYED + 4)) > /dev/null 2>&1 &
 sleep 1

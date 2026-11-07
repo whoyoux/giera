@@ -10,7 +10,7 @@ OWN_ID=76561197960265729
 LOGS=tools/logs
 mkdir -p "$LOGS"
 
-timeout 22 "$GODOT" --path . --headless -- --server --port="$PORT" > "$LOGS/steam_server.log" 2>&1 &
+timeout 22 "$GODOT" --path . --headless -- --server --map=forest --port="$PORT" > "$LOGS/steam_server.log" 2>&1 &
 SERVER=$!
 sleep 2
 timeout 18 "$GODOT" --path . --headless -- --connect=127.0.0.1 --port="$PORT" --name=Beta --bot=runner > "$LOGS/steam_beta.log" 2>&1 &

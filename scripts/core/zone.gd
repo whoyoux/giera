@@ -3,7 +3,6 @@ extends RefCounted
 ## Zacieśniajaca sie strefa. Przebieg wynika tylko z ziarna, wiec serwer wysyla je raz, a kazdy
 ## liczy to samo. Obrazenia zadaje wylacznie serwer. Kazde kolejne kolo lezy w poprzednim.
 
-const START_RADIUS := ForestTerrain.BORDER_RADIUS
 const PHASES: Array[Dictionary] = [
 	{ "wait": 60.0, "shrink": 40.0, "radius": 34.0, "damage": 2 },
 	{ "wait": 45.0, "shrink": 30.0, "radius": 20.0, "damage": 4 },
@@ -18,8 +17,9 @@ var _circles: Array[Dictionary] = []
 func _init(seed_value: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	var center := Vector2.ZERO
-	var radius := START_RADIUS
+	var map := Maps.info()
+	var center := map.zone_center
+	var radius := map.zone_radius
 	_circles.append({ "center": center, "radius": radius })
 	for phase: Dictionary in PHASES:
 		var next_radius: float = phase.radius

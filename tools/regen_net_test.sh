@@ -14,7 +14,7 @@ LOGS=tools/logs
 PROBE=--tool=res://tools/regen_probe.gd
 mkdir -p "$LOGS"
 
-timeout 42 "$GODOT" --path . --headless -- --server --port=$SERVER_PORT $PROBE > "$LOGS/regen_server.log" 2>&1 &
+timeout 42 "$GODOT" --path . --headless -- --server --map=forest --port=$SERVER_PORT $PROBE > "$LOGS/regen_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" 40 > /dev/null 2>&1 &
 sleep 1

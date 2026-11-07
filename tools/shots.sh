@@ -3,7 +3,7 @@
 cd "$(dirname "$0")/.."
 G="${GODOT:-$LOCALAPPDATA/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.2-stable_win64_console.exe}"
 W="$(cygpath -m "$PWD/tools/logs")"; L=tools/logs; P="${1:-7910}"
-timeout 34 "$G" --path . --headless -- --server --port=$P > $L/s.log 2>&1 &
+timeout 34 "$G" --path . --headless -- --server --map=forest --port=$P > $L/s.log 2>&1 &
 sleep 2
 timeout 32 "$G" --path . --headless -- --connect=127.0.0.1 --port=$P --name=Cel --bot=runner > $L/r.log 2>&1 &
 sleep 1

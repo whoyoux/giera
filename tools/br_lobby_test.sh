@@ -14,7 +14,7 @@ LOGS=tools/logs
 PROBE="--tool=res://tools/match_probe.gd --bot=runner"
 mkdir -p "$LOGS"
 
-timeout 44 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$SERVER_PORT > "$LOGS/lobby_server.log" 2>&1 &
+timeout 44 "$GODOT" --path . --headless -- --server --map=forest --mode=battle_royale --port=$SERVER_PORT > "$LOGS/lobby_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" 44 > /dev/null 2>&1 &
 PROXY=$!

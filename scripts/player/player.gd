@@ -618,7 +618,7 @@ func _update_body_feedback(delta: float, grounded: bool) -> void:
 	if _step_distance >= (SPRINT_STEP_DISTANCE if sprinting else STEP_DISTANCE):
 		_step_distance = 0.0
 		_step_count += 1
-		_play_body_sound(Sfx.footstep_on(ForestTerrain.ground_at(position)), STEP_VOLUME_LOCAL if is_local() else STEP_VOLUME_REMOTE, randf_range(0.88, 1.15))
+		_play_body_sound(Sfx.footstep_on(Maps.info().ground_at(position)), STEP_VOLUME_LOCAL if is_local() else STEP_VOLUME_REMOTE, randf_range(0.88, 1.15))
 
 
 func _on_landed() -> void:

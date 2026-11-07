@@ -32,7 +32,8 @@ func _draw() -> void:
 	if state.is_empty():
 		return
 	var middle := size * 0.5
-	var map_scale := (SIDE * 0.5 - INNER_MARGIN) / Zone.START_RADIUS
+	var map_scale := (SIDE * 0.5 - INNER_MARGIN) / Maps.info().zone_radius
+	middle -= Maps.info().zone_center * map_scale
 	draw_circle(middle + Vector2(0.0, 4.0), SIDE * 0.5, UiStyle.SHADOW)
 	draw_circle(middle, SIDE * 0.5, Color.WHITE)
 	draw_circle(middle, SIDE * 0.5 - BORDER, DANGER_COLOR)

@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 GODOT="${GODOT:-$LOCALAPPDATA/Microsoft/WinGet/Packages/GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.2-stable_win64_console.exe}"
 DELAY="${1:-20}"; SECS="${2:-30}"; PORT="${3:-7840}"; PROXY=$((PORT + 1)); L=tools/logs; mkdir -p "$L"
 python tools/lag_proxy.py "$PROXY" "$PORT" "$DELAY" 0 $((SECS + 5)) > "$L/proxy.log" 2>&1 &
-timeout $((SECS + 6)) "$GODOT" --path . --headless -- --server --port="$PORT" > "$L/server.log" 2>&1 &
+timeout $((SECS + 6)) "$GODOT" --path . --headless -- --server --map=forest --port="$PORT" > "$L/server.log" 2>&1 &
 S=$!
 sleep 2
 timeout $((SECS + 3)) "$GODOT" --path . --headless -- --connect=127.0.0.1 --port="$PROXY" --name=Cel --bot=runner --tool=res://tools/hit_stats.gd > "$L/runner.log" 2>&1 &

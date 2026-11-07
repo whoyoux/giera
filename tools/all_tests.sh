@@ -31,12 +31,14 @@ run_case() {
 
 headless() {
 	local name="$1"; shift
-	run_case "$name" timeout 150 "$GODOT" --headless --path . -- --settings-path="user://all_$name.cfg" --tool="res://tools/$name.gd" "$@"
+	run_case "$name" timeout 150 "$GODOT" --headless --path . -- --settings-path="user://all_$name.cfg" --map="${MAP:-forest}" --tool="res://tools/$name.gd" "$@"
 }
 
+## Starsze testy znaja wspolrzedne lesnej polany, wiec domyslnie graja na niej. Test innej mapy
+## podaje wlasne --map= po nazwie, a ostatnia wartosc wygrywa.
 windowed() {
 	local name="$1"; shift
-	run_case "$name" timeout 240 "$GODOT" --path . --resolution 1280x720 -- --settings-path="user://all_$name.cfg" --tool="res://tools/$name.gd" "$@"
+	run_case "$name" timeout 240 "$GODOT" --path . --resolution 1280x720 -- --settings-path="user://all_$name.cfg" --map="${MAP:-forest}" --tool="res://tools/$name.gd" "$@"
 }
 
 while read -r name; do
@@ -84,6 +86,7 @@ exit 0
 #- new_weapons_test
 #- regen_test
 #- round_test --round-seconds=40 --round-kill-limit=3
+#- city_map_test --map=city
 # KONIEC
 # SIEC
 #- bot_test
@@ -106,4 +109,5 @@ exit 0
 #- sniper_net_test
 #- regen_net_test
 #- dm_rounds_test
+#- city_bots_test
 # KONIEC

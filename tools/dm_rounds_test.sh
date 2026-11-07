@@ -16,7 +16,7 @@ TOTAL=150
 ROUND="--round-seconds=25 --round-kill-limit=4"
 mkdir -p "$LOGS"
 
-timeout $TOTAL "$GODOT" --path . --headless -- --server --port=$SERVER_PORT --debug-weapons $ROUND --tool=res://tools/match_probe.gd > "$LOGS/rounds_server.log" 2>&1 &
+timeout $TOTAL "$GODOT" --path . --headless -- --server --map=forest --port=$SERVER_PORT --debug-weapons $ROUND --tool=res://tools/match_probe.gd > "$LOGS/rounds_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" $TOTAL > /dev/null 2>&1 &
 PROXY=$!

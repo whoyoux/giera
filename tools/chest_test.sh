@@ -14,7 +14,7 @@ LOGS=tools/logs
 EXTRA="--debug-chests --tool=res://tools/inventory_probe.gd"
 mkdir -p "$LOGS"
 
-timeout 34 "$GODOT" --path . --headless -- --server --port=$SERVER_PORT $EXTRA > "$LOGS/chest_server.log" 2>&1 &
+timeout 34 "$GODOT" --path . --headless -- --server --map=forest --port=$SERVER_PORT $EXTRA > "$LOGS/chest_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" 32 > /dev/null 2>&1 &
 sleep 1

@@ -51,6 +51,9 @@ var _wanted_slot := 0
 var _wanted_uid := 0
 var _fire_blocked := false
 var _wanted_dance := DanceCatalog.NONE
+var _stuck_time := 0.0
+var _detour_time := 0.0
+var _detour_side := 1.0
 var _sway_time := 0.0
 var _sway := Vector2.ZERO
 
@@ -201,6 +204,30 @@ func _update_scope_sway() -> void:
 func _gather_bot() -> void:
 	_bot_time += NetworkTime.ticktime
 	var me := get_parent() as Player
+	_gather_bot_mode(me)
+	if Net.bot_mode in ["brawler", "pumper", "overhead", "sniper", "shooter"]:
+		_unstick_bot(me)
+
+
+## Bot, ktory utknal na scianie, przez chwile idzie skosem w bok i podskakuje, jak gracz omijajacy przeszkode.
+func _unstick_bot(me: Player) -> void:
+	if _detour_time > 0.0:
+		_detour_time -= NetworkTime.ticktime
+		move = Vector2(_detour_side, -0.5).normalized()
+		jump = _detour_time > 0.75
+		return
+	if move == Vector2.ZERO or not me.info.alive:
+		_stuck_time = 0.0
+		return
+	var speed := Vector2(me.velocity.x, me.velocity.z).length()
+	_stuck_time = _stuck_time + NetworkTime.ticktime if speed < 1.0 else 0.0
+	if _stuck_time > 0.4:
+		_stuck_time = 0.0
+		_detour_time = 1.0
+		_detour_side = -_detour_side
+
+
+func _gather_bot_mode(me: Player) -> void:
 	match Net.bot_mode:
 		"runner":
 			move = Vector2(sin(_bot_time * 0.9), -0.8).normalized()
@@ -287,7 +314,9 @@ func _gather_bot() -> void:
 			use_primary = shotgun >= 0 and prey != null
 			if prey != null:
 				_look_at(me, prey.position + Vector3.UP * 0.9)
-				move = Vector2(0.0, -1.0) if me.position.distance_to(prey.position) > 6.0 else Vector2.ZERO
+				var aim_point := prey.position + Vector3.UP * 0.9
+				var clear: bool = Hitscan.trace(me.get_world_3d(), me.eye_position(), me.eye_position().direction_to(aim_point), me.peer_id, get_tree()).player == prey
+				move = Vector2(0.0, -1.0) if me.position.distance_to(prey.position) > 6.0 or not clear else Vector2.ZERO
 			else:
 				move = Vector2.ZERO
 		"dancer":
@@ -396,7 +425,9 @@ func _nearest_enemy(me: Player) -> Player:
 		var other := node as Player
 		if other == me or not other.is_alive():
 			continue
-		var distance := me.position.distance_squared_to(other.position)
+		# Ktos pietro wyzej jest dla bota daleko, bo nie umie znalezc schodow.
+		var climb := (other.position.y - me.position.y) * 8.0
+		var distance := me.position.distance_squared_to(other.position) + climb * climb
 		if distance < best_distance:
 			best_distance = distance
 			best = other

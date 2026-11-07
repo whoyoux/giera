@@ -147,7 +147,63 @@ static func footstep_on(ground: int) -> AudioStreamWAV:
 			return _footstep_stone()
 		ForestTerrain.Ground.WATER:
 			return _footstep_water()
+		ForestTerrain.Ground.CONCRETE:
+			return _footstep_concrete()
+		ForestTerrain.Ground.METAL:
+			return _footstep_metal()
 	return _footstep_grass()
+
+
+## Krotkie klapniecie podeszwy o beton z odrobina piasku.
+static func _footstep_concrete() -> AudioStreamWAV:
+	return _make("footstep_concrete", 0.1, func(t: float, _phase: float) -> float:
+		var slap := sin(TAU * 210.0 * t) * exp(-t * 60.0) * 0.7
+		return slap + randf_range(-0.3, 0.3) * exp(-t * 55.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Dzwieczne uderzenie w blache, ktore chwile brzmi.
+static func _footstep_metal() -> AudioStreamWAV:
+	return _make("footstep_metal", 0.3, func(t: float, _phase: float) -> float:
+		var thud := sin(TAU * 140.0 * t) * exp(-t * 40.0) * 0.6
+		var ring := (sin(TAU * 820.0 * t) * 0.3 + sin(TAU * 1310.0 * t) * 0.2) * exp(-t * 14.0)
+		return thud + ring + randf_range(-0.1, 0.1) * exp(-t * 60.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Daleki szum ruchu ulicznego: niski i rowny, z wolnymi falami.
+static func city_hum_loop() -> AudioStreamWAV:
+	return _noise_loop("city_hum", 0.02, func(t: float) -> float:
+		return 0.75 + 0.25 * sin(TAU * t / LOOP_SECONDS * 3.0))
+
+
+## Kilka gruchniec golebi.
+static func pigeons() -> AudioStreamWAV:
+	return _make("pigeons", 1.2, func(t: float, phase: float) -> float:
+		var beat := fmod(t, 0.4)
+		return sin(TAU * phase) * sin(PI * clampf(beat / 0.25, 0.0, 1.0)) * 0.5 * (1.0 if beat < 0.25 else 0.0)
+	, func(t: float) -> float: return 420.0 + 120.0 * sin(TAU * fmod(t, 0.4) / 0.25))
+
+
+## Krotki klakson zabawkowego auta.
+static func car_horn() -> AudioStreamWAV:
+	return _make("car_horn", 0.5, func(t: float, phase: float) -> float:
+		var square := 1.0 if fposmod(phase, 1.0) < 0.5 else -1.0
+		var gate := 1.0 if t < 0.18 or (t > 0.26 and t < 0.46) else 0.0
+		return square * 0.35 * gate
+	, func(_t: float) -> float: return 392.0)
+
+
+## Dzwonek roweru: dwa jasne brzdekniecia.
+static func bike_bell() -> AudioStreamWAV:
+	return _make("bike_bell", 0.7, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for start: float in [0.0, 0.2]:
+			if t >= start:
+				var since := t - start
+				sample += (sin(TAU * 2350.0 * since) * 0.4 + sin(TAU * 3720.0 * since) * 0.2) * exp(-since * 9.0)
+		return sample
+	, func(_t: float) -> float: return 0.0)
 
 
 ## Szelest trawy i miekkie klapniecie.
