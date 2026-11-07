@@ -38,7 +38,48 @@ Liczenie punktów: `grep -cE '^\s*- \[x\]' docs/PLAN_NOC.md` i analogicznie `[!]
 ### Etap 0: Start
 
 - [x] Worktree, import, zapis czasu startu, skopiowanie i commit tego planu.
-- [ ] Testy bazowe na czystym `main` z zapisem wyniku, żeby odróżnić stare błędy od nowych.
+- [x] Testy bazowe na czystym `main` z zapisem wyniku, żeby odróżnić stare błędy od nowych.
+  Wynik `tools/all_tests.sh` na `main` (3e87fec): 31 zaliczonych, 6 błędnych. Stare błędy: `ui_feel_test` (dźwięk przełącznika), a `chest_test.sh`, `grenade_net_test`, `dance_net_test`, `br_lobby_test` i `br_reset_test` wywracają się na `player.gd:439` (stan bez `:position` w `add_sample`).
+
+```
+items_test             OK                          1s
+hitscan_test           OK                          1s
+remote_motion_test     OK                          1s
+zone_test              OK                          1s
+aim_test               OK                         12s
+ambience_test          OK                          7s
+character_test         OK                          8s
+chat_test              OK                          8s
+chest_test             OK                         13s
+dance_test             OK                         27s
+feel_test              OK                         10s
+flow_test              OK                         25s
+grenade_test           OK                         27s
+inventory_test         OK                         17s
+map_test               OK                         17s
+medkit_test            OK                         10s
+pickup_test            OK                         14s
+settings_test          OK                         16s
+steam_account_test     OK                          3s
+ui_feel_test           BLAD(1)                    11s
+weapons_test           OK                         24s
+bot_test               OK                         32s
+hit_test               OK                         36s
+loot_test              OK                         35s
+chest_test             BLAD(1)+SCRIPT_ERROR       34s
+grenade_net_test       BLAD(1)+SCRIPT_ERROR       29s
+medkit_net_test        OK                         24s
+steam_net_test         OK                         21s
+weapons_net_test       OK                         44s
+dance_net_test         OK+SCRIPT_ERROR            46s
+chat_net_test          OK                         25s
+prediction_net_test    OK                         40s
+kill_feed_test         OK                         60s
+br_lobby_test          BLAD(1)+SCRIPT_ERROR       45s
+br_out_test            OK                        102s
+br_leave_test          OK                        130s
+br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
+```
 - [ ] Draft PR.
 
 ### Etap 1: Kucanie i zmiana klawiszy
