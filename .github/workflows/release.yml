@@ -229,7 +229,7 @@ jobs:
           printf '%s\n' "$SIGNING_KEY" > "$key"
           openssl dgst -sha256 -sign "$key" -out builds/manifest.json.sig builds/manifest.json
           rm -f "$key"
-          sed -n '/BEGIN PUBLIC KEY/,/END PUBLIC KEY/p' source/launcher/scripts/update_key.gd > "$RUNNER_TEMP/public.pem"
+          sed -n '/BEGIN PUBLIC KEY/,/END PUBLIC KEY/p' source/launcher/scripts/update_key.gd | sed 's/^.*"""//' > "$RUNNER_TEMP/public.pem"
           openssl dgst -sha256 -verify "$RUNNER_TEMP/public.pem" -signature builds/manifest.json.sig builds/manifest.json
 
       - name: Opublikuj wydanie
