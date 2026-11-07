@@ -27,6 +27,11 @@ func surface(_x: float, _z: float) -> float:
 	return 0.0
 
 
+## Drabiny i rury: w tych bryłach ruch do przodu wspina sie w gore.
+func ladders() -> Array[AABB]:
+	return []
+
+
 ## Rodzaj podloza pod stopami, od ktorego zalezy dzwiek kroku.
 func ground_at(_feet: Vector3) -> int:
 	return ForestTerrain.Ground.CONCRETE

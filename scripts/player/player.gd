@@ -49,6 +49,8 @@ const SLIDE_SECONDS := 0.75
 const SLIDE_SPEED := 11.0
 const SLIDE_END_SPEED := 3.2
 const SLIDE_STAMINA := 25.0
+## Wspinanie po drabinie i rurze.
+const CLIMB_SPEED := 3.6
 ## Kapsula sprawdzajaca, czy nad glowa kucajacego jest miejsce, zeby wstac. Waska, zeby nie lapala scian.
 const STAND_CHECK_RADIUS := 0.36
 const STAND_CHECK_HEIGHT := 0.9
@@ -325,7 +327,11 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 
 	_update_floor_state()
 	var on_floor := is_on_floor()
-	if on_floor:
+	var climbing := not locked and _on_ladder() and not input.jump
+	if climbing:
+		# Na drabinie przod to gora, tyl to dol, a bez klawisza gracz wisi w miejscu.
+		velocity.y = CLIMB_SPEED if input.move.y < -0.1 else (-CLIMB_SPEED if input.move.y > 0.1 and not on_floor else 0.0)
+	elif on_floor:
 		velocity.y = maxf(velocity.y, 0.0)
 		if input.jump and not locked:
 			velocity.y = JUMP_VELOCITY
@@ -374,6 +380,15 @@ func _update_crouch(delta: float, dead: bool) -> void:
 		crouching = false
 	crouch_amount = move_toward(crouch_amount, 1.0 if crouching else 0.0, delta / CROUCH_SECONDS)
 	_apply_crouch_shape()
+
+
+## Czy gracz stoi w bryle drabiny. Mapa jest ta sama u wszystkich, wiec wynik tez.
+func _on_ladder() -> bool:
+	var feet := position + Vector3.UP * 0.5
+	for box in Maps.info().ladders():
+		if box.has_point(feet):
+			return true
+	return false
 
 
 func is_sliding(tick := NetworkTime.tick) -> bool:

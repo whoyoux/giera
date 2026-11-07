@@ -11,6 +11,7 @@ const ZONE_HUM_VOLUME := -8.0
 ## Mapka stoi nad naklejka z amunicja.
 const MAP_MARGIN_RIGHT := 28.0
 const MAP_MARGIN_BOTTOM := 136.0
+const BIG_MAP_SIDE := 600.0
 
 var _roster_card: PanelContainer
 var _roster_rows: VBoxContainer
@@ -31,6 +32,7 @@ var _results_card: PanelContainer
 var _results_title: Label
 var _results_rows: VBoxContainer
 var _results_timer: Label
+var _vote_label: Label
 var _watch_panel: PanelContainer
 var _watch_label: Label
 
@@ -54,6 +56,11 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Match.can_vote() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		for index in Match.VOTE_MAPS.size():
+			if event.is_action_pressed("slot_%d" % (index + 1)):
+				Match.vote(Match.VOTE_MAPS[index])
+				UiSound.play(Sfx.UiCue.CONFIRM)
 	if event.is_action_pressed("toggle_ready") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Match.can_change_ready():
 		Match.toggle_ready()
 		UiSound.play(Sfx.UiCue.CONFIRM)
@@ -64,6 +71,16 @@ func _process(_delta: float) -> void:
 	_update_match_info()
 	if _results_center.visible:
 		_results_timer.text = ("Powrót do lobby za %d" if Match.is_elimination() else "Nowa runda za %d") % ceili(Match.seconds_left())
+		_vote_label.visible = Match.can_vote()
+		if _vote_label.visible:
+			var counts := Match.vote_counts()
+			var mine: String = Match.votes.get(multiplayer.get_unique_id(), "")
+			var parts: Array[String] = []
+			for index in Match.VOTE_MAPS.size():
+				var map_id := Match.VOTE_MAPS[index]
+				var mark := "● " if map_id == mine else ""
+				parts.append("%s[%s] %s: %d" % [mark, Keybinds.label_of("slot_%d" % (index + 1)), Maps.info(map_id).title, counts.get(map_id, 0)])
+			_vote_label.text = "Następna mapa:  " + "   ".join(parts)
 	var round_start := not Match.is_elimination() and Match.is_frozen_at(NetworkTime.tick)
 	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING or round_start
 	_big_panel.visible = counting
@@ -290,6 +307,14 @@ func _build_map() -> void:
 	map.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	map.position += Vector2(-MAP_MARGIN_RIGHT - ZoneMap.SIDE, -MAP_MARGIN_BOTTOM - ZoneMap.SIDE)
 	add_child(map)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center)
+	var big := ZoneMap.new()
+	big.side = BIG_MAP_SIDE
+	big.big = true
+	center.add_child(big)
 
 
 ## Dzwieki powstaja teraz, zeby koniec meczu nie przycial obrazu.
@@ -327,6 +352,10 @@ func _build_results() -> void:
 	_results_timer = UiStyle.label("", 17, Color(UiStyle.INK, 0.65), false)
 	_results_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_results_timer)
+	_vote_label = UiStyle.label("", 17, UiStyle.BLUE, false)
+	_vote_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_vote_label.visible = false
+	column.add_child(_vote_label)
 
 
 func _build_watch_hint() -> void:

@@ -53,6 +53,7 @@ func _ready() -> void:
 	_headless = DisplayServer.get_name() == "headless"
 	_rng.seed = 7
 	CityMapInfo.metal_boxes.clear()
+	CityMapInfo.ladder_boxes.clear()
 	_body = StaticBody3D.new()
 	_body.name = "Blocks"
 	_body.collision_layer = Hitscan.WORLD_MASK
@@ -70,6 +71,7 @@ func _ready() -> void:
 	_build_hotel(Rect2(12.0, 16.0, 12.0, 12.0))
 	_build_garage(Rect2(25.0, 6.5, 2.0, 9.0))
 	_build_street_props()
+	_build_climbing()
 	_build_markers()
 	if not _headless:
 		add_child(CityAmbience.new())
@@ -481,6 +483,41 @@ func _car(base: Vector3, rot_y: float, color: Color) -> void:
 func _lamp(base: Vector3) -> void:
 	_box(base + Vector3.UP * 2.2, Vector3(0.16, 4.4, 0.16), Color("4a4f5c"), true, false, 0.0, 0.03)
 	_decal(base + Vector3.UP * 4.45, Vector3(0.7, 0.18, 0.35), Color("fff3a3"))
+
+
+# --- Drabiny, rury i skoki -----------------------------------------------------
+
+## Dodatkowe trasy na dachy: drabiny na scianach, rura na sklepie i skrzynie do wskoczenia na kontener.
+func _build_climbing() -> void:
+	_ladder(Vector3(-25.3, 0.0, -24.0), Vector3.LEFT, FLOOR_HEIGHT * 2.0 + 1.0)
+	_ladder(Vector3(20.0, 0.0, 28.3), Vector3.BACK, FLOOR_HEIGHT * 2.0 + 1.0)
+	_ladder(Vector3(-23.0, 0.0, 13.3), Vector3.BACK, 5.2)
+	_pipe(Vector3(-5.85, 0.0, -14.2), FLOOR_HEIGHT + 1.0)
+	_box(Vector3(-11.2, 0.5, 21.6), Vector3(1.0, 1.0, 1.0), WOOD)
+	_box(Vector3(-11.2, 1.0, 20.4), Vector3(1.0, 2.0, 1.0), WOOD.lightened(0.1))
+
+
+## Drabina przy scianie. "facing" wskazuje od sciany na zewnatrz, a bryla wspinaczki lezy przed nia.
+func _ladder(base: Vector3, facing: Vector3, height: float) -> void:
+	var side := facing.cross(Vector3.UP)
+	var volume_center := base + facing * 0.35 + Vector3.UP * (height * 0.5 + 0.2)
+	var extent := side.abs() * 0.9 + facing.abs() * 0.7 + Vector3.UP * (height + 0.4)
+	CityMapInfo.ladder_boxes.append(AABB(volume_center - extent * 0.5, extent))
+	if _headless:
+		return
+	for sign_s: float in [-1.0, 1.0]:
+		_decal(base + side * sign_s * 0.32 + facing * 0.08 + Vector3.UP * height * 0.5, Vector3(0.07, height, 0.07) if side.x == 0.0 else Vector3(0.07, height, 0.07), Color("e4572e"))
+	var rungs := int(height / 0.35)
+	for i in rungs:
+		var rung := LowPoly.part(_visuals, LowPoly.box(Vector3(0.64, 0.05, 0.05) if absf(side.x) > 0.5 else Vector3(0.05, 0.05, 0.64), 0.01), Color("ffcb47"), base + facing * 0.08 + Vector3.UP * (0.3 + i * 0.35))
+		rung.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+## Rura spustowa, po ktorej tez da sie wejsc.
+func _pipe(base: Vector3, height: float) -> void:
+	CityMapInfo.ladder_boxes.append(AABB(base + Vector3(-0.45, 0.2, -0.45), Vector3(0.9, height + 0.4, 0.9)))
+	if not _headless:
+		LowPoly.part(_visuals, LowPoly.cylinder(0.09, 0.09, height, 8), Color("9aa3b5"), base + Vector3.UP * height * 0.5)
 
 
 # --- Punkty ------------------------------------------------------------------

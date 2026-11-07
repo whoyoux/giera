@@ -21,6 +21,8 @@ const ROUND_SECONDS := 300.0
 const ROUND_KILL_LIMIT := 25
 const ROUND_RESULTS_SECONDS := 12.0
 const FINAL_WARNING_SECONDS := 30.0
+## Mapy do wyboru w glosowaniu miedzy rundami Deathmatchu.
+const VOTE_MAPS: Array[String] = ["city", "forest"]
 ## Tick, ktory nigdy nie nadejdzie: wyeliminowany nie wraca sam do gry.
 const NEVER_TICK := 1 << 62
 
@@ -40,6 +42,8 @@ var results: Array = []
 ## Numer rundy Deathmatchu od startu serwera i limit zabojstw, ktory ja konczy.
 var round_number := 0
 var kill_limit := ROUND_KILL_LIMIT
+## Glosy na nastepna mape: numer gracza -> id mapy. Zbierane w czasie wynikow rundy.
+var votes := {}
 
 ## Gracze meczu, razem z tymi, ktorzy juz wyszli z gry: id -> { id, name, kills, place }.
 var _ranking := {}
@@ -214,6 +218,7 @@ func _finish_round(rows: Array) -> void:
 
 ## Nowa runda bez restartu serwera: czysty lup, skrzynki, wyniki, zdrowie i przedmioty.
 func _start_next_round() -> void:
+	_apply_vote()
 	var tick := NetworkTime.tick + NetworkTime.seconds_to_ticks(TELEPORT_LEAD_SECONDS)
 	results = []
 	round_number += 1
@@ -226,6 +231,36 @@ func _start_next_round() -> void:
 		GameState.server_prepare_round(id, -1, tick)
 	_enter_phase(Phase.LIVE, tick + NetworkTime.seconds_to_ticks(_round_seconds()))
 	print("[serwer] runda %d do ticku %d" % [round_number, phase_end_tick])
+
+
+## Najwiecej glosow wygrywa, a remis zostawia obecna mape. Swiat podmienia sie bez restartu serwera.
+func _apply_vote() -> void:
+	var counts := vote_counts()
+	var best := Maps.current_id
+	for map_id: String in counts:
+		if counts[map_id] > counts.get(best, 0):
+			best = map_id
+	votes.clear()
+	if best != Maps.current_id:
+		print("[serwer] glosowanie wybralo mape %s" % best)
+		Maps.select(best)
+
+
+func vote_counts() -> Dictionary:
+	var counts := {}
+	for id: int in votes:
+		if GameState.players.has(id):
+			counts[votes[id]] = counts.get(votes[id], 0) + 1
+	return counts
+
+
+func can_vote() -> bool:
+	return not is_elimination() and phase == Phase.RESULTS
+
+
+func vote(map_id: String) -> void:
+	if can_vote():
+		_request_vote.rpc_id(1, map_id)
 
 
 ## Raz na sekunde bije wszystkich zywych poza strefa. Atakujacym jest sama strefa.
@@ -356,7 +391,7 @@ func _enter_phase(new_phase: int, end_tick: int) -> void:
 
 
 func _state() -> Dictionary:
-	return { "map": Maps.current_id, "mode": mode, "round": round_number, "kill_limit": kill_limit, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
+	return { "map": Maps.current_id, "votes": votes, "mode": mode, "round": round_number, "kill_limit": kill_limit, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
 
 
 func _clear() -> void:
@@ -385,10 +420,20 @@ func _request_ready(value: bool) -> void:
 	_update_lobby()
 
 
+@rpc("any_peer", "call_local", "reliable")
+func _request_vote(map_id: String) -> void:
+	if not multiplayer.is_server() or not can_vote() or not VOTE_MAPS.has(map_id):
+		return
+	votes[multiplayer.get_remote_sender_id()] = map_id
+	phase_changed.emit()
+	_sync_state.rpc(_state())
+
+
 @rpc("authority", "call_remote", "reliable")
 func _sync_state(state: Dictionary) -> void:
 	# Mapa musi stac, zanim powstana postacie i skrzynki z nastepnych wiadomosci.
 	Maps.select(state.map)
+	votes = state.votes
 	mode = state.mode
 	round_number = state.round
 	kill_limit = state.kill_limit
@@ -409,5 +454,6 @@ func _sync_state(state: Dictionary) -> void:
 @rpc("authority", "call_local", "reliable")
 func _clear_world() -> void:
 	WorldItems.clear()
+	SupplyDrops.clear()
 	Grenades.clear()
 	Chests.reset()

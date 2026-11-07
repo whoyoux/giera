@@ -4,6 +4,8 @@ extends MapInfo
 
 ## Metalowe bryly, np. kontenery i auta. Na ich dachu kroki brzmia jak po blasze.
 static var metal_boxes: Array[AABB] = []
+## Drabiny i rury, ktore buduje CityBuilder.
+static var ladder_boxes: Array[AABB] = []
 
 
 func _init() -> void:
@@ -20,6 +22,10 @@ func _init() -> void:
 		{ "name": "Kontenery", "at": Vector2(-17.0, 21.0) },
 		{ "name": "Hotel", "at": Vector2(18.0, 22.0) },
 	]
+
+
+func ladders() -> Array[AABB]:
+	return ladder_boxes
 
 
 func ground_at(feet: Vector3) -> int:

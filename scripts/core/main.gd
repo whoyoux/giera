@@ -31,6 +31,7 @@ func _ready() -> void:
 		add_child(ExplosionPool.new())
 		add_child(DamageNumbers.new())
 		add_child(PodiumView.new())
+		add_child(DropView.new())
 	_apply_quality()
 	hud.visible = false
 	if Net.is_headless:

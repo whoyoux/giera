@@ -28,6 +28,7 @@ const ACTIONS: Array[Dictionary] = [
 	{ "action": "dance", "label": "Koło tańców" },
 	{ "action": "chat", "label": "Czat" },
 	{ "action": "scoreboard", "label": "Tabela wyników" },
+	{ "action": "map", "label": "Duża mapa" },
 	{ "action": "pause", "label": "Pauza" },
 ]
 const KEY_NAMES := {
