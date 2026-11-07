@@ -5,7 +5,8 @@ extends CanvasLayer
 signal settings_requested
 
 const FEED_SECONDS := 5.0
-const FEED_NAME_LENGTH := 18
+const FEED_NAME_LENGTH := 14
+const FEED_MAX_ROWS := 5
 const FEED_AVATAR_SIDE := 26.0
 const FEED_WEAPON_ICON_SIDE := 30.0
 const SCORE_AVATAR_SIDE := 34.0
@@ -19,6 +20,8 @@ const GOOD_PING := 60
 const BAD_PING := 120
 ## Jak mocno gra ciemnieje za pauza i tabela wynikow.
 const MODAL_SHADE_ALPHA := 0.55
+## Napis o serii stoi pod zegarem rundy i pod odliczaniem.
+const STREAK_TOP := 210.0
 const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
 
 var _player: Player
@@ -81,6 +84,14 @@ var _streak_tween: Tween
 var _streak_audio: AudioStreamPlayer
 var _protection_label: Label
 var _chat: ChatPanel
+var _match_panel: MatchPanel
+var _top_left: VBoxContainer
+var _name_center: Control
+var _prompt_center: Control
+var _use_center: Control
+var _streak_center: Control
+var _death_center: Control
+var _protection_center: Control
 
 
 func _ready() -> void:
@@ -107,9 +118,9 @@ func bind(player: Player) -> void:
 	_refresh_scoreboard()
 
 
+## Samouczek stoi w prawej kolumnie pod lista zabojstw, razem z lista gotowych w lobby Battle Royale.
 func show_tutorial() -> void:
-	var anchor := _anchored(Control.PRESET_CENTER_LEFT, Vector2(28, -150), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_BOTH)
-	anchor.add_child(TutorialPanel.new())
+	_match_panel.side_column.add_child(TutorialPanel.new())
 
 
 func unbind() -> void:
@@ -162,19 +173,19 @@ func _process(delta: float) -> void:
 			UiSound.play(Sfx.UiCue.PRESS)
 
 
-## W lunecie znika caly interfejs poza nia, a na ekranie wynikow rundy pasek przedmiotow i zdrowie,
-## zeby nie nachodzily na karte wynikow.
+## W lunecie znika caly interfejs poza nia. Na ekranie wynikow znika wszystko, co dotyczy walki:
+## pasek przedmiotow, zdrowie, amunicja, celownik, podpowiedzi i napis o smierci, zeby nie nachodzily
+## na karte wynikow i podium.
 func _update_clutter() -> void:
 	var scoped := _scope.amount > 0.5
 	var results := Match.phase == Match.Phase.RESULTS
 	for child in get_children():
 		if child is CanvasItem and child != _scope:
 			(child as CanvasItem).modulate.a = 0.0 if scoped else 1.0
-	var bottom := 0.0 if results and not scoped else (0.0 if scoped else 1.0)
-	_hotbar.modulate.a = bottom
-	_status_panel.modulate.a = bottom
-	_ammo_panel.modulate.a = bottom
-	_drop_hint.modulate.a = bottom
+	var combat := 0.0 if results or scoped else 1.0
+	for control: CanvasItem in [_hotbar, _status_panel, _ammo_panel, _drop_hint, _crosshair, _indicator,
+			_name_center, _prompt_center, _use_center, _streak_center, _death_center, _protection_center]:
+		control.modulate.a = combat
 
 
 ## Celownik pokazuje, gdzie naprawde moze poleciec pocisk.
@@ -409,22 +420,19 @@ func _on_hit_details(details: Dictionary) -> void:
 	_audio.play()
 
 
-## Pierwsza krew, podwojne i potrojne zabojstwo, seria i jej przerwanie: napis na srodku ekranu.
+## Pierwsza krew, podwojne i potrojne zabojstwo, seria i jej przerwanie. Wlasny wyczyn to krotki
+## napis na srodku ekranu bez nazwy gracza, a cudzy to zolty wiersz na liscie zabojstw.
 func _on_streak(kind: String, killer_id: int, victim_id: int, count: int) -> void:
-	var killer := _short_name(killer_id)
-	var text := ""
-	match kind:
-		"first_blood":
-			text = "Pierwsza krew! %s" % killer
-		"double":
-			text = "Podwójne zabójstwo! %s" % killer
-		"triple":
-			text = "Potrójne zabójstwo! %s" % killer if count == 3 else "%s: %d zabójstwa naraz!" % [killer, count]
-		"streak":
-			text = "%s ma serię %d!" % [killer, count]
-		"ended":
-			text = "%s przerywa serię %s (%d)" % [killer, _short_name(victim_id), count]
+	var mine := killer_id == multiplayer.get_unique_id()
+	var text := streak_text(kind, count, "" if mine else _short_name(killer_id), _short_name(victim_id))
 	if text.is_empty():
+		return
+	if mine or kind == "first_blood":
+		_streak_audio.stream = Sfx.streak()
+		_streak_audio.play()
+	if not mine:
+		var label := UiStyle.label(text, 17, UiStyle.INK)
+		_add_feed_row(label, UiStyle.SUN)
 		return
 	_streak_label.text = text
 	_streak_panel.visible = true
@@ -434,9 +442,25 @@ func _on_streak(kind: String, killer_id: int, victim_id: int, count: int) -> voi
 	_streak_tween = create_tween()
 	_streak_tween.tween_interval(2.4)
 	_streak_tween.tween_callback(func() -> void: _streak_panel.visible = false)
-	if killer_id == multiplayer.get_unique_id() or kind == "first_blood":
-		_streak_audio.stream = Sfx.streak()
-		_streak_audio.play()
+
+
+## Pusty "killer" oznacza wlasny wyczyn, wiec napis mowi do gracza.
+static func streak_text(kind: String, count: int, killer: String, victim: String) -> String:
+	var you := killer.is_empty()
+	match kind:
+		"first_blood":
+			return "Pierwsza krew!" if you else "Pierwsza krew: %s" % killer
+		"double":
+			return "Podwójne zabójstwo!" if you else "%s: podwójne" % killer
+		"triple":
+			if you:
+				return "Potrójne zabójstwo!" if count == 3 else "%d zabójstwa naraz!" % count
+			return "%s: potrójne" % killer if count == 3 else "%s: %d naraz" % [killer, count]
+		"streak":
+			return "Seria %d!" % count if you else "%s: seria %d" % [killer, count]
+		"ended":
+			return "Przerywasz serię: %s" % victim if you else "%s przerywa serię" % killer
+	return ""
 
 
 func _on_damaged(amount: int, attacker_id: int, source: Vector3) -> void:
@@ -469,13 +493,6 @@ func _update_vignette(delta: float, info: Dictionary) -> void:
 
 
 func _on_kill(killer_id: int, victim_id: int) -> void:
-	var row := PanelContainer.new()
-	var style := UiStyle.sticker(UiStyle.PAPER, 14, 3)
-	style.set_content_margin_all(8)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
-	row.add_theme_stylebox_override("panel", style)
-	row.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 8)
 	line.add_child(_avatar_of(killer_id, FEED_AVATAR_SIDE))
@@ -485,17 +502,30 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 		line.add_child(UiStyle.label("◎", 17, Color("d99a00")))
 	line.add_child(_avatar_of(victim_id, FEED_AVATAR_SIDE))
 	line.add_child(UiStyle.label(_short_name(victim_id), 17, UiStyle.CORAL))
-	if Match.is_elimination():
-		line.add_child(UiStyle.label("· zostało %d" % Match.alive_count(victim_id), 15, Color(UiStyle.INK, 0.65), false))
-	row.add_child(line)
+	# Liczbe zywych w Battle Royale podaje pasek u gory, wiec wiersz zostaje krotki.
+	_add_feed_row(line, UiStyle.PAPER)
+
+
+## Lista ma kilka wierszy, zeby nie zjechac na srodek ekranu. Najstarszy znika od razu.
+func _add_feed_row(content: Control, color: Color) -> void:
+	var row := PanelContainer.new()
+	var style := UiStyle.sticker(color, 14, 3)
+	style.set_content_margin_all(8)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	row.add_theme_stylebox_override("panel", style)
+	row.size_flags_horizontal = Control.SIZE_SHRINK_END
+	row.add_child(content)
 	_feed.add_child(row)
+	while _feed.get_child_count() > FEED_MAX_ROWS:
+		_feed.get_child(0).free()
 	var tween := row.create_tween()
 	tween.tween_interval(FEED_SECONDS)
 	tween.tween_property(row, "modulate:a", 0.0, 0.4)
 	tween.tween_callback(row.queue_free)
 
 
-## Bron z ikona i nazwa w kolorze klasy. Smierc w strefie ma tylko znaczek.
+## Bron to sama ikona w kolorze klasy, a nazwa tylko wtedy, gdy ikony brak. Smierc w strefie ma znaczek.
 func _kill_cause(victim_id: int) -> Control:
 	var info: Dictionary = GameState.players.get(victim_id, {})
 	var weapon: Dictionary = info.get("death_weapon", {})
@@ -504,6 +534,7 @@ func _kill_cause(victim_id: int) -> Control:
 	var cause := HBoxContainer.new()
 	cause.add_theme_constant_override("separation", 4)
 	var visual := ItemStack.visual_of(weapon)
+	var tint := Rarity.color(ItemStack.tier_of(weapon))
 	if visual != null and ResourceLoader.exists(visual.icon_path):
 		var icon := TextureRect.new()
 		icon.texture = load(visual.icon_path) as Texture2D
@@ -512,7 +543,16 @@ func _kill_cause(victim_id: int) -> Control:
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cause.add_child(icon)
-	cause.add_child(UiStyle.label(ItemStack.display_name_of(weapon), 15, Rarity.color(ItemStack.tier_of(weapon)).darkened(0.25)))
+		# Pasek w kolorze klasy przed ikona zastepuje dluga nazwe broni.
+		var stripe := ColorRect.new()
+		stripe.color = tint
+		stripe.custom_minimum_size = Vector2(4, FEED_WEAPON_ICON_SIDE * 0.7)
+		stripe.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cause.add_child(stripe)
+		cause.move_child(stripe, 0)
+	else:
+		cause.add_child(UiStyle.label(ItemStack.display_name_of(weapon), 15, tint.darkened(0.25)))
 	return cause
 
 
@@ -530,7 +570,7 @@ func _update_death_panel(info: Dictionary) -> void:
 		_death_panel.visible = not info.alive
 		if not info.alive:
 			var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
-			_death_label.text = "%s\nWracasz za %d…" % [_death_cause(info, multiplayer.get_unique_id()), ceili(seconds)]
+			_death_label.text = "%s\nWracasz za %d" % [_death_cause(info, multiplayer.get_unique_id()), ceili(seconds)]
 		_protection_label.visible = info.alive and NetworkTime.tick < info.get("protected_until", -1)
 		return
 	var fresh: bool = NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(ELIMINATED_SECONDS)
@@ -671,26 +711,35 @@ func _build() -> void:
 	_dance_wheel.chosen.connect(_on_dance_chosen)
 	add_child(_dance_wheel)
 
+	# Lewy gorny rog to kolumna: kazdy element stoi pod poprzednim, wiec nic tu na siebie nie wchodzi.
+	_top_left = VBoxContainer.new()
+	_top_left.position = Vector2(24, 22)
+	_top_left.add_theme_constant_override("separation", 10)
+	_top_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_top_left)
 	_fps_panel = PanelContainer.new()
 	var fps_style := UiStyle.sticker(UiStyle.PAPER, 14, 3)
 	fps_style.set_content_margin_all(8)
 	fps_style.content_margin_left = 14
 	fps_style.content_margin_right = 14
 	_fps_panel.add_theme_stylebox_override("panel", fps_style)
-	_fps_panel.position = Vector2(24, 22)
+	_fps_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_fps_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_fps_panel)
+	_top_left.add_child(_fps_panel)
 	_fps_label = UiStyle.label("0 FPS", 17, UiStyle.INK)
 	_fps_panel.add_child(_fps_label)
 
 	var net_graph := NetGraph.new()
-	net_graph.position = Vector2(24, 72)
-	add_child(net_graph)
+	net_graph.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_top_left.add_child(net_graph)
 
 	_build_status_sticker()
 	_build_ammo_sticker()
-	add_child(MatchPanel.new())
-	add_child(RoundPanel.new())
+	_match_panel = MatchPanel.new()
+	add_child(_match_panel)
+	var round_panel := RoundPanel.new()
+	add_child(round_panel)
+	round_panel.move_top_card(_top_left)
 	_chat = ChatPanel.new()
 	_chat.closed.connect(_on_chat_closed)
 	add_child(_chat)
@@ -703,6 +752,7 @@ func _build() -> void:
 	add_child(_hotbar)
 
 	var name_center := CenterContainer.new()
+	_name_center = name_center
 	name_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	name_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	name_center.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -734,6 +784,7 @@ func _build() -> void:
 	add_child(_feed)
 
 	var death_center := CenterContainer.new()
+	_death_center = death_center
 	death_center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	death_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(death_center)
@@ -742,14 +793,16 @@ func _build() -> void:
 	_death_panel.rotation_degrees = -3.0
 	_death_panel.visible = false
 	death_center.add_child(_death_panel)
-	_death_label = UiStyle.label("", 30, Color.WHITE)
+	_death_label = UiStyle.label("", 24, Color.WHITE)
 	_death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_death_panel.add_child(_death_label)
 
 	var streak_center := CenterContainer.new()
+	_streak_center = streak_center
 	streak_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	streak_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	streak_center.position.y = 210.0
+	# Pod zegarem rundy i pod odliczaniem albo napisem o ostatnich 30 s.
+	streak_center.position.y = STREAK_TOP
 	streak_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(streak_center)
 	_streak_panel = PanelContainer.new()
@@ -757,11 +810,12 @@ func _build() -> void:
 	_streak_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_streak_panel.visible = false
 	streak_center.add_child(_streak_panel)
-	_streak_label = UiStyle.label("", 26, UiStyle.INK)
+	_streak_label = UiStyle.label("", 22, UiStyle.INK)
 	_streak_panel.add_child(_streak_label)
 	_streak_audio = AudioStreamPlayer.new()
 	add_child(_streak_audio)
 	var protection_center := CenterContainer.new()
+	_protection_center = protection_center
 	protection_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	protection_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	protection_center.position.y += 60.0
@@ -820,6 +874,7 @@ func _build() -> void:
 
 func _build_prompt() -> void:
 	var center := CenterContainer.new()
+	_prompt_center = center
 	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	center.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -855,6 +910,7 @@ func _build_prompt() -> void:
 
 func _build_use_panel() -> void:
 	var center := CenterContainer.new()
+	_use_center = center
 	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	center.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -918,8 +974,9 @@ func _build_status_sticker() -> void:
 	panel.custom_minimum_size = Vector2(320, 0)
 	panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 22, 6))
 	panel.rotation_degrees = -1.2
-	panel.position = Vector2(0, -112)
 	anchor.add_child(panel)
+	# Dolna krawedz stoi w miejscu, a napis o leczeniu dokleja sie u gory, a nie wychodzi za ekran.
+	panel.resized.connect(func() -> void: panel.position.y = -panel.size.y)
 
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 8)

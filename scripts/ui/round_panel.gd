@@ -48,6 +48,11 @@ func _process(delta: float) -> void:
 		_refresh_standings()
 
 
+## Ranking stoi w kolumnie lewego gornego rogu HUD, pod licznikiem FPS i wykresem sieci.
+func move_top_card(column: Container) -> void:
+	_top_card.reparent(column, false)
+
+
 func clock_text() -> String:
 	return _clock.text
 
@@ -110,7 +115,7 @@ func _refresh_standings() -> void:
 		_leader.text = "Prowadzi %s · %d" % [_short(leaders[0].name), rows[0].kills]
 	for row: Dictionary in rows:
 		if row.id == my_id:
-			_place.text = "Twoje miejsce: %d z %d   (limit %d)" % [row.place, rows.size(), Match.kill_limit]
+			_place.text = "Twoje miejsce: %d z %d · do %d" % [row.place, rows.size(), Match.kill_limit]
 	for child in _top_rows.get_children():
 		child.free()
 	for index in mini(TOP_COUNT, rows.size()):
@@ -164,7 +169,7 @@ func _build() -> void:
 	top_style.set_content_margin_all(10)
 	_top_card.add_theme_stylebox_override("panel", top_style)
 	_top_card.custom_minimum_size = Vector2(210, 0)
-	_top_card.position = Vector2(24, 128)
+	_top_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_top_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_top_card)
 	var top_column := VBoxContainer.new()
@@ -178,7 +183,7 @@ func _build() -> void:
 	var banner_center := CenterContainer.new()
 	banner_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	banner_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	banner_center.position.y = 140.0
+	banner_center.position.y = 132.0
 	banner_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(banner_center)
 	_banner = PanelContainer.new()
@@ -186,7 +191,7 @@ func _build() -> void:
 	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_banner.visible = false
 	banner_center.add_child(_banner)
-	_banner.add_child(UiStyle.label("Ostatnie 30 sekund!", 30, Color.WHITE))
+	_banner.add_child(UiStyle.label("Ostatnie 30 sekund!", 26, Color.WHITE))
 
 	_audio = AudioStreamPlayer.new()
 	add_child(_audio)

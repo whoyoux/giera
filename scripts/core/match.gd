@@ -96,6 +96,12 @@ func is_frozen_at(tick: int) -> bool:
 	return tick >= freeze_from_tick and tick < freeze_end_tick
 
 
+## Bron i przedmioty nie dzialaja w chwili po przeniesieniu i na ekranie wynikow.
+## Serwer i tak nie zada wtedy obrazen, ale bez tej blokady u gracza lecialyby strzaly i ubywala amunicja.
+func blocks_items_at(tick: int) -> bool:
+	return is_frozen_at(tick) or phase == Phase.RESULTS
+
+
 func can_change_ready() -> bool:
 	return is_elimination() and (phase == Phase.LOBBY or phase == Phase.COUNTDOWN)
 

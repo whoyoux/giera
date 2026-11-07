@@ -142,9 +142,11 @@ func _ready() -> void:
 	# Poprawki: Desert Eagle w glowe, skala interfejsu, otwarta skrzynka, reset statystyk, granat.
 	var deagle := ItemRegistry.get_definition(&"deagle") as WeaponDefinition
 	_check("zwykly Deagle 90 w glowe, epicki zabija", deagle.stats(Rarity.Tier.COMMON).headshot_damage == 90 and deagle.stats(Rarity.Tier.EPIC).headshot_damage >= GameState.MAX_HEALTH)
-	Settings.set_value("ui_scale", 2)
-	_check("duzy interfejs", is_equal_approx(get_tree().root.content_scale_factor, 1.2))
-	Settings.set_value("ui_scale", 1)
+	Settings.set_value("ui_size", 1.3)
+	_check("interfejs nie rosnie ponad 100%", is_equal_approx(get_tree().root.content_scale_factor, 1.0))
+	Settings.set_value("ui_size", 0.7)
+	_check("maly interfejs", is_equal_approx(get_tree().root.content_scale_factor, 0.7))
+	Settings.set_value("ui_size", 1.0)
 	var field := get_node("/root/Main")._chest_field as ChestField
 	var chest_id: int = Chests.chests.keys()[0]
 	var closed_height: float = (field._shapes[chest_id].shape as BoxShape3D).size.y

@@ -6,7 +6,8 @@ signal closed
 
 const WIDTH := 340.0
 const LOG_HEIGHT := 190.0
-const BOTTOM_OFFSET := 150.0
+## Nad naklejka ze zdrowiem, takze gdy rosnie o napis o leczeniu.
+const BOTTOM_OFFSET := 168.0
 const LEFT_OFFSET := 28.0
 const MAX_ROWS := 50
 const MESSAGE_SECONDS := 8.0

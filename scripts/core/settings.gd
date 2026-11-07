@@ -9,8 +9,11 @@ const SECTION := "options"
 const SAVE_DELAY := 0.4
 
 enum Graphics { LOW, MEDIUM, HIGH }
-## Skala interfejsu: male, normalne i duze napisy oraz przyciski.
-const UI_SCALES: Array[float] = [0.85, 1.0, 1.2]
+## Skala interfejsu z suwaka. Starsza wersja zapisywala numer jednej z trzech wielkosci.
+const UI_SIZE_MIN := 0.6
+## HUD jest ulozony dla 1280x720 punktow. Wiekszy nie miesci sie bez nakladania sie elementow.
+const UI_SIZE_MAX := 1.0
+const OLD_UI_SCALES: Array[float] = [0.85, 1.0, 1.2]
 
 ## Domyslne wartosci. Nowe ustawienie wystarczy dopisac tutaj.
 const DEFAULTS := {
@@ -30,7 +33,7 @@ const DEFAULTS := {
 	"show_fps": true,
 	"show_net_graph": false,
 	"show_damage_numbers": true,
-	"ui_scale": 1,
+	"ui_size": 1.0,
 }
 
 ## Ekrany Retina maja wiecej pikseli, niz wyciagnie zintegrowana karta M1.
@@ -147,8 +150,8 @@ func apply(key := "") -> void:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if value("vsync") else DisplayServer.VSYNC_DISABLED)
 	if key.is_empty() or key == "graphics":
 		_apply_graphics()
-	if key.is_empty() or key == "ui_scale":
-		get_tree().root.content_scale_factor = UI_SCALES[clampi(int(value("ui_scale")), 0, UI_SCALES.size() - 1)]
+	if key.is_empty() or key == "ui_size":
+		get_tree().root.content_scale_factor = clampf(float(value("ui_size")), UI_SIZE_MIN, UI_SIZE_MAX)
 	if key.is_empty() or key == "render_scale":
 		var render_scale: float = value("render_scale")
 		get_tree().root.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if render_scale < 1.0 else Viewport.SCALING_3D_MODE_BILINEAR
@@ -161,6 +164,10 @@ func _migrate_old_quality() -> void:
 		var high: bool = _config.get_value(SECTION, "high_quality")
 		_config.set_value(SECTION, "graphics", Graphics.HIGH if high else Graphics.LOW)
 		_config.erase_section_key(SECTION, "high_quality")
+	if _config.has_section_key(SECTION, "ui_scale"):
+		var index := clampi(int(_config.get_value(SECTION, "ui_scale")), 0, OLD_UI_SCALES.size() - 1)
+		_config.set_value(SECTION, "ui_size", minf(OLD_UI_SCALES[index], UI_SIZE_MAX))
+		_config.erase_section_key(SECTION, "ui_scale")
 
 
 ## Otoczenie i slonce ustawia scena gry w main.gd, a tutaj jest to, co dotyczy calego silnika.

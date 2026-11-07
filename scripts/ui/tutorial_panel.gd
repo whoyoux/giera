@@ -7,10 +7,10 @@ const SECONDS := 14.0
 const KEY := "tutorial_done"
 const STEPS: Array[Array] = [
 	[["move_forward", "move_left", "move_back", "move_right"], "ruch"],
-	[["jump"], "skok"], [["crouch"], "kucanie, a w sprincie ślizg"], [["sprint"], "sprint"],
+	[["jump"], "skok"], [["crouch"], "kucanie i ślizg"], [["sprint"], "sprint"],
 	[["fire"], "strzał"], [["aim"], "celowanie i luneta"], [["reload"], "przeładowanie"],
-	[["interact"], "podnieś albo otwórz skrzynkę"], [["dance"], "koło tańców"],
-	[["scoreboard"], "wyniki"], [["map"], "duża mapa w Battle Royale"],
+	[["interact"], "podnieś, otwórz"], [["dance"], "koło tańców"],
+	[["scoreboard"], "wyniki"], [["map"], "mapa (Battle Royale)"],
 ]
 
 var _left := SECONDS
@@ -27,15 +27,21 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
 	add_child(column)
-	column.add_child(UiStyle.label("Witaj w grze! Twoje klawisze:", 22, UiStyle.BLUE))
+	column.add_child(UiStyle.label("Twoje klawisze:", 19, UiStyle.BLUE))
+	# Dwie kolumny, zeby samouczek miescil sie pod lista zabojstw.
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 4)
+	column.add_child(grid)
 	for step in STEPS:
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 6)
+		row.add_theme_constant_override("separation", 4)
 		for action: String in step[0]:
-			row.add_child(ActionChip.create(action, 30, 15))
-		row.add_child(UiStyle.label(step[1], 17, UiStyle.INK, false))
-		column.add_child(row)
-	column.add_child(UiStyle.label("Zmienisz je w Esc → Ustawienia → Klawisze. Enter zamyka.", 15, Color(UiStyle.INK, 0.65), false))
+			row.add_child(ActionChip.create(action, 24, 13))
+		row.add_child(UiStyle.label(step[1], 14, UiStyle.INK, false))
+		grid.add_child(row)
+	column.add_child(UiStyle.label("Zmiana: Esc → Ustawienia. Enter zamyka.", 13, Color(UiStyle.INK, 0.65), false))
 	UiStyle.pop_in(self)
 	Settings.set_player_value(KEY, "1")
 
