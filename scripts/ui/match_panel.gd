@@ -12,7 +12,17 @@ const ZONE_HUM_VOLUME := -8.0
 const MAP_MARGIN_RIGHT := 28.0
 const MAP_MARGIN_BOTTOM := 136.0
 const BIG_MAP_SIDE := 600.0
+## Prawa kolumna zaczyna sie pod lista zabojstw, ktora ma najwyzej piec wierszy.
+const SIDE_COLUMN_TOP := 290.0
+## Na podium Deathmatchu karta wynikow jest mala i stoi przy dolnej krawedzi, zeby nie zaslaniac postaci.
+const PODIUM_CARD_WIDTH := 460.0
+const PODIUM_CARD_BOTTOM := 24.0
+const RESULTS_CARD_WIDTH := 520.0
+## Odliczanie stoi pod zegarem rundy Deathmatchu, ktory zajmuje gore ekranu.
+const BIG_LABEL_TOP := 132.0
 
+## Prawa kolumna: lista gotowych w lobby i samouczek, jedno pod drugim.
+var side_column: VBoxContainer
 var _roster_card: PanelContainer
 var _roster_rows: VBoxContainer
 var _roster_status: Label
@@ -27,7 +37,7 @@ var _zone_tint: ColorRect
 var _zone_audio: AudioStreamPlayer
 var _phase_audio: AudioStreamPlayer
 var _shown_phase := -1
-var _results_center: CenterContainer
+var _results_center: VBoxContainer
 var _results_card: PanelContainer
 var _results_title: Label
 var _results_rows: VBoxContainer
@@ -73,14 +83,7 @@ func _process(_delta: float) -> void:
 		_results_timer.text = ("Powrót do lobby za %d" if Match.is_elimination() else "Nowa runda za %d") % ceili(Match.seconds_left())
 		_vote_label.visible = Match.can_vote()
 		if _vote_label.visible:
-			var counts := Match.vote_counts()
-			var mine: String = Match.votes.get(multiplayer.get_unique_id(), "")
-			var parts: Array[String] = []
-			for index in Match.VOTE_MAPS.size():
-				var map_id := Match.VOTE_MAPS[index]
-				var mark := "● " if map_id == mine else ""
-				parts.append("%s[%s] %s: %d" % [mark, Keybinds.label_of("slot_%d" % (index + 1)), Maps.info(map_id).title, counts.get(map_id, 0)])
-			_vote_label.text = "Następna mapa:  " + "   ".join(parts)
+			_vote_label.text = vote_text()
 	var round_start := not Match.is_elimination() and Match.is_frozen_at(NetworkTime.tick)
 	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING or round_start
 	_big_panel.visible = counting
@@ -94,6 +97,18 @@ func _process(_delta: float) -> void:
 	_shown_second = second
 	_big_label.text = ("Start za %d" if Match.phase == Match.Phase.COUNTDOWN else "Ruszasz za %d") % second
 	UiSound.play(Sfx.UiCue.NOTE)
+
+
+## Glosowanie w jednej krotkiej linii: klawisz, mapa i liczba glosow, a wlasny glos ma kropke.
+func vote_text() -> String:
+	var counts := Match.vote_counts()
+	var mine: String = Match.votes.get(multiplayer.get_unique_id(), "")
+	var parts: Array[String] = []
+	for index in Match.VOTE_MAPS.size():
+		var map_id := Match.VOTE_MAPS[index]
+		var mark := "● " if map_id == mine else ""
+		parts.append("%s[%s] %s %d" % [mark, Keybinds.label_of("slot_%d" % (index + 1)), Maps.info(map_id).title, counts.get(map_id, 0)])
+	return "Następna mapa:  " + "   ".join(parts)
 
 
 ## Licznik zywych i strefa. Ostrzezenie dotyczy tylko zywej postaci gracza.
@@ -120,7 +135,7 @@ func _zone_text(state: Dictionary) -> String:
 		return "strefa zamknięta"
 	var seconds := ceili(state.seconds_left / Match.zone_speed)
 	var clock := "%d:%02d" % [seconds / 60, seconds % 60]
-	return "strefa zawęża się jeszcze %s" % clock if state.shrinking else "strefa ruszy za %s" % clock
+	return "strefa się zwęża %s" % clock if state.shrinking else "strefa rusza za %s" % clock
 
 
 func _update_watch_hint() -> void:
@@ -177,9 +192,17 @@ func _refresh_results() -> void:
 	var showing := Match.phase == Match.Phase.RESULTS
 	if showing and not _results_center.visible:
 		_fill_results()
-		_results_center.offset_top = 0.0 if Match.is_elimination() else 220.0
+		_place_results(not Match.is_elimination())
 		UiStyle.pop_in(_results_card)
 	_results_center.visible = showing
+
+
+## Battle Royale pokazuje karte na srodku, a Deathmatch mala karte na dole pod podium.
+func _place_results(podium: bool) -> void:
+	_results_center.alignment = BoxContainer.ALIGNMENT_END if podium else BoxContainer.ALIGNMENT_CENTER
+	_results_center.offset_bottom = -PODIUM_CARD_BOTTOM if podium else 0.0
+	_results_card.custom_minimum_size.x = PODIUM_CARD_WIDTH if podium else RESULTS_CARD_WIDTH
+	_results_title.add_theme_font_size_override("font_size", 28 if podium else 38)
 
 
 func _fill_results() -> void:
@@ -190,9 +213,12 @@ func _fill_results() -> void:
 	if winners.size() == 1 and winners[0].id == my_id:
 		_results_title.text = "Wygrywasz!"
 	elif winners.size() == 1:
-		_results_title.text = "Wygrywa %s" % winners[0].name
+		_results_title.text = "Wygrywa %s" % _short(winners[0].name)
 	else:
 		_results_title.text = "Remis"
+	if not Match.is_elimination():
+		_fill_podium_rows(my_id)
+		return
 	for entry: Dictionary in Match.results:
 		var row := HBoxContainer.new()
 		var color := UiStyle.BLUE if entry.id == my_id else UiStyle.INK
@@ -206,18 +232,31 @@ func _fill_results() -> void:
 		row.add_child(name_label)
 		row.add_child(UiStyle.label("zabójstwa: %d" % entry.kills, 19, color, false))
 		_results_rows.add_child(row)
-	if not Match.is_elimination():
-		for line in PodiumView.awards(Match.results):
-			var award := UiStyle.label("★ " + line, 17, Color("b07d00"), false)
-			_results_rows.add_child(award)
+
+
+## Trojke widac na podium, a pelna tabela jest pod Tab. Karta podaje wlasny wynik i nagrody
+## poza najwieksza liczba zabojstw, ktora i tak widac po zwyciezcy.
+func _fill_podium_rows(my_id: int) -> void:
+	for entry: Dictionary in Match.results:
+		if entry.id == my_id:
+			var mine := UiStyle.label("Twoje miejsce: %d z %d  ·  zabójstwa: %d" % [entry.place, Match.results.size(), entry.kills], 18, UiStyle.BLUE)
+			mine.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_results_rows.add_child(mine)
+	for line in PodiumView.awards(Match.results).slice(1):
+		var award := UiStyle.label("★ " + line, 15, Color("b07d00"), false)
+		award.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		award.clip_text = true
+		award.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		_results_rows.add_child(award)
+
+
+func _short(player_name: String) -> String:
+	return player_name if player_name.length() <= ROSTER_NAME_LENGTH else player_name.left(ROSTER_NAME_LENGTH - 1) + "…"
 
 
 func _row(info: Dictionary) -> HBoxContainer:
 	var row := HBoxContainer.new()
-	var player_name: String = info.name
-	if player_name.length() > ROSTER_NAME_LENGTH:
-		player_name = player_name.left(ROSTER_NAME_LENGTH - 1) + "…"
-	var name_label := UiStyle.label(player_name, 19)
+	var name_label := UiStyle.label(_short(info.name), 19)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
 	row.add_child(UiStyle.label("gotowy" if info.ready else "czeka", 17, UiStyle.TEAL.darkened(0.2) if info.ready else Color(UiStyle.INK, 0.55)))
@@ -225,19 +264,20 @@ func _row(info: Dictionary) -> HBoxContainer:
 
 
 func _build_roster() -> void:
-	var anchor := CenterContainer.new()
 	# Po prawej, bo lewa strona nad paskiem zdrowia nalezy do czatu.
-	anchor.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	anchor.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	anchor.grow_vertical = Control.GROW_DIRECTION_BOTH
-	anchor.position.x -= 24.0
-	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(anchor)
+	side_column = VBoxContainer.new()
+	side_column.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	side_column.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	side_column.position += Vector2(-24.0, SIDE_COLUMN_TOP)
+	side_column.add_theme_constant_override("separation", 12)
+	side_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(side_column)
 	_roster_card = PanelContainer.new()
+	_roster_card.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_roster_card.custom_minimum_size = Vector2(ROSTER_WIDTH, 0)
 	_roster_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 22, 6))
 	_roster_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	anchor.add_child(_roster_card)
+	side_column.add_child(_roster_card)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	_roster_card.add_child(column)
@@ -328,31 +368,34 @@ func _build_phase_audio() -> void:
 
 
 func _build_results() -> void:
-	_results_center = CenterContainer.new()
-	_results_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	# W Deathmatchu nad karta widac podium, wiec karta stoi nizej.
-	_results_center.offset_top = 0.0
+	_results_center = VBoxContainer.new()
+	_results_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_results_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_results_center.visible = false
 	add_child(_results_center)
 	_results_card = PanelContainer.new()
-	_results_card.custom_minimum_size = Vector2(520, 0)
-	_results_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
+	_results_card.custom_minimum_size = Vector2(RESULTS_CARD_WIDTH, 0)
+	_results_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var style := UiStyle.sticker(UiStyle.PAPER, 22, 6)
+	style.set_content_margin_all(14)
+	style.content_margin_left = 22
+	style.content_margin_right = 22
+	_results_card.add_theme_stylebox_override("panel", style)
 	_results_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_results_center.add_child(_results_card)
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 6)
 	_results_card.add_child(column)
 	_results_title = UiStyle.label("", 38, UiStyle.CORAL)
 	_results_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_results_title)
 	_results_rows = VBoxContainer.new()
-	_results_rows.add_theme_constant_override("separation", 6)
+	_results_rows.add_theme_constant_override("separation", 4)
 	column.add_child(_results_rows)
-	_results_timer = UiStyle.label("", 17, Color(UiStyle.INK, 0.65), false)
+	_results_timer = UiStyle.label("", 16, Color(UiStyle.INK, 0.65), false)
 	_results_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_results_timer)
-	_vote_label = UiStyle.label("", 17, UiStyle.BLUE, false)
+	_vote_label = UiStyle.label("", 16, UiStyle.BLUE, false)
 	_vote_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_vote_label.visible = false
 	column.add_child(_vote_label)
@@ -391,7 +434,7 @@ func _build_big_label() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	center.position.y = 96.0
+	center.position.y = BIG_LABEL_TOP
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	_big_panel = PanelContainer.new()
@@ -399,5 +442,5 @@ func _build_big_label() -> void:
 	_big_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_big_panel.visible = false
 	center.add_child(_big_panel)
-	_big_label = UiStyle.label("", 38, UiStyle.INK)
+	_big_label = UiStyle.label("", 32, UiStyle.INK)
 	_big_panel.add_child(_big_label)

@@ -8,6 +8,7 @@ const STEP_OFFSETS: Array[float] = [0.0, -1.7, 1.7]
 const STEP_COLORS: Array[Color] = [Color("ffcb47"), Color("cfd6e3"), Color("e3a46b")]
 const CAMERA_DISTANCE := 6.5
 const CAMERA_HEIGHT := 2.4
+const NAME_LENGTH := 12
 
 var _camera: Camera3D
 var _previous_camera: Camera3D
@@ -51,9 +52,9 @@ func _show() -> void:
 		rig.set_item({})
 		rig.set_dance(1 + (index + Match.round_number) % DanceCatalog.DANCES.size())
 		var label := Label3D.new()
-		label.text = "%d. %s" % [entry.place, entry.name]
+		label.text = "%d. %s" % [entry.place, _short(entry.name)]
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.font_size = 48
+		label.font_size = 40
 		label.outline_size = 12
 		label.pixel_size = 0.006
 		label.position = Vector3(0.0, STEP_HEIGHTS[index] + 2.1, 0.0)
@@ -74,6 +75,11 @@ func _hide() -> void:
 	if is_instance_valid(_previous_camera):
 		_previous_camera.current = true
 	_previous_camera = null
+
+
+## Stopnie stoja blisko siebie, wiec dlugi nick zaslanialby sasiada.
+static func _short(player_name: String) -> String:
+	return player_name if player_name.length() <= NAME_LENGTH else player_name.left(NAME_LENGTH - 1) + "…"
 
 
 ## Nagrody rundy z wynikow: najwiecej zabojstw, najcelniejszy i najwiecej trafien w glowe.

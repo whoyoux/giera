@@ -116,7 +116,7 @@ func _build() -> void:
 	_keys.visible = false
 	pages.add_child(_keys)
 
-	_add_choice("Wielkość interfejsu", "ui_scale", ["Mały", "Normalny", "Duży"])
+	_add_slider("Wielkość interfejsu", "ui_size", Settings.UI_SIZE_MIN, Settings.UI_SIZE_MAX, 0.05, func(v: float) -> String: return "%d%%" % roundi(v * 100.0), false)
 	_add_slider("Głośność", "volume", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Dźwięki otoczenia", "ambience", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Dźwięki interfejsu", "ui_sounds", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
@@ -152,7 +152,9 @@ func _build() -> void:
 	buttons.add_child(_done)
 
 
-func _add_slider(text: String, key: String, min_value: float, max_value: float, step: float, format: Callable) -> void:
+## "live" wylaczone zapisuje wartosc dopiero po puszczeniu suwaka. Tak jest przy wielkosci interfejsu,
+## bo zmiana skali w trakcie przeciagania przesuwalaby suwak pod kursorem.
+func _add_slider(text: String, key: String, min_value: float, max_value: float, step: float, format: Callable, live := true) -> void:
 	var row := _row(text)
 	var slider := HSlider.new()
 	slider.name = key
@@ -178,32 +180,23 @@ func _add_slider(text: String, key: String, min_value: float, max_value: float, 
 	shown.custom_minimum_size = Vector2(68, 0)
 	shown.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(shown)
+	var dragging := [false]
+	var commit := func() -> void:
+		if not is_equal_approx(Settings.value(key), slider.value):
+			Settings.set_value(key, slider.value)
+	slider.drag_started.connect(func() -> void: dragging[0] = true)
+	slider.drag_ended.connect(func(_changed: bool) -> void:
+		dragging[0] = false
+		commit.call())
 	slider.value_changed.connect(func(new_value: float) -> void:
 		shown.text = format.call(new_value)
-		if not is_equal_approx(Settings.value(key), new_value):
-			Settings.set_value(key, new_value)
+		if live or not dragging[0]:
+			commit.call()
 		# Gra juz z nowa glosnoscia, wiec suwak od razu pokazuje, jak glosno bedzie.
 		UiSound.slider(inverse_lerp(min_value, max_value, new_value)))
 	_refreshers.append(func() -> void:
 		slider.set_value_no_signal(Settings.value(key))
 		shown.text = format.call(slider.value))
-
-
-## Kilka przyciskow, z ktorych wybrany jest podswietlony. Wartosc to numer przycisku.
-func _add_choice(text: String, key: String, options: Array) -> void:
-	var row := _row(text)
-	var buttons: Array[Button] = []
-	for index in options.size():
-		var button := UiStyle.button(options[index], UiStyle.BLUE, Color.WHITE, Sfx.UiCue.PRESS)
-		button.name = "%s_%d" % [key, index]
-		button.custom_minimum_size = Vector2(86, 34)
-		button.add_theme_font_size_override("font_size", 16)
-		button.pressed.connect(func() -> void: Settings.set_value(key, index))
-		row.add_child(button)
-		buttons.append(button)
-	_refreshers.append(func() -> void:
-		for index in buttons.size():
-			buttons[index].modulate = Color.WHITE if int(Settings.value(key)) == index else Color(1.0, 1.0, 1.0, 0.5))
 
 
 func _add_toggle(text: String, key: String) -> void:

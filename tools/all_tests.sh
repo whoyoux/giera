@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Uruchamia testy po kolei i zapisuje tabele: nazwa, wynik, sekundy.
 # Uzycie: tools/all_tests.sh [plik_wyniku] [filtr nazw jako wyrazenie grep]
+# HIDE_WINDOWS=1 otwiera okna testow daleko poza ekranem, zeby nie zaslanialy pulpitu.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -38,7 +39,9 @@ headless() {
 ## podaje wlasne --map= po nazwie, a ostatnia wartosc wygrywa.
 windowed() {
 	local name="$1"; shift
-	run_case "$name" timeout 240 "$GODOT" --path . --resolution 1280x720 -- --settings-path="user://all_$name.cfg" --map="${MAP:-forest}" --tool="res://tools/$name.gd" "$@"
+	local hide=()
+	[ "${HIDE_WINDOWS:-0}" = 1 ] && hide=(--position 20000,20000)
+	run_case "$name" timeout 240 "$GODOT" --path . --resolution 1280x720 "${hide[@]}" -- --settings-path="user://all_$name.cfg" --map="${MAP:-forest}" --tool="res://tools/$name.gd" "$@"
 }
 
 while read -r name; do
@@ -62,6 +65,7 @@ exit 0
 #- hitscan_test
 #- remote_motion_test
 #- zone_test
+#- hud_layout_test
 # KONIEC
 # OKNO
 #- aim_test
