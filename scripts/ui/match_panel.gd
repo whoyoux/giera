@@ -226,7 +226,7 @@ func _build_roster() -> void:
 	var action := HBoxContainer.new()
 	action.add_theme_constant_override("separation", 8)
 	column.add_child(action)
-	action.add_child(UiStyle.key_chip("F", 34, 19))
+	action.add_child(ActionChip.create("toggle_ready", 34, 19))
 	_ready_action = UiStyle.label("", 19)
 	action.add_child(_ready_action)
 
@@ -342,7 +342,11 @@ func _build_watch_hint() -> void:
 	_watch_panel.add_child(row)
 	_watch_label = UiStyle.label("", 21, UiStyle.INK)
 	row.add_child(_watch_label)
-	row.add_child(UiStyle.label("LPM: następny gracz", 17, Color(UiStyle.INK, 0.65), false))
+	var next := UiStyle.label("", 17, Color(UiStyle.INK, 0.65), false)
+	row.add_child(next)
+	var update := func() -> void: next.text = "%s: następny gracz" % Keybinds.label_of("fire")
+	update.call()
+	Settings.changed.connect(update)
 
 
 func _build_big_label() -> void:

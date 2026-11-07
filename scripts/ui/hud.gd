@@ -253,7 +253,7 @@ func _update_ammo(equipment: Equipment) -> void:
 	if equipment.is_reloading():
 		_ammo_hint.text = "ładuję…"
 	elif ammo == 0:
-		_ammo_hint.text = "naciśnij R"
+		_ammo_hint.text = "naciśnij %s" % Keybinds.label_of("reload")
 	else:
 		_ammo_hint.text = "/ %d" % stats.magazine
 	if ammo < _last_ammo:
@@ -701,7 +701,7 @@ func _build_prompt() -> void:
 	_prompt_bar.step = 0.0
 	_prompt_bar.visible = false
 	rows.add_child(_prompt_bar)
-	row.add_child(UiStyle.key_chip("E", 36, 20))
+	row.add_child(ActionChip.create("interact", 36, 20))
 	_prompt_action = UiStyle.label("Podnieś", 20, UiStyle.INK, false)
 	row.add_child(_prompt_action)
 	_prompt_name = UiStyle.label("", 21, UiStyle.INK)
@@ -758,7 +758,7 @@ func _build_drop_hint() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.modulate.a = 0.8
 	anchor.add_child(row)
-	row.add_child(UiStyle.key_chip("G", 28, 16))
+	row.add_child(ActionChip.create("drop_item", 28, 16))
 	var label := UiStyle.label("wyrzuć", 16, Color.WHITE)
 	label.add_theme_color_override("font_outline_color", UiStyle.INK)
 	label.add_theme_constant_override("outline_size", 5)

@@ -8,7 +8,9 @@ signal closed
 const LIST_HEIGHT := 350.0
 
 var _rows: VBoxContainer
+var _keys: KeybindPage
 var _scroll: ScrollContainer
+var _tabs := {}
 const GRAPHICS_NAMES: Array[String] = ["Niska", "Średnia", "Wysoka"]
 
 var _refreshers: Array[Callable] = []
@@ -27,6 +29,7 @@ func _ready() -> void:
 
 
 func open() -> void:
+	_show_page(false)
 	_refresh()
 	_scroll.scroll_vertical = 0
 	_focus_before = get_viewport().gui_get_focus_owner()
@@ -41,6 +44,7 @@ func open() -> void:
 func close() -> void:
 	if not visible:
 		return
+	_keys.cancel()
 	visible = false
 	UiSound.play(Sfx.UiCue.CLOSE)
 	Settings.save()
@@ -50,7 +54,7 @@ func close() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("pause"):
+	if visible and event.is_action_pressed("pause") and not _keys.is_waiting():
 		close()
 		get_viewport().set_input_as_handled()
 
@@ -78,6 +82,19 @@ func _build() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	layout.add_child(title)
 
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 10)
+	layout.add_child(tabs)
+	for page: Array in [["general_tab", "Ogólne", false], ["keys_tab", "Klawisze", true]]:
+		var tab := UiStyle.button(page[1], UiStyle.BLUE, Color.WHITE, Sfx.UiCue.PRESS)
+		tab.name = page[0]
+		tab.custom_minimum_size.y = 44.0
+		tab.add_theme_font_size_override("font_size", 19)
+		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tab.pressed.connect(_show_page.bind(page[2]))
+		tabs.add_child(tab)
+		_tabs[page[2]] = tab
+
 	_scroll = ScrollContainer.new()
 	_scroll.custom_minimum_size = Vector2(0, LIST_HEIGHT)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -89,9 +106,15 @@ func _build() -> void:
 	gutter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gutter.add_theme_constant_override("margin_right", 16)
 	_scroll.add_child(gutter)
+	var pages := VBoxContainer.new()
+	pages.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gutter.add_child(pages)
 	_rows = VBoxContainer.new()
 	_rows.add_theme_constant_override("separation", 4)
-	gutter.add_child(_rows)
+	pages.add_child(_rows)
+	_keys = KeybindPage.new()
+	_keys.visible = false
+	pages.add_child(_keys)
 
 	_add_slider("Głośność", "volume", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
 	_add_slider("Dźwięki otoczenia", "ambience", 0.0, 1.0, 0.01, func(v: float) -> String: return "%d%%" % roundi(v * 100.0))
@@ -114,7 +137,12 @@ func _build() -> void:
 	layout.add_child(buttons)
 	var reset := UiStyle.button("Domyślne", UiStyle.TEAL)
 	reset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	reset.pressed.connect(Settings.reset_to_defaults)
+	# Na stronie klawiszy przycisk przywraca klawisze, a na pierwszej pozostale ustawienia.
+	reset.pressed.connect(func() -> void:
+		if _keys.visible:
+			_keys.reset_all()
+		else:
+			Settings.reset_to_defaults())
 	buttons.add_child(reset)
 	_done = UiStyle.button("Gotowe", UiStyle.CORAL, Color.WHITE, Sfx.UiCue.NONE)
 	_done.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -207,6 +235,17 @@ func _row(text: String) -> HBoxContainer:
 	return row
 
 
+## Klawisze maja osobna strone, bo lista ustawien bylaby inaczej bardzo dluga.
+func _show_page(keys: bool) -> void:
+	_keys.cancel()
+	_rows.visible = not keys
+	_keys.visible = keys
+	_scroll.scroll_vertical = 0
+	for page: bool in _tabs:
+		(_tabs[page] as Button).modulate = Color.WHITE if page == keys else Color(1.0, 1.0, 1.0, 0.6)
+
+
 func _refresh() -> void:
 	for refresher in _refreshers:
 		refresher.call()
+	_keys.refresh()

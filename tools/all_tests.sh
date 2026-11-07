@@ -12,8 +12,11 @@ LOGS=tools/logs/all
 mkdir -p "$LOGS"
 : > "$OUT"
 
+USERDATA="${APPDATA:-$HOME/.local/share}/Godot/app_userdata/Giera"
+
 run_case() {
 	local name="$1"; shift
+	rm -f "$USERDATA/all_$name.cfg"
 	echo "$name" | grep -qE "$FILTER" || return 0
 	local started=$SECONDS
 	"$@" > "$LOGS/$name.log" 2>&1
@@ -76,6 +79,8 @@ exit 0
 #- steam_account_test --no-steam
 #- ui_feel_test
 #- weapons_test
+#- keybinds_test
+#- crouch_test
 # KONIEC
 # SIEC
 #- bot_test

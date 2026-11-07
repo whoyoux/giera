@@ -124,7 +124,11 @@ func _build_cell(slot: int) -> Dictionary:
 	var badge := _chip(badge_style, BADGE_SIZE)
 	badge.position = -BADGE_SIZE * 0.5 + Vector2(4, 4)
 	inner.add_child(badge)
-	badge.add_child(_chip_label(str(slot + 1), 16))
+	var number := _chip_label("", 16)
+	badge.add_child(number)
+	var update := func() -> void: number.text = Keybinds.label_of("slot_%d" % (slot + 1))
+	update.call()
+	Settings.changed.connect(update)
 
 	var charges_style := _chip_style(13)
 	var charges_pill := _chip(charges_style, CHARGES_SIZE)

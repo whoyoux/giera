@@ -84,7 +84,8 @@ br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
 
 ### Etap 1: Kucanie i zmiana klawiszy
 
-- [ ] **Zmiana klawiszy:** w ustawieniach dziś jej nie ma. Dodaj panel dla wszystkich akcji gry (w tym myszy): wykrywanie konfliktów, reset do domyślnych, zapis w `settings.cfg`, działanie w menu i w pauzie. Podpowiedzi w HUD pokazują aktualny klawisz.
+- [x] **Zmiana klawiszy:** w ustawieniach dziś jej nie ma. Dodaj panel dla wszystkich akcji gry (w tym myszy): wykrywanie konfliktów, reset do domyślnych, zapis w `settings.cfg`, działanie w menu i w pauzie. Podpowiedzi w HUD pokazują aktualny klawisz.
+  Dowód: `keybinds_test` 28/28 OK, `settings_test` i `ui_feel_test` OK (ten drugi był błędny w bazie, bo przełącznik leżał poza przewijaną listą), zrzut `keybinds.png` obejrzany.
 - [ ] **Kucanie:** nowa akcja `crouch`, domyślnie przytrzymanie **Ctrl**. Pole w `player_input.gd`, stan w rollbacku.
   - Niższa kapsuła i kamera z płynnym przejściem, wolniejszy ruch, mniejszy rozrzut, brak sprintu.
   - Nie można wstać pod sufitem. Można wejść kucając pod niskie przeszkody.

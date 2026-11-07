@@ -28,7 +28,7 @@ func show_fired(player: Player, stack: Dictionary) -> void:
 
 
 func idle_hint(_equipment: Equipment, _stack: Dictionary) -> String:
-	return "LPM: cios z bliska"
+	return "%s: cios z bliska" % Keybinds.label_of("fire")
 
 
 func _definition(stack: Dictionary) -> MeleeDefinition:

@@ -46,4 +46,4 @@ func action_label(_stack: Dictionary) -> String:
 func idle_hint(equipment: Equipment, stack: Dictionary) -> String:
 	if equipment.player.info.health >= GameState.MAX_HEALTH:
 		return "Masz pełne zdrowie"
-	return "Przytrzymaj LPM: +%d zdrowia" % (ItemStack.definition_of(stack) as MedkitDefinition).heal_amount
+	return "Przytrzymaj %s: +%d zdrowia" % [Keybinds.label_of("fire"), (ItemStack.definition_of(stack) as MedkitDefinition).heal_amount]

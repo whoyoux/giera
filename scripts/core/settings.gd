@@ -47,6 +47,7 @@ func _ready() -> void:
 			path = arg.trim_prefix("--settings-path=")
 	_config.load(path)
 	_migrate_old_quality()
+	Keybinds.load_from(_config)
 	_save_timer = Timer.new()
 	_save_timer.one_shot = true
 	_save_timer.wait_time = SAVE_DELAY
@@ -95,6 +96,20 @@ func reset_to_defaults() -> void:
 	changed.emit()
 	if _save_timer != null:
 		_save_timer.start()
+
+
+## Zwraca nazwe akcji, ktora oddala klawisz, albo pusty tekst.
+func assign_keybind(action: String, event: InputEvent) -> String:
+	var swapped := Keybinds.assign(_config, action, event)
+	changed.emit()
+	save()
+	return swapped
+
+
+func reset_keybinds() -> void:
+	Keybinds.reset(_config)
+	changed.emit()
+	save()
 
 
 func save() -> void:
