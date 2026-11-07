@@ -28,6 +28,9 @@ func _ready() -> void:
 	var eye := Vector3(22, 1.6, 1)
 	_expect("trafienie w tulow", _trace(world, eye, target.position + Vector3.UP * 0.9), target, false)
 	_expect("trafienie w glowe", _trace(world, eye, target.position + Vector3.UP * Hitscan.HEAD_CENTER), target, true)
+	var head := target.position + Vector3.UP * Hitscan.HEAD_CENTER
+	_expect("glowa przy krawedzi", _trace(world, eye, head + Vector3(0, 0, 0.3)), target, true)
+	_check("obrys kaptura to juz nie glowa", not _trace(world, eye, head + Vector3(0, 0, 0.4)).headshot)
 	var miss := Hitscan.trace(world, eye, Vector3.FORWARD.rotated(Vector3.UP, 0.3), 2, get_tree())
 	_expect("pudlo obok celu", miss, null, false)
 

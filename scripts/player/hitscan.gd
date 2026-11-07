@@ -12,7 +12,9 @@ const WORLD_MASK := 1
 const BODY_RADIUS := 0.36
 const BODY_BOTTOM := 0.2
 const BODY_TOP := 0.95
-const HEAD_RADIUS := 0.42
+## Glowa modelu z kapturem ma okolo 0,85 m. Kula jest troche mniejsza, wiec liczy sie trafienie
+## w sama glowe, a nie w jej obrys.
+const HEAD_RADIUS := 0.34
 const HEAD_CENTER := 1.38
 ## Kat zlotego podzialu rownomiernie rozklada sruciny, a kolejne strzaly obracaja wzor.
 const GOLDEN_ANGLE := 2.39996
