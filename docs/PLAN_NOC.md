@@ -80,7 +80,7 @@ br_out_test            OK                        102s
 br_leave_test          OK                        130s
 br_reset_test          BLAD(1)+SCRIPT_ERROR      171s
 ```
-- [ ] Draft PR.
+- [x] Draft PR: https://github.com/whoyoux/giera/pull/44. Po poprawce `player.gd:439` (niepełny stan w `add_sample`) pięć starych błędów sieciowych przechodzi: chest_test.sh, grenade_net_test, dance_net_test, br_lobby_test, br_reset_test.
 
 ### Etap 1: Kucanie i zmiana klawiszy
 

@@ -436,13 +436,19 @@ func _show_remote_motion(delta: float) -> void:
 	var tick := sync.get_last_known_state()
 	if tick > remote_motion.newest_tick and sync._states.has(tick):
 		var state := sync._states.get_snapshot(tick)
-		remote_motion.add_sample(tick, state.get_value(":position"), state.get_value(":yaw"), state.get_value(":pitch"))
+		# Stan bywa niepelny, gdy serwer wyslal tylko to, co sie zmienilo. Reszta zostaje z poprzedniego.
+		remote_motion.add_sample(tick, _snapshot_value(state, ":position", remote_motion.newest_position(position)), _snapshot_value(state, ":yaw", yaw), _snapshot_value(state, ":pitch", pitch))
 	if not remote_motion.has_samples():
 		return
 	remote_motion.advance(delta, RemoteMotion.shown_tick)
 	position = remote_motion.shown_position
 	yaw = remote_motion.shown_yaw
 	pitch = remote_motion.shown_pitch
+
+
+func _snapshot_value(state: Variant, property: String, fallback: Variant) -> Variant:
+	var value: Variant = state.get_value(property)
+	return fallback if value == null else value
 
 
 ## Kazdy klient sam wlacza animacje i muzyke, gdy zobaczy zmiane stanu tanca.

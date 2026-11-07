@@ -67,6 +67,11 @@ func has_samples() -> bool:
 	return not _samples.is_empty()
 
 
+## Pozycja z ostatniego stanu albo podana, gdy zadnego jeszcze nie ma.
+func newest_position(fallback: Vector3) -> Vector3:
+	return _samples[-1].position if not _samples.is_empty() else fallback
+
+
 func add_sample(tick: int, at: Vector3, yaw: float, pitch: float) -> void:
 	if tick <= newest_tick:
 		return
