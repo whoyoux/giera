@@ -14,11 +14,14 @@ var _aim := 0.0
 ## Promien rozrzutu broni na ekranie, w pikselach. Zero oznacza zwykly celownik.
 var spread_radius := 0.0
 var _shown_radius := 0.0
+## Trafienie w glowe ma wiekszy znacznik z kolkiem.
+var _headshot := false
 
 
-func flash_hit(killed: bool) -> void:
+func flash_hit(killed: bool, headshot := false) -> void:
 	_hit = 1.0
-	_hit_color = UiStyle.CORAL if killed else Color.WHITE
+	_hit_color = UiStyle.CORAL if killed else (Color("ffcb47") if headshot else Color.WHITE)
+	_headshot = headshot
 	queue_redraw()
 
 
@@ -46,8 +49,12 @@ func _draw() -> void:
 		draw_circle(center, 1.5, Color.WHITE, true, -1.0, true)
 	if _hit <= 0.0:
 		return
+	var grow := 1.35 if _headshot else 1.0
 	for sign_x: float in [-1.0, 1.0]:
 		for sign_y: float in [-1.0, 1.0]:
 			var dir := Vector2(sign_x, sign_y)
-			draw_line(center + dir * 11.0, center + dir * 21.0, Color(OUTLINE, _hit), 6.0, true)
-			draw_line(center + dir * 12.0, center + dir * 20.0, Color(_hit_color, _hit), 3.0, true)
+			draw_line(center + dir * 11.0 * grow, center + dir * 21.0 * grow, Color(OUTLINE, _hit), 6.0, true)
+			draw_line(center + dir * 12.0 * grow, center + dir * 20.0 * grow, Color(_hit_color, _hit), 3.0, true)
+	if _headshot:
+		draw_arc(center, 9.0, 0.0, TAU, 24, Color(OUTLINE, _hit), 5.0, true)
+		draw_arc(center, 9.0, 0.0, TAU, 24, Color(_hit_color, _hit), 2.5, true)

@@ -114,7 +114,8 @@ static func faceted(source: PrimitiveMesh) -> ArrayMesh:
 		var b := positions[indices[i + 1]]
 		var c := positions[indices[i + 2]]
 		var normal := (c - a).cross(b - a)
-		if normal.length_squared() < 0.0000001:
+		# Malenkie scianki tez maja kierunek, wiec odrzucamy tylko te bez powierzchni.
+		if normal.length_squared() < 1e-18:
 			continue
 		normal = normal.normalized()
 		verts.append_array([a, b, c])

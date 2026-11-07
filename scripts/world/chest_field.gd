@@ -20,9 +20,11 @@ func _ready() -> void:
 	if Net.args.has("debug-chests"):
 		for spot in get_tree().get_nodes_in_group(&"spawn_points"):
 			var at := (spot as Node3D).global_position
+			var floor_y := at.y - 0.2
+			var center := Maps.info().zone_center
 			at.y = 0.0
-			at = at + at.direction_to(Vector3(0.0, at.y, 0.0)) * DEBUG_DISTANCE
-			at.y = ForestTerrain.surface(at.x, at.z)
+			at = at + at.direction_to(Vector3(center.x, 0.0, center.y)) * DEBUG_DISTANCE
+			at.y = maxf(Maps.info().surface(at.x, at.z), floor_y)
 			_add_chest(id, at, atan2(at.x, at.z))
 			id += 1
 	if Net.is_headless:

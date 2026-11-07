@@ -44,6 +44,61 @@ static func knife_hit() -> AudioStreamWAV:
 	, func(t: float) -> float: return lerpf(380.0, 1100.0, minf(t / 0.08, 1.0)))
 
 
+## Trafienie w glowe: wyzszy, podwojny dzwiek.
+static func headshot() -> AudioStreamWAV:
+	return _make("headshot", 0.16, func(t: float, phase: float) -> float:
+		var gate := 1.0 if t < 0.06 or t > 0.09 else 0.0
+		return sin(TAU * phase) * (1.0 - t / 0.16) * gate
+	, func(t: float) -> float: return 2100.0 if t < 0.08 else 2800.0)
+
+
+## Fanfara serii zabojstw: trzy nuty w gore.
+static func streak() -> AudioStreamWAV:
+	return _make("streak", 0.5, func(t: float, phase: float) -> float:
+		var note := fmod(t, 0.16) / 0.16
+		return (1.0 if fposmod(phase, 1.0) < 0.5 else -1.0) * 0.3 * (1.0 - note * 0.6)
+	, func(t: float) -> float: return [523.0, 659.0, 784.0, 1046.0][mini(int(t / 0.16), 3)])
+
+
+## Szelest ubrania przy kucnieciu.
+static func crouch() -> AudioStreamWAV:
+	return _make("crouch", 0.16, func(t: float, _phase: float) -> float:
+		return randf_range(-0.35, 0.35) * sin(PI * t / 0.16) * 0.8
+	, func(_t: float) -> float: return 0.0)
+
+
+## Slizg: szorstki szum, ktory cichnie razem z predkoscia.
+static func slide() -> AudioStreamWAV:
+	return _make("slide", 0.7, func(t: float, phase: float) -> float:
+		var fade := pow(1.0 - t / 0.7, 1.4)
+		return (randf_range(-0.5, 0.5) + sin(TAU * phase) * 0.15) * fade
+	, func(t: float) -> float: return lerpf(180.0, 90.0, t / 0.7))
+
+
+## Zamek snajperki po strzale: dwa metaliczne klikniecia.
+static func bolt() -> AudioStreamWAV:
+	return _make("bolt", 0.42, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for start: float in [0.0, 0.26]:
+			if t >= start:
+				var since := t - start
+				sample += (sin(TAU * 1700.0 * since) * 0.4 + randf_range(-0.3, 0.3)) * exp(-since * 45.0)
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
+## Gong konca rundy: dwie niskie nuty z poglosem.
+static func round_end() -> AudioStreamWAV:
+	return _make("round_end", 1.6, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for note: Array in [[0.0, 392.0], [0.35, 523.0], [0.7, 659.0]]:
+			if t >= note[0]:
+				var since: float = t - note[0]
+				sample += (sin(TAU * note[1] * since) + sin(TAU * note[1] * 2.01 * since) * 0.3) * exp(-since * 2.4) * 0.3
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
 static func hit() -> AudioStreamWAV:
 	return _make("hit", 0.08, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.08)
@@ -147,7 +202,63 @@ static func footstep_on(ground: int) -> AudioStreamWAV:
 			return _footstep_stone()
 		ForestTerrain.Ground.WATER:
 			return _footstep_water()
+		ForestTerrain.Ground.CONCRETE:
+			return _footstep_concrete()
+		ForestTerrain.Ground.METAL:
+			return _footstep_metal()
 	return _footstep_grass()
+
+
+## Krotkie klapniecie podeszwy o beton z odrobina piasku.
+static func _footstep_concrete() -> AudioStreamWAV:
+	return _make("footstep_concrete", 0.1, func(t: float, _phase: float) -> float:
+		var slap := sin(TAU * 210.0 * t) * exp(-t * 60.0) * 0.7
+		return slap + randf_range(-0.3, 0.3) * exp(-t * 55.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Dzwieczne uderzenie w blache, ktore chwile brzmi.
+static func _footstep_metal() -> AudioStreamWAV:
+	return _make("footstep_metal", 0.3, func(t: float, _phase: float) -> float:
+		var thud := sin(TAU * 140.0 * t) * exp(-t * 40.0) * 0.6
+		var ring := (sin(TAU * 820.0 * t) * 0.3 + sin(TAU * 1310.0 * t) * 0.2) * exp(-t * 14.0)
+		return thud + ring + randf_range(-0.1, 0.1) * exp(-t * 60.0)
+	, func(_t: float) -> float: return 0.0)
+
+
+## Daleki szum ruchu ulicznego: niski i rowny, z wolnymi falami.
+static func city_hum_loop() -> AudioStreamWAV:
+	return _noise_loop("city_hum", 0.02, func(t: float) -> float:
+		return 0.75 + 0.25 * sin(TAU * t / LOOP_SECONDS * 3.0))
+
+
+## Kilka gruchniec golebi.
+static func pigeons() -> AudioStreamWAV:
+	return _make("pigeons", 1.2, func(t: float, phase: float) -> float:
+		var beat := fmod(t, 0.4)
+		return sin(TAU * phase) * sin(PI * clampf(beat / 0.25, 0.0, 1.0)) * 0.5 * (1.0 if beat < 0.25 else 0.0)
+	, func(t: float) -> float: return 420.0 + 120.0 * sin(TAU * fmod(t, 0.4) / 0.25))
+
+
+## Krotki klakson zabawkowego auta.
+static func car_horn() -> AudioStreamWAV:
+	return _make("car_horn", 0.5, func(t: float, phase: float) -> float:
+		var square := 1.0 if fposmod(phase, 1.0) < 0.5 else -1.0
+		var gate := 1.0 if t < 0.18 or (t > 0.26 and t < 0.46) else 0.0
+		return square * 0.35 * gate
+	, func(_t: float) -> float: return 392.0)
+
+
+## Dzwonek roweru: dwa jasne brzdekniecia.
+static func bike_bell() -> AudioStreamWAV:
+	return _make("bike_bell", 0.7, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for start: float in [0.0, 0.2]:
+			if t >= start:
+				var since := t - start
+				sample += (sin(TAU * 2350.0 * since) * 0.4 + sin(TAU * 3720.0 * since) * 0.2) * exp(-since * 9.0)
+		return sample
+	, func(_t: float) -> float: return 0.0)
 
 
 ## Szelest trawy i miekkie klapniecie.

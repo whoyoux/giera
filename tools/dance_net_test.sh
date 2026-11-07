@@ -16,7 +16,7 @@ PROBE=--tool=res://tools/dance_probe.gd
 SECONDS_PLAYED=38
 mkdir -p "$LOGS"
 
-timeout $((SECONDS_PLAYED + 8)) "$GODOT" --path . --headless -- --server --port=$SERVER_PORT $PROBE > "$LOGS/dance_server.log" 2>&1 &
+timeout $((SECONDS_PLAYED + 8)) "$GODOT" --path . --headless -- --server --map=forest --port=$SERVER_PORT $PROBE > "$LOGS/dance_server.log" 2>&1 &
 sleep 2
 python tools/lag_proxy.py $PROXY_PORT $SERVER_PORT "$DELAY" "$LOSS" $((SECONDS_PLAYED + 6)) > /dev/null 2>&1 &
 sleep 1

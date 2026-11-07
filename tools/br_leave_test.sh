@@ -25,7 +25,7 @@ check_count() {
 	if [ "$found" -ge "$3" ]; then echo "ok: $4"; else echo "BRAK: $4 ($found z $3)"; FAILED=1; fi
 }
 
-timeout 70 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$PORT --tool=res://tools/match_probe.gd --kill-name=A,B --kill-name-at=1 > "$LOGS/leave_winner_server.log" 2>&1 &
+timeout 70 "$GODOT" --path . --headless -- --server --map=forest --mode=battle_royale --port=$PORT --tool=res://tools/match_probe.gd --kill-name=A,B --kill-name-at=1 > "$LOGS/leave_winner_server.log" 2>&1 &
 sleep 2
 client winner_w 60 $PORT W --quit-in-results
 client winner_a 60 $PORT A
@@ -34,7 +34,7 @@ wait
 check_count "$LOGS/leave_winner_server.log" 'wyszedl W' 1 "zwyciezca wychodzi z gry"
 check_count "$LOGS/leave_winner_server.log" 'koniec meczu' 2 "kolejny mecz po wyjsciu zwyciezcy tez sie konczy"
 
-timeout 60 "$GODOT" --path . --headless -- --server --mode=battle_royale --port=$((PORT + 1)) --tool=res://tools/match_probe.gd > "$LOGS/leave_empty_server.log" 2>&1 &
+timeout 60 "$GODOT" --path . --headless -- --server --map=forest --mode=battle_royale --port=$((PORT + 1)) --tool=res://tools/match_probe.gd > "$LOGS/leave_empty_server.log" 2>&1 &
 sleep 2
 client empty_x 25 $((PORT + 1)) X --quit-after-live=1
 client empty_y 25 $((PORT + 1)) Y --quit-after-live=1

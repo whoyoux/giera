@@ -12,11 +12,12 @@ func rollback_tick(equipment: Equipment, stack: Dictionary, tick: int) -> void:
 	if not equipment.claim_server_action(tick):
 		return
 	var player := equipment.player
+	GameState.server_on_shot(player.peer_id)
 	var hit := Hitscan.melee(player.get_world_3d(), player.eye_position(), Hitscan.direction(player.yaw, player.pitch),
 			definition.reach, definition.cone_degrees, player.peer_id, player.get_tree(), equipment.rewind_tick(tick))
 	var victim := hit.player as Player
 	if victim != null:
-		GameState.server_damage(victim.peer_id, definition.damage, player.peer_id, Vector3.INF, stack)
+		GameState.server_damage(victim.peer_id, definition.damage, player.peer_id, Vector3.INF, stack, { "position": hit.position })
 
 
 func show_fired(player: Player, stack: Dictionary) -> void:
@@ -28,7 +29,7 @@ func show_fired(player: Player, stack: Dictionary) -> void:
 
 
 func idle_hint(_equipment: Equipment, _stack: Dictionary) -> String:
-	return "LPM: cios z bliska"
+	return "%s: cios z bliska" % Keybinds.label_of("fire")
 
 
 func _definition(stack: Dictionary) -> MeleeDefinition:

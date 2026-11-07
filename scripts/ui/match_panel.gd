@@ -11,6 +11,7 @@ const ZONE_HUM_VOLUME := -8.0
 ## Mapka stoi nad naklejka z amunicja.
 const MAP_MARGIN_RIGHT := 28.0
 const MAP_MARGIN_BOTTOM := 136.0
+const BIG_MAP_SIDE := 600.0
 
 var _roster_card: PanelContainer
 var _roster_rows: VBoxContainer
@@ -31,6 +32,7 @@ var _results_card: PanelContainer
 var _results_title: Label
 var _results_rows: VBoxContainer
 var _results_timer: Label
+var _vote_label: Label
 var _watch_panel: PanelContainer
 var _watch_label: Label
 
@@ -54,6 +56,11 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Match.can_vote() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		for index in Match.VOTE_MAPS.size():
+			if event.is_action_pressed("slot_%d" % (index + 1)):
+				Match.vote(Match.VOTE_MAPS[index])
+				UiSound.play(Sfx.UiCue.CONFIRM)
 	if event.is_action_pressed("toggle_ready") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Match.can_change_ready():
 		Match.toggle_ready()
 		UiSound.play(Sfx.UiCue.CONFIRM)
@@ -63,13 +70,25 @@ func _process(_delta: float) -> void:
 	_update_watch_hint()
 	_update_match_info()
 	if _results_center.visible:
-		_results_timer.text = "Powrót do lobby za %d" % ceili(Match.seconds_left())
-	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING
+		_results_timer.text = ("Powrót do lobby za %d" if Match.is_elimination() else "Nowa runda za %d") % ceili(Match.seconds_left())
+		_vote_label.visible = Match.can_vote()
+		if _vote_label.visible:
+			var counts := Match.vote_counts()
+			var mine: String = Match.votes.get(multiplayer.get_unique_id(), "")
+			var parts: Array[String] = []
+			for index in Match.VOTE_MAPS.size():
+				var map_id := Match.VOTE_MAPS[index]
+				var mark := "● " if map_id == mine else ""
+				parts.append("%s[%s] %s: %d" % [mark, Keybinds.label_of("slot_%d" % (index + 1)), Maps.info(map_id).title, counts.get(map_id, 0)])
+			_vote_label.text = "Następna mapa:  " + "   ".join(parts)
+	var round_start := not Match.is_elimination() and Match.is_frozen_at(NetworkTime.tick)
+	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING or round_start
 	_big_panel.visible = counting
 	if not counting:
 		_shown_second = -1
 		return
-	var second := ceili(Match.seconds_left())
+	var left := (Match.freeze_end_tick - NetworkTime.tick) * NetworkTime.ticktime if round_start else Match.seconds_left()
+	var second := ceili(left)
 	if second == _shown_second:
 		return
 	_shown_second = second
@@ -135,15 +154,15 @@ func _refresh() -> void:
 
 
 func _play_phase_sound() -> void:
-	if Match.phase == _shown_phase or not Match.is_elimination() or Net.is_headless:
+	if Match.phase == _shown_phase or Net.is_headless:
 		_shown_phase = Match.phase
 		return
 	_shown_phase = Match.phase
-	if Match.phase == Match.Phase.LIVE:
+	if Match.phase == Match.Phase.LIVE and Match.is_elimination():
 		_phase_audio.stream = Sfx.match_start()
 		_phase_audio.play()
 	elif Match.phase == Match.Phase.RESULTS:
-		_phase_audio.stream = Sfx.match_win() if _i_won() else Sfx.match_end()
+		_phase_audio.stream = Sfx.match_win() if _i_won() else (Sfx.match_end() if Match.is_elimination() else Sfx.round_end())
 		_phase_audio.play()
 
 
@@ -158,6 +177,7 @@ func _refresh_results() -> void:
 	var showing := Match.phase == Match.Phase.RESULTS
 	if showing and not _results_center.visible:
 		_fill_results()
+		_results_center.offset_top = 0.0 if Match.is_elimination() else 300.0
 		UiStyle.pop_in(_results_card)
 	_results_center.visible = showing
 
@@ -186,6 +206,10 @@ func _fill_results() -> void:
 		row.add_child(name_label)
 		row.add_child(UiStyle.label("zabójstwa: %d" % entry.kills, 19, color, false))
 		_results_rows.add_child(row)
+	if not Match.is_elimination():
+		for line in PodiumView.awards(Match.results):
+			var award := UiStyle.label("★ " + line, 17, Color("b07d00"), false)
+			_results_rows.add_child(award)
 
 
 func _row(info: Dictionary) -> HBoxContainer:
@@ -226,7 +250,7 @@ func _build_roster() -> void:
 	var action := HBoxContainer.new()
 	action.add_theme_constant_override("separation", 8)
 	column.add_child(action)
-	action.add_child(UiStyle.key_chip("F", 34, 19))
+	action.add_child(ActionChip.create("toggle_ready", 34, 19))
 	_ready_action = UiStyle.label("", 19)
 	action.add_child(_ready_action)
 
@@ -283,6 +307,14 @@ func _build_map() -> void:
 	map.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	map.position += Vector2(-MAP_MARGIN_RIGHT - ZoneMap.SIDE, -MAP_MARGIN_BOTTOM - ZoneMap.SIDE)
 	add_child(map)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center)
+	var big := ZoneMap.new()
+	big.side = BIG_MAP_SIDE
+	big.big = true
+	center.add_child(big)
 
 
 ## Dzwieki powstaja teraz, zeby koniec meczu nie przycial obrazu.
@@ -298,6 +330,8 @@ func _build_phase_audio() -> void:
 func _build_results() -> void:
 	_results_center = CenterContainer.new()
 	_results_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# W Deathmatchu nad karta widac podium, wiec karta stoi nizej.
+	_results_center.offset_top = 0.0
 	_results_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_results_center.visible = false
 	add_child(_results_center)
@@ -318,6 +352,10 @@ func _build_results() -> void:
 	_results_timer = UiStyle.label("", 17, Color(UiStyle.INK, 0.65), false)
 	_results_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_results_timer)
+	_vote_label = UiStyle.label("", 17, UiStyle.BLUE, false)
+	_vote_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_vote_label.visible = false
+	column.add_child(_vote_label)
 
 
 func _build_watch_hint() -> void:
@@ -342,7 +380,11 @@ func _build_watch_hint() -> void:
 	_watch_panel.add_child(row)
 	_watch_label = UiStyle.label("", 21, UiStyle.INK)
 	row.add_child(_watch_label)
-	row.add_child(UiStyle.label("LPM: następny gracz", 17, Color(UiStyle.INK, 0.65), false))
+	var next := UiStyle.label("", 17, Color(UiStyle.INK, 0.65), false)
+	row.add_child(next)
+	var update := func() -> void: next.text = "%s: następny gracz" % Keybinds.label_of("fire")
+	update.call()
+	Settings.changed.connect(update)
 
 
 func _build_big_label() -> void:

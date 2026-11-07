@@ -5,8 +5,10 @@ extends Node
 ## w trakcie meczu. --kill-all-at=3 na serwerze zabija wszystkich w jednej klatce, co jest remisem.
 ## --kill-name=A,B --kill-name-at=4 na serwerze zabija tych graczy w jednej klatce, w kazdym meczu.
 ## --quit-in-results wychodzi z gry, gdy tylko zobaczy wyniki meczu.
+## --quit-in-round=2 wychodzi z gry w trakcie podanej rundy Deathmatchu.
 
 const RESET_REPORT_DELAY := 2.0
+const ROUND_REPORT_DELAY := 1.6
 
 var _elapsed := 0.0
 var _plan := []
@@ -15,6 +17,8 @@ var _freeze_checked := false
 var _live_time := 0.0
 var _matches := 0
 var _killed_in_match := false
+var _seen_results := false
+var _shown_round := 0
 
 
 func _ready() -> void:
@@ -45,6 +49,9 @@ func _update_scenarios() -> void:
 		_killed_in_match = false
 		return
 	_live_time += get_process_delta_time()
+	if Net.args.has("quit-in-round") and Match.round_number == int(Net.args["quit-in-round"]) and _live_time >= 3.0:
+		print("[runda] wychodze w trakcie rundy %d" % Match.round_number)
+		get_tree().quit()
 	if Net.args.has("quit-after-live") and _live_time >= float(Net.args["quit-after-live"]):
 		get_tree().quit()
 	if Net.args.has("kill-name-at") and not _killed_in_match and _live_time >= float(Net.args["kill-name-at"]):
@@ -70,6 +77,15 @@ func _on_phase_changed() -> void:
 		print("[wyniki] %s" % str(Match.results.map(func(entry: Dictionary) -> String: return "%d:%s:%d" % [entry.place, entry.name, entry.kills])))
 	elif Match.phase == Match.Phase.LOBBY and _matches > 0:
 		_report_clean_state.call_deferred()
+	elif Match.phase == Match.Phase.LIVE and not Match.is_elimination() and _seen_results:
+		_matches += 1
+		# Nowa runda zaczyna sie od 3 s bez ruchu, wiec stan sprawdzamy w tym czasie.
+		_report_clean_state.call_deferred(ROUND_REPORT_DELAY)
+	_seen_results = Match.phase == Match.Phase.RESULTS
+	# Koniec rundy wypisujemy tylko w trakcie gry. W czasie wynikow koniec etapu to koniec ekranu wynikow.
+	if not Match.is_elimination() and Match.phase == Match.Phase.LIVE and Match.phase_end_tick >= 0 and Match.round_number != _shown_round:
+		_shown_round = Match.round_number
+		print("[runda] numer=%d koniec=%d" % [Match.round_number, Match.phase_end_tick])
 	# Deathmatch tez ma etap LIVE, ale nie ma meczow ani strefy.
 	if Match.phase == Match.Phase.LIVE and Match.zone != null:
 		_matches += 1
@@ -78,8 +94,8 @@ func _on_phase_changed() -> void:
 
 
 ## Po powrocie do lobby nic z meczu nie moze zostac. Czekamy na dotarcie stanu graczy.
-func _report_clean_state() -> void:
-	await get_tree().create_timer(RESET_REPORT_DELAY).timeout
+func _report_clean_state(delay := RESET_REPORT_DELAY) -> void:
+	await get_tree().create_timer(delay).timeout
 	var open := 0
 	for id: int in Chests.chests:
 		open += 1 if Chests.chests[id].open else 0
@@ -89,8 +105,8 @@ func _report_clean_state() -> void:
 		var kept := 0
 		for stack: Dictionary in info.slots:
 			kept += 0 if ItemStack.is_empty(stack) else 1
-		# Reset daje od nowa tylko to, co wynika z flag testowych.
-		var expected := 3 if Net.args.has("debug-weapons") else 0
+		# Reset daje od nowa tylko to, co wynika z flag testowych i trybu.
+		var expected := (3 if Net.args.has("debug-weapons") else 0) + (1 if Match.starts_armed() else 0)
 		if kept != expected or info.health != GameState.MAX_HEALTH or not info.alive or not info.in_match or info.kills != 0 or info.deaths != 0 or info.place != 0 or info.spawn_index != -1:
 			dirty += 1
 	print("[reset] mecz=%d przedmioty=%d granaty=%d otwarte=%d brudni=%d graczy=%d" % [_matches, WorldItems.items.size(), Grenades.flying_count(), open, dirty, GameState.players.size()])

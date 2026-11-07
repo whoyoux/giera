@@ -41,7 +41,7 @@ func current_progress(equipment: Equipment, stack: Dictionary) -> float:
 
 
 func idle_hint(_equipment: Equipment, _stack: Dictionary) -> String:
-	return "Trzymaj LPM i puść, aby rzucić"
+	return "Trzymaj %s i puść, aby rzucić" % Keybinds.label_of("fire")
 
 
 func _finish(equipment: Equipment, tick: int) -> void:

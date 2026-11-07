@@ -6,7 +6,8 @@ extends RefCounted
 ## fizyki aktualizuje ich kolizje dopiero w swoim kroku, wiec zwykly raycast
 ## widzialby nieaktualne polozenia. Fizyki uzywamy tylko dla statycznej mapy.
 
-const RANGE := 250.0
+## Wystarcza na cala srednice najwiekszej mapy.
+const RANGE := 500.0
 const WORLD_MASK := 1
 const BODY_RADIUS := 0.36
 const BODY_BOTTOM := 0.2
@@ -28,7 +29,7 @@ static func direction(yaw: float, pitch: float) -> Vector3:
 ## Z view_tick >= 0 cele sa ustawiane tam, gdzie strzelec widzial je w tym ticku.
 static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, tree: SceneTree, view_tick := -1) -> Dictionary:
 	var to := from + dir * RANGE
-	var result := { "position": to, "player": null, "headshot": false, "hit_world": false }
+	var result := { "position": to, "player": null, "headshot": false, "hit_world": false, "normal": Vector3.UP }
 	var nearest := RANGE
 
 	var query := PhysicsRayQueryParameters3D.create(from, to, WORLD_MASK)
@@ -36,6 +37,7 @@ static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, 
 	if not world_hit.is_empty():
 		nearest = from.distance_to(world_hit.position)
 		result.position = world_hit.position
+		result.normal = world_hit.normal
 		result.hit_world = true
 
 	for node in tree.get_nodes_in_group(&"players"):
@@ -43,12 +45,13 @@ static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, 
 		if player.peer_id == shooter_id or not player.is_alive():
 			continue
 		var feet := player.shown_position() if view_tick < 0 else player.position_at(view_tick)
-		var head := Geometry3D.segment_intersects_sphere(from, to, feet + Vector3.UP * HEAD_CENTER, HEAD_RADIUS)
+		var drop := Player.CROUCH_DROP * (player.shown_crouch() if view_tick < 0 else player.crouch_at(view_tick))
+		var head := Geometry3D.segment_intersects_sphere(from, to, feet + Vector3.UP * (HEAD_CENTER - drop), HEAD_RADIUS)
 		if not head.is_empty() and from.distance_to(head[0]) < nearest:
 			nearest = from.distance_to(head[0])
 			result = { "position": head[0], "player": player, "headshot": true, "hit_world": false }
 			continue
-		var points := Geometry3D.get_closest_points_between_segments(from, to, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * BODY_TOP)
+		var points := Geometry3D.get_closest_points_between_segments(from, to, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * (BODY_TOP - drop))
 		if points[0].distance_to(points[1]) <= BODY_RADIUS and from.distance_to(points[0]) < nearest:
 			nearest = from.distance_to(points[0])
 			result = { "position": points[0], "player": player, "headshot": false, "hit_world": false }
@@ -91,7 +94,8 @@ static func melee(world: World3D, from: Vector3, dir: Vector3, reach: float, con
 		if player.peer_id == attacker_id or not player.is_alive():
 			continue
 		var feet := player.shown_position() if view_tick < 0 else player.position_at(view_tick)
-		var points := Geometry3D.get_closest_points_between_segments(from, end, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * HEAD_CENTER)
+		var drop := Player.CROUCH_DROP * (player.shown_crouch() if view_tick < 0 else player.crouch_at(view_tick))
+		var points := Geometry3D.get_closest_points_between_segments(from, end, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * (HEAD_CENTER - drop))
 		var target: Vector3 = points[1]
 		var distance := from.distance_to(target)
 		if distance > reach + BODY_RADIUS:

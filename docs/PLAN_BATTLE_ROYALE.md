@@ -25,16 +25,23 @@ Każdy krok to osobny PR. Pierwsze wydanie po kroku 3.
 5. **Interfejs.** Licznik żywych, czas do fazy, mapka ze strefą, lista zabójstw z liczbą pozostałych, tabela wyników meczu, dźwięki startu i zwycięstwa, zrzuty do README.
 6. **Balans.** Gra ze znajomymi i dostrojenie strefy, skrzynek i łupu.
 
+## Mapa
+
+Battle Royale gra w **Dolinie** (`scenes/maps/valley.tscn`, generator `scripts/maps/valley_builder.gd`), o promieniu ok. 200 m. Ma sześć miejsc z nazwami: Stare ruiny w środku, Wioskę, Gospodarstwo, Kamieniołom, Jezioro z mostem i Obóz na wzgórzu, a między nimi las, polany i drogi. Teren ma kolizję z `HeightMapShape3D` i wygląd w kawałkach, a roślinność to `MultiMesh` z zasięgiem widoczności. Jest 24 punktów startu i ponad 60 skrzynek skupionych w miejscach. Leśna polana zostaje mapą tła menu i można ją wybrać flagą `--map=forest`.
+
 ## Strefa
 
-Mapa o promieniu 39 m, razem 4 min 40 s.
+Dolina, strefa od 192 m, razem ok. 8 min 15 s.
 
 | Faza | Czekanie | Zawężanie | Promień | Obrażenia/s |
 |---|---|---|---|---|
-| 1 | 60 s | 40 s | 39 → 26 m | 2 |
-| 2 | 45 s | 30 s | 26 → 15 m | 4 |
-| 3 | 35 s | 25 s | 15 → 7 m | 7 |
-| 4 | 20 s | 25 s | 7 → 0 m | 12 |
+| 1 | 90 s | 60 s | 192 → 120 m | 2 |
+| 2 | 70 s | 50 s | 120 → 70 m | 3 |
+| 3 | 55 s | 40 s | 70 → 35 m | 5 |
+| 4 | 40 s | 35 s | 35 → 14 m | 8 |
+| 5 | 25 s | 30 s | 14 → 0 m | 12 |
+
+Leśna polana ma dawne fazy: promień 50 m i 4 min 40 s.
 
 ## Ustawienia
 
@@ -47,4 +54,4 @@ Mapa o promieniu 39 m, razem 4 min 40 s.
 
 - Krok 2: śmierć i odrodzenie są związane z rollbackiem, a błąd może wyjść dopiero przy opóźnieniu.
 - Krok 3: każda przeoczona rzecz przejdzie do kolejnego meczu.
-- Krok 6: mapa ma 11 skrzynek i każda otwiera się raz na mecz, a start jest bez broni, więc przy 10 graczach łupu może być za mało.
+- Krok 6: duża mapa ma ponad 60 skrzynek, ale odległości są większe, więc trzeba sprawdzić, czy gracze nie biegają za długo bez spotkania.

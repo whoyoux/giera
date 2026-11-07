@@ -6,7 +6,8 @@ extends StaticBody3D
 ## Ten sam wzor jest w tools/generate_forest.py i obie wersje musza sie zgadzac.
 
 ## Rodzaj podloza pod stopami, od ktorego zalezy dzwiek kroku.
-enum Ground { GRASS, DIRT, STONE, WATER }
+## Beton i metal wystepuja na innych mapach, np. w miasteczku.
+enum Ground { GRASS, DIRT, STONE, WATER, CONCRETE, METAL }
 
 const CELL := 2.5
 const HALF_CELLS := 46

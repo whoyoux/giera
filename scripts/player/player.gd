@@ -5,6 +5,7 @@ extends CharacterBody3D
 
 ## Nad nazwa gracza, liczone od jej srodka.
 const AVATAR_TAG_GAP := 0.05
+const NAME_LABEL_HEIGHT := 2.32
 const SPEED := 6.5
 const GROUND_ACCEL := 70.0
 const AIR_ACCEL := 18.0
@@ -38,6 +39,22 @@ const SHAKE_HIT_BASE := 0.25
 const SHAKE_HIT_STRENGTH := 0.35
 const STEP_VOLUME_LOCAL := -11.0
 const STEP_VOLUME_REMOTE := -2.0
+## Kucanie: nizsza kapsula, oczy i hitbox. Przejscie kamery trwa ulamek sekundy.
+const CROUCH_EYE_HEIGHT := 0.95
+const CROUCH_DROP := 0.55
+const CROUCH_SPEED_SCALE := 0.5
+const CROUCH_SECONDS := 0.18
+## Slizg: kucniecie w sprincie popycha gracza do przodu, a predkosc szybko opada.
+const SLIDE_SECONDS := 0.75
+const SLIDE_SPEED := 11.0
+const SLIDE_END_SPEED := 3.2
+const SLIDE_STAMINA := 25.0
+## Wspinanie po drabinie i rurze.
+const CLIMB_SPEED := 3.6
+## Kapsula sprawdzajaca, czy nad glowa kucajacego jest miejsce, zeby wstac. Waska, zeby nie lapala scian.
+const STAND_CHECK_RADIUS := 0.36
+const STAND_CHECK_HEIGHT := 0.9
+const STAND_CHECK_CENTER := 1.36
 ## Tak dlugo cialo wyeliminowanego gracza lezy na mapie.
 const CORPSE_SECONDS := 5.0
 
@@ -58,11 +75,21 @@ var exhausted := false
 var sprint_stop_tick := -1000
 ## Numer tanca z DanceCatalog albo zero.
 var dance_id := DanceCatalog.NONE
+## Kucanie wybrane w tym ticku i plynne przejscie od 0 (stoi) do 1 (kuca).
+var crouching := false
+var crouch_amount := 0.0
+## Tick konca slizgu albo -1 i kucanie z poprzedniego ticku, zeby wykryc samo nacisniecie.
+var slide_end := -1
+var crouch_was := false
 ## Czy poprzedni tick skonczyl sie na ziemi. Sam CharacterBody3D pamieta to tylko z ostatniej symulacji.
 var on_ground := true
 
 ## Pozycje z ostatnich tickow, potrzebne serwerowi do cofania czasu przy strzale.
 var _position_history := {}
+var _crouch_history := {}
+## Tylko do testow na serwerze: miejsce, w ktore postac przeniesie sie w najblizszym ticku.
+var _teleport_to := Vector3.INF
+var _stand_check: PhysicsShapeQueryParameters3D
 var _seen_respawn := 0
 var _last_position := Vector3.ZERO
 var _velocity_smoothed := Vector3.ZERO
@@ -92,6 +119,8 @@ var _dance_music: DanceMusic
 var _dance_camera := DanceCamera.new()
 var _tag_root: Node3D
 var _seen_present := true
+var _seen_crouching := false
+var _seen_sliding := false
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -104,6 +133,8 @@ var _seen_present := true
 @onready var name_label := $NameLabel as Label3D
 @onready var shot_audio := $ShotAudio as AudioStreamPlayer3D
 @onready var reload_audio := $ReloadAudio as AudioStreamPlayer3D
+@onready var standing_shape := $Standing as CollisionShape3D
+@onready var crouched_shape := $Crouched as CollisionShape3D
 
 
 func _ready() -> void:
@@ -184,6 +215,22 @@ func aim_sensitivity_scale() -> float:
 	return _view_zoom * float(Settings.value("aim_sensitivity"))
 
 
+## Celowanie przez lunete snajperki.
+func is_scoped() -> bool:
+	var stats := equipment.active_stats()
+	return aiming and stats != null and stats.scope
+
+
+## Luneta przyblizyla juz widok. Bot bez ekranu przyblizenia nie liczy, wiec od razu jest gotowy.
+func camera_zoomed_in() -> bool:
+	return Net.is_headless or _view_zoom < 0.5
+
+
+## W pelni przyblizona luneta zaslania bron, wiec jej nie rysujemy.
+func hides_weapon() -> bool:
+	return is_scoped() and _view_zoom < 0.5
+
+
 func shake_camera(amount: float) -> void:
 	_shake.add(amount)
 
@@ -218,6 +265,11 @@ func try_drop() -> void:
 		view_model.nudge()
 
 
+## Do testow: przenosi postac przez symulacje, wiec rollback nie cofnie zmiany. Tylko serwer.
+func teleport(at: Vector3) -> void:
+	_teleport_to = at
+
+
 func is_local() -> bool:
 	return peer_id == multiplayer.get_unique_id()
 
@@ -236,7 +288,17 @@ func shown_position() -> Vector3:
 
 
 func eye_position() -> Vector3:
-	return position + Vector3.UP * EYE_HEIGHT
+	return position + Vector3.UP * eye_height()
+
+
+func eye_height(amount := crouch_amount) -> float:
+	return lerpf(EYE_HEIGHT, CROUCH_EYE_HEIGHT, amount)
+
+
+## Kucanie widoczne na ekranie tego klienta. Inni gracze sa pokazywani z bufora ruchu.
+## Nie wpisujemy go do crouch_amount, bo netfox zapisalby te wartosc w historii stanow.
+func shown_crouch() -> float:
+	return remote_motion.shown_crouch if remote_motion != null and remote_motion.has_samples() else crouch_amount
 
 
 func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
@@ -247,10 +309,18 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 		on_ground = false
 		stamina = STAMINA_MAX
 		exhausted = false
+		crouching = false
+		crouch_amount = 0.0
+		slide_end = -1
 		equipment.on_respawn()
 
+	if _teleport_to != Vector3.INF and multiplayer.is_server():
+		position = _teleport_to
+		velocity = Vector3.ZERO
+		_teleport_to = Vector3.INF
 	var dead := is_dead_at(tick)
 	var locked := dead or Match.is_frozen_at(tick)
+	_update_crouch(delta, dead)
 	_update_dance(dead)
 	# Tancerz stoi w miejscu, a mysz obraca tylko kamere wokol niego.
 	if not dead and dance_id == DanceCatalog.NONE:
@@ -259,25 +329,40 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 
 	_update_floor_state()
 	var on_floor := is_on_floor()
-	if on_floor:
+	var climbing := not locked and _on_ladder() and not input.jump
+	if climbing:
+		# Na drabinie przod to gora, tyl to dol, a bez klawisza gracz wisi w miejscu.
+		velocity.y = CLIMB_SPEED if input.move.y < -0.1 else (-CLIMB_SPEED if input.move.y > 0.1 and not on_floor else 0.0)
+	elif on_floor:
 		velocity.y = maxf(velocity.y, 0.0)
 		if input.jump and not locked:
 			velocity.y = JUMP_VELOCITY
 	else:
 		velocity.y -= GRAVITY * delta
 
-	aiming = input.aim and not dead and equipment.can_aim()
+	aiming = input.aim and not dead and equipment.can_aim(tick)
+	_start_slide(tick, on_floor, locked)
 	_update_sprint(tick, delta, locked)
 	var wish := Vector3.ZERO
-	if not locked:
+	var sliding := is_sliding(tick)
+	if sliding:
+		# W slizgu sterowanie nie dziala, a predkosc opada do tempa kucania.
+		var flat := Vector2(velocity.x, velocity.z)
+		flat = flat.move_toward(flat.normalized() * SLIDE_END_SPEED, (SLIDE_SPEED - SLIDE_END_SPEED) / SLIDE_SECONDS * delta)
+		velocity.x = flat.x
+		velocity.z = flat.y
+	elif not locked:
 		var top_speed := SPEED * SPRINT_MULTIPLIER if sprinting else SPEED
+		if crouching:
+			top_speed *= CROUCH_SPEED_SCALE
 		if aiming:
 			top_speed *= equipment.active_stats().aim_move_scale
 		top_speed *= equipment.move_speed_scale()
 		wish = Vector3(input.move.x, 0.0, input.move.y).limit_length(1.0).rotated(Vector3.UP, yaw) * top_speed
 	var accel := (GROUND_ACCEL if on_floor else AIR_ACCEL) * delta
-	velocity.x = move_toward(velocity.x, wish.x, accel)
-	velocity.z = move_toward(velocity.z, wish.z, accel)
+	if not sliding:
+		velocity.x = move_toward(velocity.x, wish.x, accel)
+		velocity.z = move_toward(velocity.z, wish.z, accel)
 
 	# move_and_slide zaklada krok fizyki, a netfox ma wlasny krok ticku.
 	velocity *= NetworkTime.physics_factor
@@ -285,12 +370,67 @@ func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
 	velocity /= NetworkTime.physics_factor
 	on_ground = is_on_floor()
 	if multiplayer.is_server():
-		_remember_position(tick + 1)
+		_remember_motion(tick + 1, position, crouch_amount)
+
+
+## Kucnac mozna od razu, ale wstac tylko wtedy, gdy nad glowa jest miejsce.
+## Ksztalt kolizji zalezy od stanu ticku, wiec ustawiamy go przed ruchem takze przy rollbacku.
+func _update_crouch(delta: float, dead: bool) -> void:
+	if input.crouch and not dead:
+		crouching = true
+	elif crouching and (dead or _can_stand()):
+		crouching = false
+	crouch_amount = move_toward(crouch_amount, 1.0 if crouching else 0.0, delta / CROUCH_SECONDS)
+	_apply_crouch_shape()
+
+
+## Czy gracz stoi w bryle drabiny. Mapa jest ta sama u wszystkich, wiec wynik tez.
+func _on_ladder() -> bool:
+	var feet := position + Vector3.UP * 0.5
+	for box in Maps.info().ladders():
+		if box.has_point(feet):
+			return true
+	return false
+
+
+func is_sliding(tick := NetworkTime.tick) -> bool:
+	return slide_end >= 0 and tick < slide_end
+
+
+## Nacisniecie kucania w pelnym sprincie na ziemi zaczyna slizg i zabiera czesc paska sprintu.
+func _start_slide(tick: int, on_floor: bool, locked: bool) -> void:
+	var pressed := input.crouch and not crouch_was
+	crouch_was = input.crouch
+	if not pressed or locked or not on_floor or not sprinting or stamina < SLIDE_STAMINA or is_sliding(tick):
+		return
+	slide_end = tick + NetworkTime.seconds_to_ticks(SLIDE_SECONDS)
+	stamina -= SLIDE_STAMINA
+	var forward := Vector3(velocity.x, 0.0, velocity.z).normalized()
+	velocity.x = forward.x * SLIDE_SPEED
+	velocity.z = forward.z * SLIDE_SPEED
+
+
+func _apply_crouch_shape() -> void:
+	if standing_shape.disabled != crouching:
+		standing_shape.disabled = crouching
+		crouched_shape.disabled = not crouching
+
+
+func _can_stand() -> bool:
+	if _stand_check == null:
+		var shape := CapsuleShape3D.new()
+		shape.radius = STAND_CHECK_RADIUS
+		shape.height = STAND_CHECK_HEIGHT
+		_stand_check = PhysicsShapeQueryParameters3D.new()
+		_stand_check.shape = shape
+		_stand_check.collision_mask = Hitscan.WORLD_MASK
+	_stand_check.transform = Transform3D(Basis.IDENTITY, position + Vector3.UP * STAND_CHECK_CENTER)
+	return get_world_3d().direct_space_state.intersect_shape(_stand_check, 1).is_empty()
 
 
 ## Taniec jest tylko wygladem, wiec nie zatrzymuje gracza. Kazda akcja go przerywa.
 func _update_dance(dead: bool) -> void:
-	var busy := dead or input.move != Vector2.ZERO or input.jump or input.use_primary or input.aim or input.reload
+	var busy := dead or input.move != Vector2.ZERO or input.jump or input.use_primary or input.aim or input.reload or input.crouch
 	var wanted := input.dance if not busy and DanceCatalog.is_valid(input.dance) else DanceCatalog.NONE
 	# Na poczatku kazdego tanca postac patrzy tam, gdzie kamera, takze gdy gracz obrocil kamere w poprzednim.
 	# Dzieki temu pokazuje przod tym, na ktorych gracz patrzy.
@@ -304,7 +444,7 @@ func _update_sprint(tick: int, delta: float, dead: bool) -> void:
 	if exhausted and stamina >= STAMINA_UNLOCK:
 		exhausted = false
 	# Sprint dziala tylko przy biegu do przodu.
-	var wants_sprint := input.sprint and input.move.y < -0.1 and not dead and not aiming
+	var wants_sprint := input.sprint and input.move.y < -0.1 and not dead and not aiming and not crouching
 	sprinting = wants_sprint and not exhausted and stamina > 0.0
 	# Odnawianie rusza dopiero po puszczeniu klawisza i krotkiej przerwie.
 	if wants_sprint:
@@ -324,9 +464,19 @@ func position_at(tick: int) -> Vector3:
 	return position
 
 
-func _remember_position(tick: int) -> void:
-	_position_history[tick] = position
+## Kucanie z danego ticku. Hitbox przy cofaniu czasu musi miec te sama wysokosc co wtedy.
+func crouch_at(tick: int) -> float:
+	for past in range(tick, tick - POSITION_HISTORY_TICKS, -1):
+		if _crouch_history.has(past):
+			return _crouch_history[past]
+	return crouch_amount
+
+
+func _remember_motion(tick: int, at: Vector3, crouch: float) -> void:
+	_position_history[tick] = at
 	_position_history.erase(tick - POSITION_HISTORY_TICKS)
+	_crouch_history[tick] = crouch
+	_crouch_history.erase(tick - POSITION_HISTORY_TICKS)
 
 
 ## Po przywroceniu stanu is_on_floor bywa nieaktualne, wiec odswiezamy je pustym ruchem.
@@ -364,7 +514,7 @@ func _process(delta: float) -> void:
 		rotation.y = yaw if dance_id != DanceCatalog.NONE else input.look_yaw
 		head.rotation.x = input.look_pitch
 		var dead_drop := -1.1 if not info.alive else 0.0
-		head.position.y = move_toward(head.position.y, EYE_HEIGHT + dead_drop, delta * 3.0)
+		head.position.y = move_toward(head.position.y, eye_height() + dead_drop, delta * 3.0)
 	else:
 		rotation.y = yaw
 		head.rotation.x = pitch
@@ -383,6 +533,7 @@ func _process(delta: float) -> void:
 		model.play_hit()
 	_seen_health = health
 	_update_presence()
+	_update_crouch_view()
 	_update_body_feedback(delta, grounded)
 	_update_prime_beep(delta)
 	_update_dance_view()
@@ -432,17 +583,47 @@ func _update_presence() -> void:
 		_tag_root.visible = present
 
 
+## Inni widza poze kucania, a nazwa nad glowa opada razem z nia.
+func _update_crouch_view() -> void:
+	var crouched := shown_crouch() > 0.5
+	if crouched != _seen_crouching:
+		_seen_crouching = crouched
+		if crouched:
+			_play_body_sound(Sfx.crouch(), -10.0)
+	if is_sliding() != _seen_sliding:
+		_seen_sliding = is_sliding()
+		if _seen_sliding:
+			_play_body_sound(Sfx.slide(), -4.0)
+	if is_local():
+		return
+	var amount := shown_crouch()
+	model.set_crouch(amount)
+	# Gracz pod ochrona po odrodzeniu jest polprzezroczysty dla innych.
+	var protected: bool = NetworkTime.tick < info.get("protected_until", -1)
+	name_label.modulate = Color(0.55, 1.0, 0.95) if protected else Color.WHITE
+	var drop := Vector3.DOWN * CROUCH_DROP * amount
+	name_label.position.y = NAME_LABEL_HEIGHT + drop.y
+	if _tag_root != null:
+		_tag_root.position = drop
+
+
 func _show_remote_motion(delta: float) -> void:
 	var tick := sync.get_last_known_state()
 	if tick > remote_motion.newest_tick and sync._states.has(tick):
 		var state := sync._states.get_snapshot(tick)
-		remote_motion.add_sample(tick, state.get_value(":position"), state.get_value(":yaw"), state.get_value(":pitch"))
+		# Stan bywa niepelny, gdy serwer wyslal tylko to, co sie zmienilo. Reszta zostaje z poprzedniego.
+		remote_motion.add_sample(tick, _snapshot_value(state, ":position", remote_motion.newest_position(position)), _snapshot_value(state, ":yaw", yaw), _snapshot_value(state, ":pitch", pitch), _snapshot_value(state, ":crouch_amount", remote_motion.newest_crouch()))
 	if not remote_motion.has_samples():
 		return
 	remote_motion.advance(delta, RemoteMotion.shown_tick)
 	position = remote_motion.shown_position
 	yaw = remote_motion.shown_yaw
 	pitch = remote_motion.shown_pitch
+
+
+func _snapshot_value(state: Variant, property: String, fallback: Variant) -> Variant:
+	var value: Variant = state.get_value(property)
+	return fallback if value == null else value
 
 
 ## Kazdy klient sam wlacza animacje i muzyke, gdy zobaczy zmiane stanu tanca.
@@ -501,7 +682,7 @@ func _update_body_feedback(delta: float, grounded: bool) -> void:
 	if _step_distance >= (SPRINT_STEP_DISTANCE if sprinting else STEP_DISTANCE):
 		_step_distance = 0.0
 		_step_count += 1
-		_play_body_sound(Sfx.footstep_on(ForestTerrain.ground_at(position)), STEP_VOLUME_LOCAL if is_local() else STEP_VOLUME_REMOTE, randf_range(0.88, 1.15))
+		_play_body_sound(Sfx.footstep_on(Maps.info().ground_at(position)), STEP_VOLUME_LOCAL if is_local() else STEP_VOLUME_REMOTE, randf_range(0.88, 1.15))
 
 
 func _on_landed() -> void:
@@ -570,6 +751,13 @@ func _on_item_fired() -> void:
 ## Kierunek patrzenia do efektow. Wlasna kamera wyprzedza symulacje o ulamek ticku.
 func look_direction() -> Vector3:
 	return Hitscan.direction(input.look_yaw, input.look_pitch) if is_local() else Hitscan.direction(yaw, pitch)
+
+
+## Dzwiek przedmiotu z opoznieniem, np. zamek snajperki po strzale.
+func play_after(stream: AudioStreamWAV, seconds: float) -> void:
+	get_tree().create_timer(seconds).timeout.connect(func() -> void:
+		if is_inside_tree():
+			_play_item_sound(stream))
 
 
 func play_shot_sound(stream: AudioStreamWAV) -> void:
@@ -642,6 +830,8 @@ func _show_shot(muzzle: Vector3, hits: Array[Dictionary], color: Color, width: f
 		ShotFx.tracer(fx_root, muzzle, hit.position, color, width)
 		if hit.player != null or hit.hit_world:
 			ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else color)
+		if hit.player == null and hit.hit_world:
+			ShotFx.bullet_hole(fx_root, hit.position, hit.get("normal", Vector3.UP), Maps.info().ground_at(hit.position - hit.get("normal", Vector3.UP) * 0.1))
 
 
 func _on_action_started() -> void:

@@ -27,6 +27,7 @@ static var _clock_frame := -1
 var shown_position := Vector3.ZERO
 var shown_yaw := 0.0
 var shown_pitch := 0.0
+var shown_crouch := 0.0
 var newest_tick := -1
 
 var _samples: Array[Dictionary] = []
@@ -67,11 +68,20 @@ func has_samples() -> bool:
 	return not _samples.is_empty()
 
 
-func add_sample(tick: int, at: Vector3, yaw: float, pitch: float) -> void:
+## Pozycja z ostatniego stanu albo podana, gdy zadnego jeszcze nie ma.
+func newest_position(fallback: Vector3) -> Vector3:
+	return _samples[-1].position if not _samples.is_empty() else fallback
+
+
+func newest_crouch() -> float:
+	return _samples[-1].crouch if not _samples.is_empty() else 0.0
+
+
+func add_sample(tick: int, at: Vector3, yaw: float, pitch: float, crouch := 0.0) -> void:
 	if tick <= newest_tick:
 		return
 	newest_tick = tick
-	_samples.append({"tick": tick, "position": at, "yaw": yaw, "pitch": pitch})
+	_samples.append({"tick": tick, "position": at, "yaw": yaw, "pitch": pitch, "crouch": crouch})
 	_ages.append(_now() - tick)
 	if _ages.size() > AGE_WINDOW:
 		_ages.pop_front()
@@ -103,6 +113,7 @@ func _show() -> void:
 	shown_position = from.position.lerp(to.position, weight)
 	shown_yaw = lerp_angle(from.yaw, to.yaw, weight)
 	shown_pitch = lerpf(from.pitch, to.pitch, weight)
+	shown_crouch = lerpf(from.crouch, to.crouch, weight)
 
 
 func _shortest_age() -> float:

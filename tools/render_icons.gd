@@ -1,6 +1,6 @@
 extends Node
 ## Narzedzie: renderuje ikony przedmiotow z ich modeli 3D do assets/icons.
-## Uzycie: godot --path . -- --tool=res://tools/render_icons.gd
+## Uzycie: godot --path . -- --tool=res://tools/render_icons.gd [--only=deagle,awp]
 ## Po uruchomieniu trzeba zaimportowac nowe pliki: godot --headless --path . --import
 
 const ICON_SIZE := 256
@@ -12,13 +12,17 @@ func _ready() -> void:
 	get_node("/root/Main/Menu").visible = false
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://assets/icons"))
 	var rendered := {}
+	var only: PackedStringArray = str(Net.args.get("only", "")).split(",", false)
 	for definition in ItemRegistry.DEFINITIONS:
+		if not only.is_empty() and not only.has(String(definition.id)):
+			continue
 		for tier: int in TIER_NAMES:
 			var visual := definition.visual(tier)
 			if visual != null and not rendered.has(visual.icon_path):
 				rendered[visual.icon_path] = true
 				await _render(visual.model_path, visual.icon_path)
-	await _render(AMMO_MODEL, "res://assets/icons/ammo.png", 28.0, Vector3(-1.4, 0.8, 0.9))
+	if only.is_empty():
+		await _render(AMMO_MODEL, "res://assets/icons/ammo.png", 28.0, Vector3(-1.4, 0.8, 0.9))
 	get_tree().quit()
 
 

@@ -12,17 +12,25 @@ const TARGET_WIDTH := 2.5
 const ARROW_LENGTH := 11.0
 const ARROW_WIDTH := 7.0
 const CIRCLE_POINTS := 64
+const PLACE_FONT_SIZE := 10
+
+
+## Rozmiar mapki. Duza mapa pod klawiszem M to ta sama mapka, tylko wieksza.
+var side := SIDE
+## Duza mapa pokazuje sie tylko przy wcisnietym klawiszu, a mala wtedy znika.
+var big := false
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2.ONE * SIDE
-	size = Vector2.ONE * SIDE
+	custom_minimum_size = Vector2.ONE * side
+	size = Vector2.ONE * side
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
 
 
 func _process(_delta: float) -> void:
-	visible = not Match.zone_state().is_empty()
+	var holding := Input.is_action_pressed("map") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	visible = not Match.zone_state().is_empty() and holding == big
 	if visible:
 		queue_redraw()
 
@@ -32,15 +40,34 @@ func _draw() -> void:
 	if state.is_empty():
 		return
 	var middle := size * 0.5
-	var map_scale := (SIDE * 0.5 - INNER_MARGIN) / Zone.START_RADIUS
-	draw_circle(middle + Vector2(0.0, 4.0), SIDE * 0.5, UiStyle.SHADOW)
-	draw_circle(middle, SIDE * 0.5, Color.WHITE)
-	draw_circle(middle, SIDE * 0.5 - BORDER, DANGER_COLOR)
+	var map_scale := (side * 0.5 - INNER_MARGIN) / Maps.info().zone_radius
+	middle -= Maps.info().zone_center * map_scale
+	var outer_middle := size * 0.5
+	draw_circle(outer_middle + Vector2(0.0, 4.0), side * 0.5, UiStyle.SHADOW)
+	draw_circle(outer_middle, side * 0.5, Color.WHITE)
+	draw_circle(outer_middle, side * 0.5 - BORDER, DANGER_COLOR)
 	var center: Vector2 = state.center
 	draw_circle(middle + center * map_scale, state.radius * map_scale, SAFE_COLOR)
 	var target: Vector2 = state.target_center
 	draw_arc(middle + target * map_scale, state.target_radius * map_scale, 0.0, TAU, CIRCLE_POINTS, Color.WHITE, TARGET_WIDTH, true)
+	_draw_places(middle, map_scale)
+	_draw_drops(middle, map_scale)
 	_draw_player(middle, map_scale)
+
+
+## Nazwy miejsc na duzej mapie, zeby latwiej sie umowic, gdzie isc.
+func _draw_places(middle: Vector2, map_scale: float) -> void:
+	var places := Maps.info().places
+	if places.size() < 4 and not big:
+		return
+	var font := ThemeDB.fallback_font
+	for place: Dictionary in places:
+		var at: Vector2 = middle + (place.at as Vector2) * map_scale
+		draw_circle(at, 2.5, UiStyle.INK)
+		var text: String = place.name
+		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size()).x
+		draw_string_outline(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), 3, Color.WHITE)
+		draw_string(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), UiStyle.INK)
 
 
 func _draw_player(middle: Vector2, map_scale: float) -> void:
@@ -62,3 +89,19 @@ func _followed_player() -> Player:
 		return me
 	var camera := get_tree().get_first_node_in_group(SpectatorCamera.GROUP) as SpectatorCamera
 	return camera.target_player() if camera != null else null
+
+
+func _font_size() -> int:
+	return PLACE_FONT_SIZE * 2 if big else PLACE_FONT_SIZE
+
+
+## Zrzuty zaopatrzenia jako zolte kwadraty, a te w powietrzu migaja.
+func _draw_drops(middle: Vector2, map_scale: float) -> void:
+	for id: int in SupplyDrops.drops:
+		var drop: Dictionary = SupplyDrops.drops[id]
+		var at: Vector2 = middle + Vector2(drop.position.x, drop.position.z) * map_scale
+		var half := 7.0 if big else 4.0
+		if not drop.landed and int(Time.get_ticks_msec() / 250) % 2 == 0:
+			continue
+		draw_rect(Rect2(at - Vector2.ONE * (half + 2.0), Vector2.ONE * (half + 2.0) * 2.0), UiStyle.INK)
+		draw_rect(Rect2(at - Vector2.ONE * half, Vector2.ONE * half * 2.0), Color("ffcb47"))
