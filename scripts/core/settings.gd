@@ -9,6 +9,8 @@ const SECTION := "options"
 const SAVE_DELAY := 0.4
 
 enum Graphics { LOW, MEDIUM, HIGH }
+## Skala interfejsu: male, normalne i duze napisy oraz przyciski.
+const UI_SCALES: Array[float] = [0.85, 1.0, 1.2]
 
 ## Domyslne wartosci. Nowe ustawienie wystarczy dopisac tutaj.
 const DEFAULTS := {
@@ -28,6 +30,7 @@ const DEFAULTS := {
 	"show_fps": true,
 	"show_net_graph": false,
 	"show_damage_numbers": true,
+	"ui_scale": 1,
 }
 
 ## Ekrany Retina maja wiecej pikseli, niz wyciagnie zintegrowana karta M1.
@@ -144,6 +147,8 @@ func apply(key := "") -> void:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if value("vsync") else DisplayServer.VSYNC_DISABLED)
 	if key.is_empty() or key == "graphics":
 		_apply_graphics()
+	if key.is_empty() or key == "ui_scale":
+		get_tree().root.content_scale_factor = UI_SCALES[clampi(int(value("ui_scale")), 0, UI_SCALES.size() - 1)]
 	if key.is_empty() or key == "render_scale":
 		var render_scale: float = value("render_scale")
 		get_tree().root.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if render_scale < 1.0 else Viewport.SCALING_3D_MODE_BILINEAR

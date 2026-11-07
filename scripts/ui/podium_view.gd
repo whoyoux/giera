@@ -44,6 +44,8 @@ func _show() -> void:
 		LowPoly.part(step, LowPoly.box(Vector3(1.5, STEP_HEIGHTS[index], 1.5), 0.08), STEP_COLORS[index], Vector3(0.0, STEP_HEIGHTS[index] * 0.5, 0.0))
 		var rig := CharacterRig.new()
 		rig.position = Vector3(0.0, STEP_HEIGHTS[index], 0.0)
+		# Model patrzy w -Z, a kamera stoi z przodu podium w +Z.
+		rig.rotation.y = PI
 		step.add_child(rig)
 		rig.setup(CharacterAssets.resolve(entry.get("character", ""), entry.id))
 		rig.set_item({})

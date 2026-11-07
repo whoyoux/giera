@@ -80,6 +80,25 @@ func _take_from_hand(player: Player, stack: Dictionary) -> void:
 			return
 
 
+## Promien trafienia granatu z broni. Wiekszy niz sam granat, bo strzelec widzi lot z opoznieniem.
+const SHOT_RADIUS := 0.45
+
+
+## Strzal przez lecacy granat odpala go od razu. Zabojstwa liczy sie wtedy strzelcowi.
+## Zwraca, czy jakis granat wybuchl.
+func server_shoot(from: Vector3, to: Vector3, shooter_id: int) -> bool:
+	for id: int in _flying.keys():
+		var grenade := _flying[id] as GrenadeProjectile
+		if grenade == null or grenade.is_resting():
+			continue
+		if not Geometry3D.segment_intersects_sphere(from, to, grenade.global_position, SHOT_RADIUS).is_empty():
+			grenade.owner_id = shooter_id
+			print("[serwer] strzal odpalil granat %d" % id)
+			server_explode(id)
+			return true
+	return false
+
+
 ## Wolane przez pocisk na serwerze, gdy skonczy sie zapalnik.
 func server_explode(id: int) -> void:
 	var grenade := _flying.get(id) as GrenadeProjectile

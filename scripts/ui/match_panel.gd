@@ -177,7 +177,7 @@ func _refresh_results() -> void:
 	var showing := Match.phase == Match.Phase.RESULTS
 	if showing and not _results_center.visible:
 		_fill_results()
-		_results_center.offset_top = 0.0 if Match.is_elimination() else 300.0
+		_results_center.offset_top = 0.0 if Match.is_elimination() else 220.0
 		UiStyle.pop_in(_results_card)
 	_results_center.visible = showing
 

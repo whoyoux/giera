@@ -41,6 +41,10 @@ func _ready() -> void:
 	_build_visual()
 
 
+func is_resting() -> bool:
+	return _resting
+
+
 func _process(delta: float) -> void:
 	_time += delta
 	var left := delta

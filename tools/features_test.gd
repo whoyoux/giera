@@ -139,6 +139,30 @@ func _ready() -> void:
 	var maps := hud.find_children("*", "ZoneMap", true, false)
 	_check("mala i duza mapa", maps.size() == 2 and maps.any(func(map: ZoneMap) -> bool: return map.big))
 
+	# Poprawki: Desert Eagle w glowe, skala interfejsu, otwarta skrzynka, reset statystyk, granat.
+	var deagle := ItemRegistry.get_definition(&"deagle") as WeaponDefinition
+	_check("zwykly Deagle 90 w glowe, epicki zabija", deagle.stats(Rarity.Tier.COMMON).headshot_damage == 90 and deagle.stats(Rarity.Tier.EPIC).headshot_damage >= GameState.MAX_HEALTH)
+	Settings.set_value("ui_scale", 2)
+	_check("duzy interfejs", is_equal_approx(get_tree().root.content_scale_factor, 1.2))
+	Settings.set_value("ui_scale", 1)
+	var field := get_node("/root/Main")._chest_field as ChestField
+	var chest_id: int = Chests.chests.keys()[0]
+	var closed_height: float = (field._shapes[chest_id].shape as BoxShape3D).size.y
+	Chests._chest_opened.rpc(chest_id, 1, Rarity.Tier.COMMON)
+	_check("otwarta skrzynka nizsza", (field._shapes[chest_id].shape as BoxShape3D).size.y < closed_height - 0.3)
+	var stats_panel := get_node("/root/Main").find_children("*", "StatsPanel", false, false)[0] as StatsPanel
+	stats_panel.open(stats)
+	(stats_panel.find_child("reset_stats", true, false) as Button).pressed.emit()
+	_check("reset statystyk pyta o potwierdzenie", stats_panel._confirm.visible and stats.value("kills") > 0)
+	(stats_panel.find_child("confirm_reset", true, false) as Button).pressed.emit()
+	_check("potwierdzenie usuwa statystyki", stats.value("kills") == 0 and not stats_panel._confirm.visible)
+	stats_panel.visible = false
+	var thrower := GameState.player_node(1)
+	Grenades._thrown.rpc(900, "grenade", Vector3(15.0, 6.0, 1.0), Vector3.ZERO, 30.0, 2)
+	await _wait(0.05)
+	var grenade_at: Vector3 = (Grenades._flying[900] as Node3D).global_position
+	_check("strzal w lecacy granat go odpala", Grenades.server_shoot(grenade_at + Vector3(0, 0, 5), grenade_at - Vector3(0, 0, 5), thrower.peer_id) and not Grenades._flying.has(900))
+
 	# Glosowanie na mape i drabiny w miescie.
 	Match.votes = { 1: "city", 2: "city", 3: "forest" }
 	Match._apply_vote()

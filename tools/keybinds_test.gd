@@ -75,6 +75,10 @@ func _test_menu_panel() -> void:
 	if not shot_dir.is_empty():
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(shot_dir.path_join("keybinds.png"))
+		panel._scroll.scroll_vertical = 100000
+		await _wait(0.2)
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(shot_dir.path_join("keybinds_bottom.png"))
 	(page.find_child("reset_keys", true, false) as Button).pressed.emit()
 	await _wait(0.1)
 	_check("przycisk resetu", Keybinds.label_of("reload") == "R" and reload.text == "R")
