@@ -4,6 +4,7 @@ extends CanvasLayer
 ## Ze Steamem nazwy nie da sie zmienic, a bez niego gracz wpisuje nick.
 
 signal settings_requested
+signal stats_requested
 
 const PICKER_LEFT := 520.0
 const TITLE_COLORS: Array[Color] = [UiStyle.CORAL, UiStyle.SUN, UiStyle.TEAL, UiStyle.BLUE, Color("9b7bff")]
@@ -97,7 +98,16 @@ func _ready() -> void:
 	var settings_button := UiStyle.button("Ustawienia", UiStyle.BLUE, Color.WHITE, Sfx.UiCue.NONE)
 	settings_button.add_theme_font_size_override("font_size", 20)
 	settings_button.pressed.connect(func() -> void: settings_requested.emit())
-	column.add_child(settings_button)
+	var stats_button := UiStyle.button("Statystyki", Color("9b7bff"), Color.WHITE, Sfx.UiCue.NONE)
+	stats_button.add_theme_font_size_override("font_size", 20)
+	stats_button.pressed.connect(func() -> void: stats_requested.emit())
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	settings_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stats_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(settings_button)
+	row.add_child(stats_button)
+	column.add_child(row)
 
 	if not Net.is_headless:
 		_build_picker()

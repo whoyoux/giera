@@ -40,6 +40,8 @@ func timed_action_seconds(stack: Dictionary) -> float:
 func show_fired(player: Player, stack: Dictionary) -> void:
 	var stats := ItemStack.weapon_stats_of(stack)
 	player.play_shot_sound(Sfx.shot(stats))
+	if stats.scope:
+		player.play_after(Sfx.bolt(), 0.45)
 	var hits: Array[Dictionary] = []
 	for direction in Hitscan.pellet_directions(player.look_direction(), stats.pellets, player.equipment.shot_spread, player.equipment.last_fire):
 		hits.append(Hitscan.trace(player.get_world_3d(), player.eye_position(), direction, player.peer_id, player.get_tree()))

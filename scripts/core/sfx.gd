@@ -60,6 +60,45 @@ static func streak() -> AudioStreamWAV:
 	, func(t: float) -> float: return [523.0, 659.0, 784.0, 1046.0][mini(int(t / 0.16), 3)])
 
 
+## Szelest ubrania przy kucnieciu.
+static func crouch() -> AudioStreamWAV:
+	return _make("crouch", 0.16, func(t: float, _phase: float) -> float:
+		return randf_range(-0.35, 0.35) * sin(PI * t / 0.16) * 0.8
+	, func(_t: float) -> float: return 0.0)
+
+
+## Slizg: szorstki szum, ktory cichnie razem z predkoscia.
+static func slide() -> AudioStreamWAV:
+	return _make("slide", 0.7, func(t: float, phase: float) -> float:
+		var fade := pow(1.0 - t / 0.7, 1.4)
+		return (randf_range(-0.5, 0.5) + sin(TAU * phase) * 0.15) * fade
+	, func(t: float) -> float: return lerpf(180.0, 90.0, t / 0.7))
+
+
+## Zamek snajperki po strzale: dwa metaliczne klikniecia.
+static func bolt() -> AudioStreamWAV:
+	return _make("bolt", 0.42, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for start: float in [0.0, 0.26]:
+			if t >= start:
+				var since := t - start
+				sample += (sin(TAU * 1700.0 * since) * 0.4 + randf_range(-0.3, 0.3)) * exp(-since * 45.0)
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
+## Gong konca rundy: dwie niskie nuty z poglosem.
+static func round_end() -> AudioStreamWAV:
+	return _make("round_end", 1.6, func(t: float, _phase: float) -> float:
+		var sample := 0.0
+		for note: Array in [[0.0, 392.0], [0.35, 523.0], [0.7, 659.0]]:
+			if t >= note[0]:
+				var since: float = t - note[0]
+				sample += (sin(TAU * note[1] * since) + sin(TAU * note[1] * 2.01 * since) * 0.3) * exp(-since * 2.4) * 0.3
+		return sample
+	, func(_t: float) -> float: return 0.0)
+
+
 static func hit() -> AudioStreamWAV:
 	return _make("hit", 0.08, func(t: float, phase: float) -> float:
 		return sin(TAU * phase) * (1.0 - t / 0.08)

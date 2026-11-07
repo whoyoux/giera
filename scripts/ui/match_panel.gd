@@ -162,7 +162,7 @@ func _play_phase_sound() -> void:
 		_phase_audio.stream = Sfx.match_start()
 		_phase_audio.play()
 	elif Match.phase == Match.Phase.RESULTS:
-		_phase_audio.stream = Sfx.match_win() if _i_won() else Sfx.match_end()
+		_phase_audio.stream = Sfx.match_win() if _i_won() else (Sfx.match_end() if Match.is_elimination() else Sfx.round_end())
 		_phase_audio.play()
 
 

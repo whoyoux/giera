@@ -107,6 +107,11 @@ func bind(player: Player) -> void:
 	_refresh_scoreboard()
 
 
+func show_tutorial() -> void:
+	var anchor := _anchored(Control.PRESET_CENTER_LEFT, Vector2(28, -150), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_BOTH)
+	anchor.add_child(TutorialPanel.new())
+
+
 func unbind() -> void:
 	_close_dance_wheel()
 	_player = null

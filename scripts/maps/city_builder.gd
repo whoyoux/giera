@@ -173,6 +173,22 @@ func _slab(rect: Rect2, y: float, hole: Rect2, color: Color) -> void:
 			_box(Vector3(part.get_center().x, y - SLAB * 0.5, part.get_center().y), Vector3(part.size.x, SLAB, part.size.y), color, true, false, 0.0, 0.02)
 
 
+## Swiecace okno albo neon: nie zalezy od swiatla, a na wysokiej jakosci lapie poswiate.
+func _glow(center: Vector3, size: Vector3, color: Color) -> void:
+	if not _headless:
+		var mesh := MeshInstance3D.new()
+		mesh.mesh = LowPoly.box(size, minf(0.02, size.y * 0.3))
+		var material := StandardMaterial3D.new()
+		material.albedo_color = color
+		material.emission_enabled = true
+		material.emission = color
+		material.emission_energy_multiplier = 2.2
+		mesh.material_override = material
+		mesh.position = center
+		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_visuals.add_child(mesh)
+
+
 func _window(at: Vector3, width: float, rot_y: float) -> void:
 	_decal(at, Vector3(width, 1.0, 0.06), GLASS, rot_y)
 
@@ -215,7 +231,13 @@ func _build_border() -> void:
 				for w in range(1, int(width / 2.2)):
 					var offset := -width * 0.5 + w * 2.2
 					var front := side * (HALF + 0.98) + along * (at + width * 0.5 + offset)
-					_decal(Vector3(front.x, floor_y * FLOOR_HEIGHT - 0.4, front.y), Vector3(1.0 if side.x == 0.0 else 0.06, 1.1, 0.06 if side.x == 0.0 else 1.0), GLASS.darkened(0.1))
+					var window_size := Vector3(1.0 if side.x == 0.0 else 0.06, 1.1, 0.06 if side.x == 0.0 else 1.0)
+					var window_at := Vector3(front.x, floor_y * FLOOR_HEIGHT - 0.4, front.y)
+					# O zmierzchu czesc okien juz swieci.
+					if _rng.randf() < 0.45:
+						_glow(window_at, window_size, Color("ffd38a"))
+					else:
+						_decal(window_at, window_size, GLASS.darkened(0.25))
 			at += width + 0.1
 
 
@@ -264,7 +286,7 @@ func _build_tenement(rect: Rect2) -> void:
 	_box(Vector3(x0 + 7.0, 0.5, z0 + 7.0), Vector3(2.4, 1.0, 1.2), WOOD)
 	_box(Vector3(x0 + 5.0, FLOOR_HEIGHT + 0.6, z0 + 3.0), Vector3(1.0, 1.2, 2.4), WOOD.lightened(0.1))
 	_box(Vector3(x0 + 8.0, FLOOR_HEIGHT * 2.0 + 0.6, z0 + 8.0), Vector3(1.6, 1.2, 1.6), Color("7d8597"), true, true)
-	_decal(Vector3(rect.get_center().x, FLOOR_HEIGHT * 2.0 + 1.6, z0 - 0.2), Vector3(5.0, 1.0, 0.1), Color("fff3a3"))
+	_glow(Vector3(rect.get_center().x, FLOOR_HEIGHT * 2.0 + 1.6, z0 - 0.2), Vector3(5.0, 0.9, 0.1), Color("ff5fa2"))
 
 
 ## Sklep: jedno pietro, duza witryna, dach dostepny po schodach z tylu.
@@ -277,6 +299,7 @@ func _build_shop(rect: Rect2) -> void:
 	_box(Vector3(rect.position.x + 3.0, 0.5, rect.position.y + 2.0), Vector3(2.8, 1.0, 0.8), Color("e9edf3"))
 	# Markiza nad wejsciem.
 	_decal(Vector3(rect.end.x + 0.6, 2.7, rect.position.y + 3.5), Vector3(1.2, 0.15, 3.2), Color("ef6f6c"))
+	_glow(Vector3(rect.end.x + 0.18, 2.3, rect.position.y + 3.5), Vector3(0.06, 0.5, 2.4), Color("a6ff6e"))
 
 
 ## Hotel: dwa pietra, wejscie od glownej ulicy, taras na dachu.
@@ -297,7 +320,7 @@ func _build_hotel(rect: Rect2) -> void:
 	_box(Vector3(x0 + 6.0, 0.55, z0 + 8.5), Vector3(3.0, 1.1, 1.0), Color("f3e9d2"))
 	_box(Vector3(x0 + 5.0, FLOOR_HEIGHT + 0.5, z0 + 9.0), Vector3(2.0, 1.0, 2.0), Color("e8a0b4"))
 	_box(Vector3(x0 + 5.0, FLOOR_HEIGHT * 2.0 + 0.7, z0 + 8.0), Vector3(1.2, 1.4, 1.2), Color("7d8597"), true, true)
-	_decal(Vector3(x0 - 0.2, FLOOR_HEIGHT * 2.0 + 1.6, rect.get_center().y), Vector3(0.1, 1.0, 5.0), Color("fff3a3"))
+	_glow(Vector3(x0 - 0.2, FLOOR_HEIGHT * 2.0 + 1.6, rect.get_center().y), Vector3(0.1, 0.9, 5.0), Color("4fe3ff"))
 
 
 ## Garaz z przymknieta brama: przejscie z ulicy do wschodniego zaulka tylko w kucki.
@@ -482,7 +505,7 @@ func _car(base: Vector3, rot_y: float, color: Color) -> void:
 
 func _lamp(base: Vector3) -> void:
 	_box(base + Vector3.UP * 2.2, Vector3(0.16, 4.4, 0.16), Color("4a4f5c"), true, false, 0.0, 0.03)
-	_decal(base + Vector3.UP * 4.45, Vector3(0.7, 0.18, 0.35), Color("fff3a3"))
+	_glow(base + Vector3.UP * 4.45, Vector3(0.7, 0.18, 0.35), Color("ffe9a8"))
 
 
 # --- Drabiny, rury i skoki -----------------------------------------------------

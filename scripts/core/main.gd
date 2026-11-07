@@ -32,6 +32,12 @@ func _ready() -> void:
 		add_child(DamageNumbers.new())
 		add_child(PodiumView.new())
 		add_child(DropView.new())
+		var stats := PlayerStats.new()
+		stats.name = "PlayerStats"
+		add_child(stats)
+		var stats_panel := StatsPanel.new()
+		add_child(stats_panel)
+		menu.stats_requested.connect(func() -> void: stats_panel.open(stats))
 	_apply_quality()
 	hud.visible = false
 	if Net.is_headless:
@@ -99,6 +105,8 @@ func _on_local_player_spawned(player: Player) -> void:
 	menu.visible = false
 	hud.bind(player)
 	hud.visible = true
+	if TutorialPanel.should_show():
+		hud.show_tutorial()
 	if ExplosionPool.instance != null:
 		ExplosionPool.instance.warm_up(player.camera)
 	if Net.bot_mode.is_empty():

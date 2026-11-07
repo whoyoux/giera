@@ -29,7 +29,7 @@ static func direction(yaw: float, pitch: float) -> Vector3:
 ## Z view_tick >= 0 cele sa ustawiane tam, gdzie strzelec widzial je w tym ticku.
 static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, tree: SceneTree, view_tick := -1) -> Dictionary:
 	var to := from + dir * RANGE
-	var result := { "position": to, "player": null, "headshot": false, "hit_world": false }
+	var result := { "position": to, "player": null, "headshot": false, "hit_world": false, "normal": Vector3.UP }
 	var nearest := RANGE
 
 	var query := PhysicsRayQueryParameters3D.create(from, to, WORLD_MASK)
@@ -37,6 +37,7 @@ static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, 
 	if not world_hit.is_empty():
 		nearest = from.distance_to(world_hit.position)
 		result.position = world_hit.position
+		result.normal = world_hit.normal
 		result.hit_world = true
 
 	for node in tree.get_nodes_in_group(&"players"):

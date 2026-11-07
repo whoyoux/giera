@@ -119,6 +119,8 @@ var _dance_music: DanceMusic
 var _dance_camera := DanceCamera.new()
 var _tag_root: Node3D
 var _seen_present := true
+var _seen_crouching := false
+var _seen_sliding := false
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -583,6 +585,15 @@ func _update_presence() -> void:
 
 ## Inni widza poze kucania, a nazwa nad glowa opada razem z nia.
 func _update_crouch_view() -> void:
+	var crouched := shown_crouch() > 0.5
+	if crouched != _seen_crouching:
+		_seen_crouching = crouched
+		if crouched:
+			_play_body_sound(Sfx.crouch(), -10.0)
+	if is_sliding() != _seen_sliding:
+		_seen_sliding = is_sliding()
+		if _seen_sliding:
+			_play_body_sound(Sfx.slide(), -4.0)
 	if is_local():
 		return
 	var amount := shown_crouch()
@@ -742,6 +753,13 @@ func look_direction() -> Vector3:
 	return Hitscan.direction(input.look_yaw, input.look_pitch) if is_local() else Hitscan.direction(yaw, pitch)
 
 
+## Dzwiek przedmiotu z opoznieniem, np. zamek snajperki po strzale.
+func play_after(stream: AudioStreamWAV, seconds: float) -> void:
+	get_tree().create_timer(seconds).timeout.connect(func() -> void:
+		if is_inside_tree():
+			_play_item_sound(stream))
+
+
 func play_shot_sound(stream: AudioStreamWAV) -> void:
 	shot_audio.stream = stream
 	shot_audio.pitch_scale = randf_range(0.96, 1.04)
@@ -812,6 +830,8 @@ func _show_shot(muzzle: Vector3, hits: Array[Dictionary], color: Color, width: f
 		ShotFx.tracer(fx_root, muzzle, hit.position, color, width)
 		if hit.player != null or hit.hit_world:
 			ShotFx.impact(fx_root, hit.position, Color("ff5d5d") if hit.player != null else color)
+		if hit.player == null and hit.hit_world:
+			ShotFx.bullet_hole(fx_root, hit.position, hit.get("normal", Vector3.UP), Maps.info().ground_at(hit.position - hit.get("normal", Vector3.UP) * 0.1))
 
 
 func _on_action_started() -> void:
