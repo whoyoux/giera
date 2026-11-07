@@ -1,6 +1,6 @@
 # Plan: autoupdater
 
-Etapy 1 i 2 są na `main`, a etap 3 czeka na próbne wydanie i próbę na prawdziwym Macu. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
+Etapy 1–4 są zrobione, a etap 5 czeka na decyzję. Nadal nie ma próby launchera na prawdziwym Macu z oknem. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
 
 ## Pomiary
 
