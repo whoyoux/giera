@@ -1,6 +1,6 @@
 # Plan: autoupdater
 
-Etapy 1 i 2 są na `main`, a etap 3 czeka na próbne wydanie i próbę na prawdziwym Macu. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
+Etapy 1–4 są zrobione, a etap 5 czeka na decyzję. Nadal nie ma próby launchera na prawdziwym Macu z oknem. Gracz uruchamia mały launcher, który sprawdza nową wersję na GitHub Releases, pobiera zwykle tylko dane gry (PCK), sprawdza je i startuje grę. Buildy zostają na GitHubie, a serwer ani VPS nie są do tego potrzebne.
 
 ## Pomiary
 
@@ -132,9 +132,9 @@ Każdy etap to osobny PR.
 
 ### Etap 4: wygoda i bezpieczeństwo
 
-- **Podpis manifestu.** RSA przez `Crypto.verify`, klucz prywatny w GitHub Secrets, publiczny w launcherze. Bez podpisu przejęcie konta lub tokenu GitHuba pozwala podmienić grę wszystkim graczom.
+- **Podpis manifestu.** RSA przez `Crypto.verify`, klucz prywatny w GitHub Secrets, publiczny w launcherze, plik `manifest.json.sig` w wydaniu. Bez podpisu przejęcie konta lub tokenu GitHuba pozwala podmienić grę wszystkim graczom.
 - **Sprawdzanie w grze.** Menu pokazuje informację o nowej wersji i przycisk restartu.
-- **Aktualizacja launchera.** Niewielki, niezmienny starter montuje nową logikę launchera z danych użytkownika. Tu `load_resource_pack` wystarcza, bo launcher nie ma autoloadów.
+- **Aktualizacja launchera.** Niewielki, niezmienny starter montuje nową logikę launchera z danych użytkownika. Tu `load_resource_pack` wystarcza, bo launcher nie ma autoloadów. Logika jest skompilowana dla konkretnego silnika, więc instaluje się tylko przy zgodnym `runtime_id`. Jeśli nowa logika nie dojdzie do startu gry, przy kolejnym uruchomieniu starter ją wyłącza.
 
 ### Etap 5: pobieranie tylko zmienionych części
 

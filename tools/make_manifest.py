@@ -40,7 +40,10 @@ def describe(path: pathlib.Path) -> dict:
 def platform(builds: pathlib.Path, name: str, runtime_id: str) -> dict:
     runtime = describe(builds / ("Giera-%s-runtime.zip" % name))
     runtime["id"] = runtime_id
-    return {"pack": describe(builds / ("Giera-%s.pck" % name)), "runtime": runtime}
+    # Launcher pobierze swoja nowa logike tylko wtedy, gdy ma ten sam silnik.
+    launcher = describe(builds / ("Giera-%s-launcher.pck" % name))
+    launcher["id"] = runtime_id
+    return {"pack": describe(builds / ("Giera-%s.pck" % name)), "runtime": runtime, "launcher": launcher}
 
 
 def main() -> None:

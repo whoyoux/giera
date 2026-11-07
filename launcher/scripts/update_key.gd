@@ -1,0 +1,18 @@
+extends RefCounted
+## Klucz publiczny do podpisu manifestu. Prywatny jest w sekrecie UPDATE_SIGNING_KEY na GitHubie.
+
+const PUBLIC_PEM := """-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAx7y53PRzmmvcdc3/Aeir
+mT+qLZjkt2FlZBN9FjQapWuT4sIYUydjXskAq9uP6dop4kMWvt5r/xZWSftyrYzc
+74DxaYkOihZZuAhpZ3xT61pbMF70fyUhbJM3M0gq07sysqPyA22Zw3GO8ebkpe/B
+F/Hx5nXt06N51n4Wa2TVu66I8+OY5F3uZ5dJBl/0gcnD9Iz6tVC7oLDR/+S2YB2+
+wJCE7MUxnfUhcN29sjtLw+3NIfv6g3L3YFaEyhZVWeUyCknq5GFD/Ajkf3WSemoB
+g8AS0Rqudf5RwlZlEQWzWTGynt7KdmYw9iQNzbYgmDsKnv56tXAXcDNEyrdXPQdl
+pnjtT1jNvi9H50nFOc+T2jBGr6IH4S5OS22TYDHner7E3szSoTgIDZ0SR+2x/yAD
+4J6I7NW4TJiQSBD5rfZnWhwu/M8i8y2L7R1HfWXPl1iFgFHvXb0GI+KLTs7edm53
+DFsI4pLr9GoQ1lLHOXAI/+Fjnhb0UAFzXraDRx/z2B6GIitEnkpKcn45oKujNgMe
+5SgKqhtDmmEre/ycKr35J822Ci10cu8ONN30ueriDSiE/0x+XUDICdvsiZQks3OR
+NN45vuTypfKAE/3vCsy9Wwm5IcZknXE5kMCkY1n6bPenvoVj6aAYdxh4l1dyB/Cw
+wuqcBNVfXKQyyaeptmRh+3ECAwEAAQ==
+-----END PUBLIC KEY-----
+"""

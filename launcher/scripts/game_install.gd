@@ -1,4 +1,3 @@
-class_name GameInstall
 extends RefCounted
 ## Pliki gry w danych uzytkownika. Launcher nie zapisuje nic w swoim folderze,
 ## bo na macOS aplikacja moze dzialac z miejsca tylko do odczytu.
@@ -9,6 +8,8 @@ extends RefCounted
 const GAME_NAME := "GieraGame"
 const STATE_FILE := "installed.json"
 const MARKER_FILE := "started.txt"
+const BOOT_FLAG := "launcher.boot"
+const NEW_LAUNCHER := "launcher.pck.new"
 const CHUNK_SIZE := 1 << 20
 
 var dir: String
@@ -35,6 +36,22 @@ func pack_path() -> String:
 
 func marker_path() -> String:
 	return _path(MARKER_FILE)
+
+
+## Nowa logika launchera zacznie dzialac przy nastepnym uruchomieniu. Uruchomiona nie zmienia pliku,
+## z ktorego wlasnie czyta.
+func stage_launcher(temp: String, sha: String) -> bool:
+	if not _replace(temp, _path(NEW_LAUNCHER)):
+		return false
+	state["launcher_sha"] = sha
+	save_state()
+	return true
+
+
+## Ten przebieg launchera sie udal, wiec jego logika nie jest zepsuta.
+func confirm_launcher() -> void:
+	if FileAccess.file_exists(_path(BOOT_FLAG)):
+		DirAccess.remove_absolute(_path(BOOT_FLAG))
 
 
 func temp_path(name: String) -> String:
