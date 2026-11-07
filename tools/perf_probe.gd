@@ -10,6 +10,11 @@ const VIEWS: Array[Array] = [
 	[Vector3(0.0, 1.7, 30.0), Vector3(0.0, 1.5, 70.0)],
 	[Vector3(-14.0, 1.7, -3.0), Vector3(20.0, 1.5, 5.0)],
 ]
+## Widoki dla duzej doliny: przez las w strone ruin i z obozu na pol mapy.
+const VALLEY_VIEWS: Array[Array] = [
+	[Vector3(60.0, 3.0, 20.0), Vector3(-12.0, 2.0, -18.0)],
+	[Vector3(10.0, 14.0, 132.0), Vector3(-12.0, 2.0, -18.0)],
+]
 const PRESETS: Array[Array] = [
 	["wysoka 100", Settings.Graphics.HIGH, 1.0],
 	["srednia 100", Settings.Graphics.MEDIUM, 1.0],
@@ -36,9 +41,13 @@ func _ready() -> void:
 	add_child(camera)
 	camera.fov = 80.0
 	camera.current = true
-	for view_index in VIEWS.size():
-		camera.global_position = VIEWS[view_index][0]
-		camera.look_at(VIEWS[view_index][1])
+	var views: Array[Array] = VALLEY_VIEWS if Maps.current_id == "valley" else VIEWS
+	for view_index in views.size():
+		var from: Vector3 = views[view_index][0]
+		if Maps.current_id == "valley":
+			from.y += ValleyTerrain.surface(from.x, from.z)
+		camera.global_position = from
+		camera.look_at(views[view_index][1])
 		for preset in PRESETS:
 			Settings.set_value("graphics", float(preset[1]))
 			Settings.set_value("render_scale", preset[2])

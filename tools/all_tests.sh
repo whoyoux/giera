@@ -87,6 +87,8 @@ exit 0
 #- regen_test
 #- round_test --round-seconds=40 --round-kill-limit=3
 #- city_map_test --map=city
+#- valley_map_test --map=valley
+#- features_test
 # KONIEC
 # SIEC
 #- bot_test
@@ -110,4 +112,5 @@ exit 0
 #- regen_net_test
 #- dm_rounds_test
 #- city_bots_test
+#- br_valley_test
 # KONIEC

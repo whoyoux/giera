@@ -514,7 +514,7 @@ func _update_death_panel(info: Dictionary) -> void:
 		_death_panel.visible = not info.alive
 		if not info.alive:
 			var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
-			_death_label.text = "%s\nWracasz za %d…" % [_death_cause(info), ceili(seconds)]
+			_death_label.text = "%s\nWracasz za %d…" % [_death_cause(info, multiplayer.get_unique_id()), ceili(seconds)]
 		_protection_label.visible = info.alive and NetworkTime.tick < info.get("protected_until", -1)
 		return
 	var fresh: bool = NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(ELIMINATED_SECONDS)
@@ -525,11 +525,11 @@ func _update_death_panel(info: Dictionary) -> void:
 
 
 ## Kto zabil, czym i ile zdrowia mu zostalo. Smierc od strefy albo wlasnego granatu ma krotszy opis.
-func _death_cause(info: Dictionary) -> String:
+func _death_cause(info: Dictionary, victim_id: int) -> String:
 	var killer: int = info.get("killer_id", 0)
 	if killer == GameState.ZONE_ATTACKER or not GameState.players.has(killer):
 		return "Auć!"
-	if killer == multiplayer.get_unique_id():
+	if killer == victim_id:
 		return "Własny granat!"
 	var weapon := ItemStack.display_name_of(info.get("death_weapon", {}))
 	var head := " w głowę" if info.get("death_headshot", false) else ""
