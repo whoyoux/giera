@@ -24,11 +24,17 @@ func _ready() -> void:
 	var near_places := 0
 	for node in chests:
 		var at := (node as Node3D).global_position
+		var spots: Array[Vector2] = []
 		for place: Dictionary in info.places:
-			if Vector2(at.x, at.z).distance_to(place.at) < 45.0:
+			spots.append(place.at)
+		# Male punkty miedzy miejscami tez sa celem, bo maja wlasna skrzynke i oslone.
+		for outpost: Array in ValleyBuilder.OUTPOSTS:
+			spots.append(outpost[0])
+		for spot in spots:
+			if Vector2(at.x, at.z).distance_to(spot) < 45.0:
 				near_places += 1
 				break
-	_check("skrzynki skupione w miejscach", near_places >= chests.size() * 0.8)
+	_check("skrzynki skupione w miejscach i malych punktach", near_places >= chests.size() * 0.8)
 	var closest_spawns := INF
 	for a in spawns:
 		for b in spawns:

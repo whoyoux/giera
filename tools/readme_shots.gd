@@ -175,10 +175,10 @@ func _chest_shots(me: Player, forward: Vector3) -> void:
 
 func _chat_shot() -> void:
 	var chat := (get_tree().get_first_node_in_group(&"hud") as Hud)._chat
-	Chat.message_received.emit(2, "Kto otworzył skrzynkę?")
-	Chat.message_received.emit(3, "Ja! Była tam strzelba")
-	Chat.message_received.emit(1, "Dobra, idę do was")
-	Chat.message_received.emit(4, "Uważajcie, strefa zaraz rusza, więc lepiej chodźcie na polanę")
+	Chat.message_received.emit(2, "Kto otworzył skrzynkę?", false)
+	Chat.message_received.emit(3, "Ja! Była tam strzelba", false)
+	Chat.message_received.emit(1, "Dobra, idę do was", false)
+	Chat.message_received.emit(4, "Uważajcie, strefa zaraz rusza, więc lepiej chodźcie na polanę", false)
 	chat.open()
 	chat._input.text = "Widzę was"
 	chat._input.caret_column = chat._input.text.length()

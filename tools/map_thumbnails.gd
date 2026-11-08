@@ -1,11 +1,11 @@
 extends Node
 ## Narzedzie: miniaturki map do glosowania, z tego samego widoku co kamera menu, bez interfejsu.
-## Uzycie: --resolution 1280x720 -- --tool=res://tools/map_thumbnails.gd
+## Uzycie: --resolution 1280x720 -- --tool=res://tools/map_thumbnails.gd [--only=desert]
 ## Zapisuje assets/maps/<id>.png. Po zmianie wygladu mapy wystarczy puscic je jeszcze raz.
 
 const SIZE := Vector2i(480, 270)
 ## Kat na orbicie kamery menu, z ktorego mapa wyglada najlepiej.
-const ANGLES := { "forest": 0.6, "city": PI, "valley": 0.5 }
+const ANGLES := { "forest": 0.6, "city": PI, "valley": 0.5, "desert": 0.75 }
 
 
 func _ready() -> void:
@@ -16,6 +16,8 @@ func _ready() -> void:
 	main.add_child(camera)
 	camera.current = true
 	for id: String in Maps.ids():
+		if Net.args.has("only") and Net.args.only != id:
+			continue
 		Maps.select(id)
 		await get_tree().create_timer(1.0).timeout
 		var info := Maps.info()

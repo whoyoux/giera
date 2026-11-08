@@ -4,6 +4,8 @@ extends Node
 ## Deathmatch gra rundami: LIVE z limitem czasu i zabojstw, potem RESULTS i od razu nowa runda.
 
 signal phase_changed
+## Wynik druzyn Team Deathmatchu zmienil sie bez zmiany etapu.
+signal team_scores_changed
 
 enum Phase { LOBBY, COUNTDOWN, STARTING, LIVE, RESULTS }
 
@@ -19,10 +21,12 @@ const ZONE_DAMAGE_INTERVAL := 1.0
 ## --round-seconds i --round-kill-limit.
 const ROUND_SECONDS := 300.0
 const ROUND_KILL_LIMIT := 25
+## Team Deathmatch konczy sie, gdy jedna druzyna zbierze tyle zabojstw.
+const TEAM_KILL_LIMIT := 50
 const ROUND_RESULTS_SECONDS := 12.0
 const FINAL_WARNING_SECONDS := 30.0
 ## Mapy do wyboru w glosowaniu miedzy rundami Deathmatchu.
-const VOTE_MAPS: Array[String] = ["city", "forest"]
+const VOTE_MAPS: Array[String] = ["city", "desert", "forest"]
 ## Tick, ktory nigdy nie nadejdzie: wyeliminowany nie wraca sam do gry.
 const NEVER_TICK := 1 << 62
 
@@ -44,6 +48,10 @@ var round_number := 0
 var kill_limit := ROUND_KILL_LIMIT
 ## Glosy na nastepna mape: numer gracza -> id mapy. Zbierane w czasie wynikow rundy.
 var votes := {}
+## Zabojstwa druzyn w tej rundzie Team Deathmatchu. Odejscie gracza ich nie zmniejsza.
+var team_scores: Array = [0, 0]
+## Druzyna, ktora wygrala ostatnia runde, albo -1 przy remisie i poza Team Deathmatchem.
+var winning_team := -1
 
 ## Gracze meczu, razem z tymi, ktorzy juz wyszli z gry: id -> { id, name, kills, place }.
 var _ranking := {}
@@ -51,16 +59,22 @@ var _ranking := {}
 var _pending_out: Array[int] = []
 var _settle_queued := false
 var _zone_timer := 0.0
+var _team_retry_ms := 0
 
 
 func _ready() -> void:
 	GameState.player_added.connect(func(_id: int) -> void: _update_lobby())
 	GameState.player_removed.connect(_on_player_removed)
 	Net.session_ended.connect(func(_reason: String) -> void: _clear())
+	GameState.player_changed.connect(_on_player_changed)
 
 
 func is_elimination() -> bool:
 	return mode == GameMode.Id.BATTLE_ROYALE
+
+
+func is_team_mode() -> bool:
+	return mode == GameMode.Id.TEAM_DEATHMATCH
 
 
 ## Obrazenia i skrzynki dzialaja tylko w trakcie meczu.
@@ -118,6 +132,18 @@ func seconds_left() -> float:
 	return maxf(0.0, (phase_end_tick - NetworkTime.tick) * NetworkTime.ticktime) if phase_end_tick >= 0 else 0.0
 
 
+## Boty same wybieraja druzyne, zeby dalo sie testowac Team Deathmatch bez klikania.
+## --team=0 albo --team=1 wskazuje druzyne, a bez tego bot idzie do mniejszej.
+## Serwer odmawia, gdy wybrana druzyna jest za duza, wiec bot ponawia prosbe co chwile.
+func _on_player_changed(id: int) -> void:
+	if Net.bot_mode.is_empty() or not is_team_mode() or id != multiplayer.get_unique_id():
+		return
+	var now := Time.get_ticks_msec()
+	if Teams.team_of(id) == Teams.NONE and now >= _team_retry_ms:
+		_team_retry_ms = now + 2000
+		request_team(int(Net.args.get("team", Teams.NONE)))
+
+
 func toggle_ready() -> void:
 	var info: Dictionary = GameState.players.get(multiplayer.get_unique_id(), {})
 	if can_change_ready() and not info.is_empty():
@@ -132,7 +158,9 @@ func server_begin(new_mode: int) -> void:
 	phase = Phase.LOBBY if is_elimination() else Phase.LIVE
 	phase_end_tick = -1
 	round_number = 0 if is_elimination() else 1
-	kill_limit = int(Net.args.get("round-kill-limit", ROUND_KILL_LIMIT))
+	kill_limit = int(Net.args.get("round-kill-limit", TEAM_KILL_LIMIT if is_team_mode() else ROUND_KILL_LIMIT))
+	team_scores = [0, 0]
+	winning_team = -1
 	freeze_from_tick = -1
 	freeze_end_tick = -1
 	phase_changed.emit()
@@ -157,6 +185,8 @@ func server_send_state(id: int) -> void:
 
 
 func _process(delta: float) -> void:
+	if Net.in_session and not multiplayer.is_server() and not Net.bot_mode.is_empty() and Engine.get_process_frames() % 30 == 0:
+		_on_player_changed(multiplayer.get_unique_id())
 	if not Net.in_session or not multiplayer.is_server():
 		return
 	if not is_elimination():
@@ -202,7 +232,8 @@ func _update_round() -> void:
 				print("[serwer] runda %d do ticku %d" % [round_number, phase_end_tick])
 				return
 			var rows := standings()
-			if NetworkTime.tick >= phase_end_tick or (not rows.is_empty() and rows[0].kills >= kill_limit):
+			var best: int = maxi(team_scores[0], team_scores[1]) if is_team_mode() else (rows[0].kills if not rows.is_empty() else 0)
+			if NetworkTime.tick >= phase_end_tick or best >= kill_limit:
 				_finish_round(rows)
 		Phase.RESULTS:
 			if NetworkTime.tick >= phase_end_tick:
@@ -216,8 +247,11 @@ func _round_seconds() -> float:
 func _finish_round(rows: Array) -> void:
 	results = rows.map(func(row: Dictionary) -> Dictionary:
 		var info: Dictionary = GameState.players.get(row.id, {})
-		return { "id": row.id, "name": row.name, "kills": row.kills, "place": row.place, "character": info.get("character", ""),
-			"shots": info.get("shots", 0), "hits": info.get("hits", 0), "headshots": info.get("headshots", 0) })
+		return { "id": row.id, "name": row.name, "kills": row.kills, "deaths": row.deaths, "place": row.place, "character": info.get("character", ""),
+			"shots": info.get("shots", 0), "hits": info.get("hits", 0), "headshots": info.get("headshots", 0), "team": info.get("team", Teams.NONE) })
+	if is_team_mode():
+		winning_team = -1 if team_scores[0] == team_scores[1] else (0 if team_scores[0] > team_scores[1] else 1)
+		results = team_results(results, winning_team)
 	print("[serwer] koniec rundy %d, lider: %s" % [round_number, results[0].name if not results.is_empty() else "-"])
 	_enter_phase(Phase.RESULTS, NetworkTime.tick + NetworkTime.seconds_to_ticks(ROUND_RESULTS_SECONDS))
 
@@ -227,6 +261,8 @@ func _start_next_round() -> void:
 	_apply_vote()
 	var tick := NetworkTime.tick + NetworkTime.seconds_to_ticks(TELEPORT_LEAD_SECONDS)
 	results = []
+	team_scores = [0, 0]
+	winning_team = -1
 	round_number += 1
 	# Chwila na rozejrzenie sie po przeniesieniu, zanim ktos zacznie strzelac. Zamrozenie rusza
 	# od razu, bo do przeniesienia gracze stoja jeszcze tam, gdzie skonczyli runde.
@@ -234,7 +270,10 @@ func _start_next_round() -> void:
 	freeze_end_tick = tick + NetworkTime.seconds_to_ticks(FREEZE_SECONDS)
 	_clear_world.rpc()
 	for id: int in GameState.players:
-		GameState.server_prepare_round(id, -1, tick)
+		if is_team_mode() and Teams.team_of(id) == Teams.NONE:
+			GameState.server_make_spectator(id, tick)
+		else:
+			GameState.server_prepare_round(id, -1, tick)
 	_enter_phase(Phase.LIVE, tick + NetworkTime.seconds_to_ticks(_round_seconds()))
 	print("[serwer] runda %d do ticku %d" % [round_number, phase_end_tick])
 
@@ -397,11 +436,14 @@ func _enter_phase(new_phase: int, end_tick: int) -> void:
 
 
 func _state() -> Dictionary:
-	return { "map": Maps.current_id, "votes": votes, "mode": mode, "round": round_number, "kill_limit": kill_limit, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
+	return { "map": Maps.current_id, "votes": votes, "mode": mode, "team_scores": team_scores, "winning_team": winning_team, "round": round_number, "kill_limit": kill_limit, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
 
 
 func _clear() -> void:
+	_team_retry_ms = 0
 	mode = GameMode.Id.DEATHMATCH
+	team_scores = [0, 0]
+	winning_team = -1
 	round_number = 0
 	kill_limit = ROUND_KILL_LIMIT
 	phase = Phase.LIVE
@@ -414,6 +456,56 @@ func _clear() -> void:
 	_ranking.clear()
 	_pending_out.clear()
 	phase_changed.emit()
+
+
+## Wyniki Team Deathmatchu: najpierw wygrana druzyna, w niej od najlepszego. Podium bierze
+## trzech pierwszych, czyli najlepszych zwyciezcow. Przy remisie kolejnosc daja same zabojstwa.
+static func team_results(rows: Array, winner: int) -> Array:
+	var sorted := rows.duplicate(true)
+	sorted.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_won: bool = winner >= 0 and a.get("team", -1) == winner
+		var b_won: bool = winner >= 0 and b.get("team", -1) == winner
+		if a_won != b_won:
+			return a_won
+		if a.kills != b.kills:
+			return a.kills > b.kills
+		return a.get("deaths", 0) < b.get("deaths", 0) or (a.get("deaths", 0) == b.get("deaths", 0) and a.id < b.id))
+	for index in sorted.size():
+		sorted[index].place = index + 1
+	return sorted
+
+
+## Najlepszy gracz druzyny w wynikach: najwiecej zabojstw, potem najmniej smierci. Pusty, gdy nikogo nie ma.
+static func team_mvp(rows: Array, team: int) -> Dictionary:
+	var best := {}
+	for row: Dictionary in rows:
+		if row.get("team", -1) != team:
+			continue
+		if best.is_empty() or row.kills > best.kills or (row.kills == best.kills and row.get("deaths", 0) < best.get("deaths", 0)):
+			best = row
+	return best
+
+
+## Druzyna, ktora teraz prowadzi, albo -1 przy remisie.
+func leading_team() -> int:
+	if team_scores[0] == team_scores[1]:
+		return -1
+	return 0 if team_scores[0] > team_scores[1] else 1
+
+
+## -1 wybiera mniejsza druzyne.
+func request_team(team: int) -> void:
+	if is_team_mode():
+		_request_team.rpc_id(1, team)
+
+
+## Punkt dla druzyny zabojcy. Wolane przez serwer przy kazdym zabojstwie wroga.
+func server_on_team_kill(team: int) -> void:
+	if not is_team_mode() or team < 0 or team >= Teams.COUNT or phase != Phase.LIVE:
+		return
+	team_scores[team] += 1
+	team_scores_changed.emit()
+	_sync_team_scores.rpc(team_scores)
 
 
 # --- RPC --------------------------------------------------------------------
@@ -435,12 +527,37 @@ func _request_vote(map_id: String) -> void:
 	_sync_state.rpc(_state())
 
 
+## Serwer pilnuje rownowagi, a odmowa po prostu nic nie zmienia.
+@rpc("any_peer", "call_local", "reliable")
+func _request_team(team: int) -> void:
+	if not multiplayer.is_server() or not is_team_mode():
+		return
+	var id := multiplayer.get_remote_sender_id()
+	if not GameState.players.has(id):
+		return
+	var chosen := Teams.smaller_team(id) if team == Teams.NONE else team
+	if chosen == Teams.team_of(id):
+		return
+	if not Teams.can_join(id, chosen):
+		print("[serwer] %s nie moze dolaczyc do druzyny %d" % [GameState.display_name(id), chosen])
+		return
+	GameState.server_set_team(id, chosen)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _sync_team_scores(scores: Array) -> void:
+	team_scores = scores
+	team_scores_changed.emit()
+
+
 @rpc("authority", "call_remote", "reliable")
 func _sync_state(state: Dictionary) -> void:
 	# Mapa musi stac, zanim powstana postacie i skrzynki z nastepnych wiadomosci.
 	Maps.select(state.map)
 	votes = state.votes
 	mode = state.mode
+	team_scores = state.team_scores
+	winning_team = state.winning_team
 	round_number = state.round
 	kill_limit = state.kill_limit
 	phase = state.phase

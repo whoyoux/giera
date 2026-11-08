@@ -17,6 +17,10 @@ const SIDE_COLUMN_TOP := 290.0
 ## Na podium Deathmatchu jeden niski panel stoi przy dolnej krawedzi, zeby nie zaslaniac postaci:
 ## po lewej wynik rundy, po prawej glosowanie na nastepna mape.
 const PODIUM_SUMMARY_WIDTH := 260.0
+## Team Deathmatch pokazuje obie druzyny obok siebie, wiec jego czesc z wynikiem jest szersza.
+const TEAM_SUMMARY_WIDTH := 400.0
+## Tylu najlepszych z kazdej druzyny miesci sie w karcie. Reszta jest pod Tab.
+const TEAM_ROWS := 4
 const PODIUM_CARD_BOTTOM := 24.0
 const RESULTS_CARD_WIDTH := 520.0
 ## Odliczanie stoi pod zegarem rundy Deathmatchu, ktory zajmuje gore ekranu.
@@ -64,6 +68,9 @@ var _vote_timer: Label
 ## Karty map w kolejnosci Match.VOTE_MAPS: { card, count, badge, key, state }.
 var _vote_cards: Array[Dictionary] = []
 var _hovered_vote := -1
+var _round_divider: Control
+## Sekcja "Twoja runda": wlasne liczby z tej rundy i strzalki wzgledem poprzedniej.
+var _round_section: VBoxContainer
 var _watch_panel: PanelContainer
 var _watch_label: Label
 
@@ -154,12 +161,17 @@ func _update_vote_cards() -> void:
 
 ## Odmiana: 1 glos, 2 glosy, 5 glosow, 22 glosy.
 static func votes_text(count: int) -> String:
+	return plural(count, "głos", "głosy", "głosów")
+
+
+## Liczba z polska odmiana: 1 zabojstwo, 2 zabojstwa, 5 zabojstw, 22 zabojstwa.
+static func plural(count: int, one: String, few: String, many: String) -> String:
 	if count == 1:
-		return "1 głos"
+		return "1 " + one
 	var tens := count % 100
 	if count % 10 in [2, 3, 4] and not (tens >= 12 and tens <= 14):
-		return "%d głosy" % count
-	return "%d głosów" % count
+		return "%d %s" % [count, few]
+	return "%d %s" % [count, many]
 
 
 ## 0: zwykla karta, 1: pod kursorem, 2: wlasny glos.
@@ -243,6 +255,8 @@ func _play_phase_sound() -> void:
 
 
 func _i_won() -> bool:
+	if Match.is_team_mode():
+		return Match.winning_team >= 0 and Match.winning_team == Teams.team_of(multiplayer.get_unique_id())
 	for entry: Dictionary in Match.results:
 		if entry.id == multiplayer.get_unique_id():
 			return entry.place == 1
@@ -253,6 +267,8 @@ func _refresh_results() -> void:
 	var showing := Match.phase == Match.Phase.RESULTS
 	if showing and not _results_center.visible:
 		_fill_results()
+		# Statystyki zamrazaja runde w tym samym sygnale, wiec czytamy je chwile pozniej.
+		_fill_round_stats.call_deferred()
 		_place_results(not Match.is_elimination())
 		UiStyle.pop_in(_results_card)
 		_hovered_vote = -1
@@ -264,7 +280,7 @@ func _place_results(podium: bool) -> void:
 	_results_center.alignment = BoxContainer.ALIGNMENT_END if podium else BoxContainer.ALIGNMENT_CENTER
 	_results_center.offset_bottom = -PODIUM_CARD_BOTTOM if podium else 0.0
 	_results_card.custom_minimum_size.x = 0.0 if podium else RESULTS_CARD_WIDTH
-	_results_summary.custom_minimum_size.x = PODIUM_SUMMARY_WIDTH if podium else 0.0
+	_results_summary.custom_minimum_size.x = (TEAM_SUMMARY_WIDTH if Match.is_team_mode() else PODIUM_SUMMARY_WIDTH) if podium else 0.0
 	_results_title.add_theme_font_size_override("font_size", 28 if podium else 38)
 	# Na podium obie czesci panelu czyta sie od lewej gornej krawedzi, jak jeden uklad.
 	_results_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if podium else HORIZONTAL_ALIGNMENT_CENTER
@@ -272,13 +288,18 @@ func _place_results(podium: bool) -> void:
 	_results_eyebrow.visible = podium
 	_results_tab_hint.visible = podium
 	_results_tab_hint.text = "%s: pełna tabela" % Keybinds.label_of("scoreboard")
+	_results_eyebrow.text = "Koniec rundy · Team Deathmatch" if Match.is_team_mode() else "Koniec rundy"
 
 
 func _fill_results() -> void:
 	for child in _results_rows.get_children():
 		child.free()
-	var winners := Match.results.filter(func(entry: Dictionary) -> bool: return entry.place == 1)
 	var my_id := multiplayer.get_unique_id()
+	_results_title.add_theme_color_override("font_color", UiStyle.CORAL)
+	if Match.is_team_mode():
+		_fill_team_results(my_id)
+		return
+	var winners := Match.results.filter(func(entry: Dictionary) -> bool: return entry.place == 1)
 	if winners.size() == 1 and winners[0].id == my_id:
 		_results_title.text = "Wygrywasz!"
 	elif winners.size() == 1:
@@ -315,6 +336,131 @@ func _fill_podium_rows(my_id: int) -> void:
 		award.clip_text = true
 		award.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_results_rows.add_child(award)
+
+
+## Wygrana druzyna w tytule, wynik obu druzyn i po kolumnie na kazda z MVP na gorze.
+## Remis ma wlasny tytul i neutralny kolor.
+func _fill_team_results(my_id: int) -> void:
+	var winner := Match.winning_team
+	var mine := Teams.team_of(my_id)
+	if winner < 0:
+		_results_title.text = "Remis!"
+		_results_title.add_theme_color_override("font_color", UiStyle.INK)
+	else:
+		_results_title.text = ("Wygrywacie, %s!" if winner == mine else "Wygrywają %s") % Teams.name_of(winner)
+		_results_title.add_theme_color_override("font_color", Teams.color_of(winner).darkened(0.15))
+	var score := UiStyle.label("%s %d : %d %s" % [Teams.name_of(0), Match.team_scores[0], Match.team_scores[1], Teams.name_of(1)], 17, UiStyle.INK)
+	_results_rows.add_child(score)
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 16)
+	columns.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_results_rows.add_child(columns)
+	for team in Teams.COUNT:
+		columns.add_child(_team_column(team, my_id))
+	for entry: Dictionary in Match.results:
+		if entry.id == my_id:
+			_results_rows.add_child(UiStyle.label("Twój wynik: %s · %s" % [plural(entry.kills, "zabójstwo", "zabójstwa", "zabójstw"), plural(entry.get("deaths", 0), "śmierć", "śmierci", "śmierci")], 15, UiStyle.BLUE))
+
+
+func _team_column(team: int, my_id: int) -> VBoxContainer:
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var header := UiStyle.label("%s · %d" % [Teams.name_of(team), Match.team_scores[team]], 15, Teams.color_of(team).darkened(0.25))
+	column.add_child(header)
+	var mvp := Match.team_mvp(Match.results, team)
+	var rows := Match.results.filter(func(entry: Dictionary) -> bool: return entry.get("team", -1) == team)
+	for entry: Dictionary in rows.slice(0, TEAM_ROWS):
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 4)
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var color := UiStyle.BLUE if entry.id == my_id else UiStyle.INK
+		var is_mvp: bool = not mvp.is_empty() and mvp.id == entry.id and entry.kills > 0
+		var name_label := UiStyle.label(("★ " if is_mvp else "") + entry.name, 14, Color("b07d00") if is_mvp else color, is_mvp or entry.id == my_id)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.clip_text = true
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		line.add_child(name_label)
+		line.add_child(UiStyle.label(str(entry.kills), 14, color))
+		column.add_child(line)
+	if rows.is_empty():
+		column.add_child(UiStyle.label("pusto", 14, Color(UiStyle.INK, 0.65), false))
+	elif rows.size() > TEAM_ROWS:
+		column.add_child(UiStyle.label("i %d więcej" % (rows.size() - TEAM_ROWS), 13, Color(UiStyle.INK, 0.65), false))
+	return column
+
+
+## Liczby gracza z tej rundy, liczone u niego na komputerze przez PlayerStats. Strzalka mowi,
+## czy jest lepiej niz w poprzedniej rundzie. Bez statystyk (np. bez okna) sekcji nie ma.
+func _fill_round_stats() -> void:
+	for child in _round_section.get_children():
+		child.free()
+	var stats := get_tree().get_first_node_in_group(PlayerStats.GROUP) as PlayerStats
+	var shown: bool = stats != null and not stats.last_round.is_empty() and GameState.players.get(multiplayer.get_unique_id(), {}).get("in_match", true)
+	_round_section.visible = shown
+	_round_divider.visible = shown
+	if not shown:
+		return
+	var now: Dictionary = stats.last_round
+	var before: Dictionary = stats.previous_round
+	var header := HBoxContainer.new()
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_round_section.add_child(header)
+	var title := UiStyle.label("Twoja runda", 17, UiStyle.INK)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	header.add_child(UiStyle.label("strzałki: w porównaniu z poprzednią rundą" if not before.is_empty() else "pierwsza runda w tej sesji", 13, Color(UiStyle.INK, 0.65), false))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_round_section.add_child(row)
+	var accuracy := PlayerStats.round_accuracy(now)
+	var cells: Array[Array] = [
+		["Zabójstwa", str(now.kills), _compare(now.kills, before.get("kills", -1), true)],
+		["Śmierci", str(now.deaths), _compare(now.deaths, before.get("deaths", -1), false)],
+		["Celność", "%d%%" % accuracy if accuracy >= 0 else "–", _compare(accuracy, PlayerStats.round_accuracy(before) if not before.is_empty() else -1, true)],
+		["W głowę", str(now.headshots), _compare(now.headshots, before.get("headshots", -1), true)],
+		["Obrażenia", str(now.damage), _compare(now.damage, before.get("damage", -1), true)],
+		["Najdłuższe", "%d m" % roundi(now.longest) if now.longest > 0.0 else "–", _compare(roundi(now.longest), roundi(before.get("longest", -1.0)), true)],
+	]
+	for cell: Array in cells:
+		row.add_child(_stat_cell(cell[0], cell[1], cell[2]))
+	var favorite := PlayerStats.round_favorite(now)
+	row.add_child(_stat_cell("Ulubiona broń", favorite if not favorite.is_empty() else "–", 0, 150.0))
+
+
+## -1 brak porownania, 0 bez zmian, a dalej: 1 wzroslo i dobrze, 2 wzroslo i zle,
+## 3 spadlo i dobrze, 4 spadlo i zle. Np. mniej smierci to strzalka w dol w kolorze "dobrze".
+static func _compare(value: int, previous: int, more_is_better: bool) -> int:
+	if previous < 0 or value < 0:
+		return -1
+	if value == previous:
+		return 0
+	var up := value > previous
+	var good := up == more_is_better
+	return (1 if up else 3) + (0 if good else 1)
+
+
+func _stat_cell(caption: String, value: String, trend: int, width := 84.0) -> VBoxContainer:
+	var cell := VBoxContainer.new()
+	cell.add_theme_constant_override("separation", 0)
+	cell.custom_minimum_size.x = width
+	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 4)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(line)
+	var number := UiStyle.label(value, 17, UiStyle.INK)
+	number.clip_text = true
+	number.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	number.custom_minimum_size.x = minf(UiStyle.text_width(value, 17, true) + 2.0, width - 18.0)
+	line.add_child(number)
+	if trend > 0:
+		var good := trend == 1 or trend == 3
+		line.add_child(UiStyle.label("▲" if trend <= 2 else "▼", 14, UiStyle.TEAL.darkened(0.15) if good else UiStyle.CORAL))
+	cell.add_child(UiStyle.label(caption, 13, Color(UiStyle.INK, 0.65), false))
+	return cell
 
 
 func _short(player_name: String) -> String:
@@ -450,10 +596,23 @@ func _build_results() -> void:
 	_results_card.add_theme_stylebox_override("panel", style)
 	_results_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_results_center.add_child(_results_card)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 12)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_results_card.add_child(stack)
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", SECTION_GAP)
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_results_card.add_child(body)
+	stack.add_child(body)
+	_round_divider = ColorRect.new()
+	(_round_divider as ColorRect).color = DIVIDER_COLOR
+	_round_divider.custom_minimum_size.y = 2
+	_round_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(_round_divider)
+	_round_section = VBoxContainer.new()
+	_round_section.add_theme_constant_override("separation", 6)
+	_round_section.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(_round_section)
 
 	# Wynik rundy: zwyciezca jest najwazniejszy, pod nim wlasne miejsce i nagrody.
 	_results_summary = VBoxContainer.new()

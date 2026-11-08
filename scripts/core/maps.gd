@@ -13,7 +13,7 @@ var _catalog := {}
 
 
 func _init() -> void:
-	for info: MapInfo in [ForestMapInfo.new(), CityMapInfo.new(), ValleyMapInfo.new()]:
+	for info: MapInfo in [ForestMapInfo.new(), CityMapInfo.new(), ValleyMapInfo.new(), DesertMapInfo.new()]:
 		_catalog[info.id] = info
 
 

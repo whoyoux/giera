@@ -8,6 +8,14 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 |---|---|---|---|
 | ![Otwieranie skrzynki](docs/screenshots/chest_open.png) | ![Bronie na ziemi](docs/screenshots/loot.png) | ![Celowanie](docs/screenshots/aim.png) | ![Wybuch granatu](docs/screenshots/grenade.png) |
 
+| Wybór drużyny | Team Deathmatch | Tabela drużyn | Koniec rundy drużyn |
+|---|---|---|---|
+| ![Wybór drużyny](docs/screenshots/tdm_lobby.png) | ![HUD Team Deathmatchu](docs/screenshots/tdm_hud.png) | ![Tabela drużyn](docs/screenshots/tdm_scoreboard.png) | ![Koniec rundy drużyn](docs/screenshots/tdm_results.png) |
+
+| Pustynia | Desert Eagle | Desert Eagle w ręku | Twoja runda | Wioska w dolinie |
+|---|---|---|---|---|
+| ![Targ na pustyni](docs/screenshots/desert_market.png) | ![Model Desert Eagle](docs/screenshots/deagle_po.png) | ![Desert Eagle w ręku](docs/screenshots/deagle_reka.png) | ![Statystyki rundy](docs/screenshots/dm_results.png) | ![Wioska w dolinie](docs/screenshots/valley_village_noc2.png) |
+
 | Lobby Battle Royale | Poza strefą | Wyniki meczu |
 |---|---|---|
 | ![Lobby Battle Royale](docs/screenshots/br_lobby.png) | ![Gracz poza strefą](docs/screenshots/br_zone.png) | ![Wyniki meczu](docs/screenshots/br_results.png) |
@@ -34,12 +42,16 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 ## Co jest w grze
 
-- **Dwa tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, a w Battle Royale masz jedno życie.
+- **Trzy tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, Team Deathmatch to walka dwóch drużyn, a w Battle Royale masz jedno życie.
+- **Team Deathmatch:** po wejściu wybierasz drużynę: pomarańczowe **Kaktusy** albo niebieskie **Żuczki** (albo „Losowo”). Drużyny różnią się najwyżej o jedną osobę. Liczą się zabójstwa całej drużyny, do 50. Nie ma ognia przyjacielskiego. Sojuszników poznasz po chuście w kolorze drużyny i plakietce widocznej przez ściany, a na mapce widać ich kropki. U góry ekranu jest wynik obu drużyn, pod Tab tabela w dwóch kolumnach, a na koniec rundy wygrana drużyna, MVP każdej z nich i podium zwycięzców.
+- **Pustynia:** duża mapa (ok. 130 × 130 m) do Deathmatchu i Team Deathmatchu: Stacja z wagonami i wieżą ciśnień, gliniana Twierdza, Targ z płóciennymi daszkami, Kanion z mostem linowym, Oaza z palmami i Wydmy z wrakiem ciężarówki. Złote, niskie słońce, piasek niesiony wiatrem i toczące się krzaki-kulki.
+- **Odrzut broni:** każda broń kopie inaczej: Desert Eagle mocno podbija lufę i cofa zamek, AWP ciężko wchodzi w ramię i przeładowuje rygiel, strzelba szarpie i przesuwa pompkę, a blaster lekko drży. Siłę uderzenia kamery ustawisz w ustawieniach, a kierunek strzału się nie zmienia.
+- **Twoja runda:** po każdej rundzie widzisz swoje zabójstwa, śmierci, celność, trafienia w głowę, obrażenia, najdłuższe zabójstwo i ulubioną broń, ze strzałkami w porównaniu z poprzednią rundą.
 - **Rundy Deathmatchu:** runda trwa 5 minut albo do 25 zabójstw lidera. Na górze ekranu widać zegar, lidera i Twoje miejsce, a z boku najlepszą trójkę. Ostatnie 30 sekund ma wyraźny sygnał. Na koniec trójka zwycięzców tańczy na podium, są nagrody za zabójstwa, celność i trafienia w głowę, a po 12 s rusza nowa runda z czystym stanem. Między rundami głosujesz na następną mapę: klikasz jej kartę z podglądem albo naciskasz 1 lub 2.
-- **Mapy:** Deathmatch gra w kolorowym **Miasteczku** o zachodzie słońca, z ulicami, placem z fontanną, kamienicą i hotelem z wejściem na dach, kontenerami i zaułkami. Są tam drabiny, rura i dwa przejścia tylko w kucki. Battle Royale gra w dużej **Dolinie** (ok. 200 m promienia) z sześcioma miejscami: Stare ruiny, Wioska, Gospodarstwo, Kamieniołom, Jezioro z mostem i Obóz na wzgórzu.
+- **Mapy:** Deathmatch gra w kolorowym **Miasteczku** o zachodzie słońca, z ulicami, placem z fontanną, kamienicą i hotelem z wejściem na dach, kontenerami i zaułkami. Są tam drabiny, rura i dwa przejścia tylko w kucki. Battle Royale gra w dużej **Dolinie** (ok. 200 m promienia) z sześcioma miejscami: Stare ruiny, Wioska, Gospodarstwo, Kamieniołom, Jezioro z mostem i Obóz na wzgórzu, a między nimi drogi z drogowskazami, wozy, obozowiska, chaty i ruiny z łupem.
 - **Regeneracja w Deathmatchu:** nie ma apteczek. Po 6 s bez obrażeń zdrowie wraca o 8 punktów na sekundę, a każde trafienie przerywa leczenie.
 - **Desert Eagle i AWP:** Desert Eagle zabija dwoma trafieniami, a rzadki AWP jednym, z każdej odległości. Prawy przycisk z AWP daje lunetę na cały ekran, a strzał z niej wyrzuca.
-- **Trafienia w głowę:** inny znacznik i dźwięk, ikona na liście zabójstw i liczby obrażeń nad celem (można je wyłączyć).
+- **Trafienia w głowę:** inny znacznik i dźwięk (osobne dźwięki ma też zabójstwo, zabójstwo w głowę i zabójstwo z AWP), ikona na liście zabójstw i liczby obrażeń nad celem (można je wyłączyć).
 - **Ekran śmierci:** pokazuje, kto Cię zabił, jaką bronią i ile zdrowia mu zostało. W Deathmatchu odradzasz się z dala od wrogów i masz 2 s ochrony, która znika po strzale.
 - **Serie zabójstw:** pierwsza krew, podwójne i potrójne zabójstwo, serie i ich przerwanie.
 - **Zrzuty zaopatrzenia w Battle Royale:** skrzynia spada na spadochronie z kolorowym dymem i daje legendarny łup. Widać ją na mapce, a pod klawiszem M jest duża mapa z nazwami miejsc.
@@ -78,7 +90,7 @@ Pobierasz ją tylko raz: przy każdym uruchomieniu gra sama sprawdza i instaluje
 - **Windows:** rozpakuj `Giera-Windows.zip` do jednego folderu i uruchom `Giera.exe`. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
 - **macOS:** rozpakuj `Giera-macOS.zip` i uruchom `Giera.app`. Aplikacja nie ma podpisu Apple, więc przy pierwszym uruchomieniu wybierz **Otwórz mimo to** w **Ustawienia systemowe → Prywatność i ochrona**.
 
-Jeśli Steam jest włączony, gra zaloguje Cię sama. W innym wypadku wpisz nick. Potem podaj adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu UDP: 7777 dla Deathmatchu, 7778 dla Battle Royale.
+Jeśli Steam jest włączony, gra zaloguje Cię sama. W innym wypadku wpisz nick. Potem podaj adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu UDP: 7777 dla Deathmatchu, 7778 dla Battle Royale, 7779 dla Team Deathmatchu.
 
 Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d --build`.
 
@@ -95,12 +107,14 @@ Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d 
 | **Shift** | Sprint |
 | **Spacja** | Skok |
 | **Ctrl** | Kucanie (przytrzymaj), w sprincie ślizg |
-| **M** | Duża mapa w Battle Royale (przytrzymaj) |
+| **M** | Duża mapa w Battle Royale i Team Deathmatchu (przytrzymaj) |
 | **1–4 / scroll** | Zmiana broni, a na ekranie wyników głos na mapę |
 | **E** | Podniesienie przedmiotu, przytrzymanie otwiera skrzynkę |
 | **G** | Wyrzucenie przedmiotu |
 | **B** | Przytrzymanie otwiera koło tańców. Puszczenie albo LPM wybiera taniec, a ruch go przerywa |
 | **T** | Czat. Enter wysyła, Esc zamyka |
+| **Y** | Czat drużyny w Team Deathmatchu |
+| **N** | Wybór drużyny w Team Deathmatchu |
 | **Tab** | Wyniki |
 | **Esc** | Pauza i ustawienia |
 

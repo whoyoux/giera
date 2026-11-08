@@ -29,6 +29,7 @@ const CHIP_COLORS := {
 	ForestTerrain.Ground.WATER: Color("bfe3f0"),
 	ForestTerrain.Ground.CONCRETE: Color("c9c2b6"),
 	ForestTerrain.Ground.METAL: Color("ffcb47"),
+	ForestTerrain.Ground.SAND: Color("f2c98a"),
 }
 
 static var _holes: Array[Node3D] = []

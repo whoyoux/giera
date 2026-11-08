@@ -9,6 +9,13 @@ const TREE_COLLISION_RADIUS := 0.35
 const TREE_VISIBLE := 190.0
 const BUSH_VISIBLE := 110.0
 const GRASS_VISIBLE := 45.0
+const CLUTTER_VISIBLE := 40.0
+## Drobnica ma wieksze kawalki niz drzewa, zeby bylo mniej wezlow do sprawdzania.
+const CLUTTER_CELL := 96.0
+## Rekwizyty laczone w jedna siatke na kawalek mapy i widoczne do tej odleglosci.
+const PROP_CELL := 64.0
+const PROP_VISIBLE := 150.0
+const SHADOW_MIN_SIZE := 1.6
 const BORDER_SEGMENTS := 64
 const BORDER_HEIGHT := 60.0
 
@@ -26,6 +33,13 @@ const WOOD_DARK := Color("7a5236")
 const ROOF_RED := Color("d9604f")
 const WALLS: Array[Color] = [Color("f6e3c3"), Color("f2c38b"), Color("cfe3b4"), Color("f3d1d8"), Color("cfdcf2")]
 const WATER := Color(0.34, 0.66, 0.86, 0.75)
+## Male punkty miedzy miejscami z jedna skrzynka: miejsce i rodzaj.
+const OUTPOSTS: Array[Array] = [
+	[Vector2(-55.0, 20.0), "camp"], [Vector2(60.0, 35.0), "hut"], [Vector2(-40.0, -55.0), "ruin"],
+	[Vector2(70.0, -40.0), "rocks"], [Vector2(-130.0, -10.0), "hut"], [Vector2(40.0, 95.0), "camp"],
+	[Vector2(-60.0, 120.0), "ruin"], [Vector2(140.0, 20.0), "rocks"], [Vector2(-20.0, 70.0), "tower"],
+	[Vector2(30.0, -120.0), "camp"], [Vector2(-150.0, 60.0), "rocks"], [Vector2(95.0, -150.0), "ruin"],
+]
 
 var _headless := false
 var _body: StaticBody3D
@@ -52,6 +66,8 @@ func _ready() -> void:
 		_clear.append({ "at": entry.at, "radius": entry.radius * 1.05 })
 	_build_terrain()
 	_build_border()
+	# Punkty startu powstaja najpierw, zeby nowe rekwizyty mogly je omijac.
+	_build_spawns()
 	_build_ruins(ValleyTerrain.place("ruins"))
 	_build_village(ValleyTerrain.place("village"))
 	_build_farm(ValleyTerrain.place("farm"))
@@ -59,7 +75,11 @@ func _ready() -> void:
 	_build_lake(ValleyTerrain.place("lake"))
 	_build_camp(ValleyTerrain.place("camp"))
 	_build_road_chests()
-	_build_spawns()
+	var props_from := _visuals.get_child_count()
+	_build_place_props()
+	_build_roadside()
+	_build_outposts()
+	_merge_visuals(props_from)
 	_build_vegetation()
 	_build_markers()
 	if not _headless:
@@ -459,6 +479,381 @@ func _build_spawns() -> void:
 		_clear.append({ "at": Vector2(spawn.x, spawn.z), "radius": 4.0 })
 
 
+# --- Rekwizyty -------------------------------------------------------------------
+
+## Laczy siatki rekwizytow w jedna siatke na kawalek mapy i material. Setki malych czesci
+## (slupy, kola, kamienie ognisk) kosztowalyby inaczej osobne wywolanie rysowania kazda.
+func _merge_visuals(from_index: int) -> void:
+	if _headless:
+		return
+	var groups := {}
+	var children := _visuals.get_children()
+	for index in range(from_index, children.size()):
+		var node := children[index] as MeshInstance3D
+		if node == null or node.mesh == null:
+			continue
+		var cell := Vector2i(floori(node.position.x / PROP_CELL), floori(node.position.z / PROP_CELL))
+		# Drobne czesci, np. kola, kamyki i slupki barierek, nie rzucaja cienia.
+		var large := node.mesh.get_aabb().get_longest_axis_size() > SHADOW_MIN_SIZE
+		var key := [cell, node.material_override, large]
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(node)
+	var meshes := {}
+	for key: Array in groups:
+		var cell: Vector2i = key[0]
+		var bucket := [cell, key[2]]
+		var center := Vector3((cell.x + 0.5) * PROP_CELL, 0.0, (cell.y + 0.5) * PROP_CELL)
+		var tool := SurfaceTool.new()
+		tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for node: MeshInstance3D in groups[key]:
+			tool.append_from(node.mesh, 0, node.transform.translated(-center))
+			node.free()
+		if not meshes.has(bucket):
+			meshes[bucket] = ArrayMesh.new()
+		var mesh: ArrayMesh = meshes[bucket]
+		tool.commit(mesh)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, key[1])
+	for bucket: Array in meshes:
+		var cell: Vector2i = bucket[0]
+		var merged := MeshInstance3D.new()
+		merged.mesh = meshes[bucket]
+		merged.position = Vector3((cell.x + 0.5) * PROP_CELL, 0.0, (cell.y + 0.5) * PROP_CELL)
+		merged.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bucket[1] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		merged.visibility_range_end = PROP_VISIBLE if bucket[1] else PROP_VISIBLE * 0.6
+		merged.visibility_range_end_margin = 12.0
+		merged.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		_visuals.add_child(merged)
+
+
+## Czy w tym miejscu mozna cos postawic: z dala od punktow startu, skrzynek i drog.
+func _is_free(at: Vector2, radius: float, off_road := true) -> bool:
+	for spawn in _spawns:
+		if at.distance_to(Vector2(spawn.x, spawn.z)) < radius + 3.0:
+			return false
+	for chest in _chests:
+		if at.distance_to(Vector2(chest.x, chest.z)) < radius + 1.2:
+			return false
+	if off_road and ValleyTerrain.road_distance(at.x, at.y) < ValleyTerrain.ROAD_WIDTH + radius:
+		return false
+	return at.length() < ValleyTerrain.RIM_START - radius
+
+
+func _haystack(at: Vector2, rot := 0.0) -> void:
+	if not _is_free(at, 1.2):
+		return
+	_block(at, Vector3(1.8, 1.3, 1.4), Color("e6c35c"), rot)
+	_block(at, Vector3(1.6, 0.6, 1.2), Color("f0d77a"), rot, 1.3)
+
+
+## Woz z drabinami: skrzynia na kolach i dyszel. Skrzynia ma kolizje, kola tylko wyglad.
+func _cart(at: Vector2, rot: float, load_color := Color("e6c35c")) -> void:
+	if not _is_free(at, 2.2):
+		return
+	var center := _block(at, Vector3(1.8, 0.9, 3.2), WOOD, rot, 0.55)
+	var basis := Basis(Vector3.UP, rot)
+	_box(center + Vector3.UP * 0.6, Vector3(1.5, 0.4, 2.8), load_color, rot, false)
+	if _headless:
+		return
+	for wheel: Vector3 in [Vector3(-1.0, -0.15, -0.9), Vector3(1.0, -0.15, -0.9), Vector3(-1.0, -0.15, 0.9), Vector3(1.0, -0.15, 0.9)]:
+		var mesh := LowPoly.part(_visuals, LowPoly.cylinder(0.55, 0.55, 0.15, 10), WOOD_DARK, center + basis * wheel)
+		mesh.basis = basis * Basis(Vector3.FORWARD, PI * 0.5)
+	var shaft := LowPoly.part(_visuals, LowPoly.box(Vector3(0.12, 0.12, 2.4), 0.03), WOOD_DARK, center + basis * Vector3(0.0, -0.3, -2.6))
+	shaft.basis = basis * Basis(Vector3.RIGHT, 0.25)
+
+
+func _barrel(at: Vector2, color := Color("a8784e")) -> void:
+	if not _is_free(at, 0.6):
+		return
+	var y := _ground(at.x, at.y)
+	var shape := CylinderShape3D.new()
+	shape.radius = 0.45
+	shape.height = 1.0
+	var collision := CollisionShape3D.new()
+	collision.shape = shape
+	collision.position = Vector3(at.x, y + 0.5, at.y)
+	_body.add_child(collision)
+	if not _headless:
+		LowPoly.part(_visuals, LowPoly.cylinder(0.45, 0.42, 1.0, 9), color, Vector3(at.x, y + 0.5, at.y))
+		for ring_y: float in [0.2, 0.8]:
+			LowPoly.part(_visuals, LowPoly.cylinder(0.47, 0.47, 0.07, 9), Color("5f5a54"), Vector3(at.x, y + ring_y, at.y))
+
+
+func _crates(at: Vector2, rot := 0.0) -> void:
+	if not _is_free(at, 1.4):
+		return
+	_block(at, Vector3(1.2, 1.2, 1.2), WOOD, rot)
+	_block(at + Vector2(1.3, 0.2).rotated(-rot), Vector3(1.0, 1.0, 1.0), WOOD.lightened(0.1), rot + 0.2)
+	_block(at + Vector2(0.4, 0.0).rotated(-rot), Vector3(0.9, 0.8, 0.9), WOOD_DARK, rot - 0.3, 1.2)
+
+
+func _well(at: Vector2) -> void:
+	if not _is_free(at, 1.8):
+		return
+	var y := _ground(at.x, at.y)
+	for i in 8:
+		var angle := TAU * i / 8.0
+		var spot := at + Vector2.from_angle(angle) * 1.2
+		_box(Vector3(spot.x, y + 0.45, spot.y), Vector3(1.0, 0.9, 0.4), STONE, -angle + PI * 0.5)
+	_decal_box(Vector3(at.x, y + 0.6, at.y), Vector3(1.8, 0.05, 1.8), Color("2f6f8f"))
+	for side: float in [-1.0, 1.0]:
+		_box(Vector3(at.x + side * 1.2, y + 1.4, at.y), Vector3(0.18, 2.8, 0.18), WOOD_DARK)
+	if not _headless:
+		var roof := LowPoly.part(_visuals, LowPoly.cylinder(0.0, 1.9, 0.9, 4), ROOF_RED, Vector3(at.x, y + 3.2, at.y))
+		roof.rotation.y = PI * 0.25
+
+
+## Wieza obserwacyjna z pomostem, barierka z trzech stron i pochylnia od strony "facing".
+func _watchtower(at: Vector2, height: float, facing: float) -> void:
+	if not _is_free(at, 3.0):
+		return
+	var y := _ground(at.x, at.y)
+	var top := y + height
+	for offset: Vector2 in [Vector2(-1.4, -1.4), Vector2(1.4, -1.4), Vector2(-1.4, 1.4), Vector2(1.4, 1.4)]:
+		var leg := at + offset.rotated(-facing)
+		_block(leg, Vector3(0.3, height + (y - _ground(leg.x, leg.y)), 0.3), WOOD_DARK, facing)
+	_box(Vector3(at.x, top, at.y), Vector3(3.6, 0.25, 3.6), WOOD, facing)
+	var basis := Basis(Vector3.UP, facing)
+	for side: Array in [[Vector3(0, 0, -1.8), Vector3(3.6, 1.0, 0.12)], [Vector3(-1.8, 0, 0), Vector3(0.12, 1.0, 3.6)], [Vector3(1.8, 0, 0), Vector3(0.12, 1.0, 3.6)]]:
+		_box(Vector3(at.x, top + 0.6, at.y) + basis * (side[0] as Vector3), side[1], WOOD_DARK, facing)
+	if not _headless:
+		var roof := LowPoly.part(_visuals, LowPoly.cylinder(0.0, 2.8, 1.2, 4), ROOF_RED, Vector3(at.x, top + 2.6, at.y))
+		roof.rotation.y = facing + PI * 0.25
+		for offset: Vector2 in [Vector2(-1.4, -1.4), Vector2(1.4, -1.4), Vector2(-1.4, 1.4), Vector2(1.4, 1.4)]:
+			var post := at + offset.rotated(-facing)
+			LowPoly.part(_visuals, LowPoly.box(Vector3(0.15, 2.0, 0.15), 0.03), WOOD_DARK, Vector3(post.x, top + 1.1, post.y))
+	var foot := at + Vector2(0.0, height * 2.0 + 1.8).rotated(-facing)
+	_ramp(Vector3(foot.x, _ground(foot.x, foot.y), foot.y), Vector3(at.x, top + 0.12, at.y) + basis * Vector3(0.0, 0.0, 1.6), 1.3, WOOD)
+
+
+func _tent(at: Vector2, rot: float, color: Color) -> void:
+	if not _is_free(at, 2.2):
+		return
+	_block(at, Vector3(2.6, 1.4, 3.2), color, rot)
+	if not _headless:
+		var y := _ground(at.x, at.y)
+		var peak := LowPoly.part(_visuals, LowPoly.box(Vector3(2.1, 0.18, 3.3), 0.04), color.darkened(0.15), Vector3(at.x, y + 1.75, at.y))
+		peak.rotation.y = rot
+		var flap := LowPoly.part(_visuals, LowPoly.box(Vector3(0.9, 1.1, 0.05), 0.02), color.darkened(0.35), Vector3(at.x, y + 0.6, at.y) + Basis(Vector3.UP, rot) * Vector3(0.0, 0.0, 1.62))
+		flap.rotation.y = rot
+
+
+## Ognisko: krag kamieni, polana i zarzace sie wegle. Kolizje maja tylko klody do siedzenia.
+func _campfire(at: Vector2) -> void:
+	if not _is_free(at, 1.2):
+		return
+	var y := _ground(at.x, at.y)
+	# Dwie klody do siedzenia, ktore sa tez niska oslona.
+	for side: float in [-1.0, 1.0]:
+		_block(at + Vector2(side * 2.0, 0.6), Vector3(0.5, 0.5, 2.0), WOOD_DARK, side * 0.3)
+	if _headless:
+		return
+	for i in 7:
+		var angle := TAU * i / 7.0
+		LowPoly.part(_visuals, LowPoly.ball(0.22, 5, 3), STONE_DARK, Vector3(at.x, y + 0.1, at.y) + Vector3(cos(angle), 0.0, sin(angle)) * 0.7)
+	for i in 3:
+		var log_mesh := LowPoly.part(_visuals, LowPoly.box(Vector3(0.9, 0.15, 0.15), 0.03), WOOD_DARK, Vector3(at.x, y + 0.2, at.y))
+		log_mesh.rotation = Vector3(0.0, TAU * i / 3.0, 0.35)
+	var ember := MeshInstance3D.new()
+	ember.mesh = LowPoly.ball(0.25, 6, 3)
+	var glow := StandardMaterial3D.new()
+	glow.albedo_color = Color("ff8a3d")
+	glow.emission_enabled = true
+	glow.emission = Color("ff8a3d")
+	glow.emission_energy_multiplier = 2.5
+	ember.material_override = glow
+	ember.position = Vector3(at.x, y + 0.2, at.y)
+	ember.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_visuals.add_child(ember)
+
+
+func _signpost(at: Vector2, rot: float) -> void:
+	if not _is_free(at, 0.5, false):
+		return
+	var y := _ground(at.x, at.y)
+	_box(Vector3(at.x, y + 1.2, at.y), Vector3(0.18, 2.4, 0.18), WOOD_DARK, rot)
+	if not _headless:
+		for i in 2:
+			var board := LowPoly.part(_visuals, LowPoly.box(Vector3(1.2, 0.28, 0.06), 0.02), Color("f6e3c3") if i == 0 else Color("e6c35c"), Vector3(at.x, y + 1.9 - i * 0.4, at.y))
+			board.rotation.y = rot + (0.0 if i == 0 else 1.2)
+			board.translate_object_local(Vector3(0.45, 0.0, 0.0))
+
+
+## Slup z drewna przy drodze, jak dawna linia telegrafu.
+func _pole(at: Vector2) -> void:
+	if not _is_free(at, 0.4, false):
+		return
+	var y := _ground(at.x, at.y)
+	_box(Vector3(at.x, y + 2.5, at.y), Vector3(0.22, 5.0, 0.22), WOOD_DARK)
+	_decal_box(Vector3(at.x, y + 4.6, at.y), Vector3(1.4, 0.12, 0.12), WOOD_DARK)
+
+
+## Chata: maly domek z drzwiami i oknem, do ktorego da sie wejsc.
+func _hut(at: Vector2, rot: float, color: Color) -> void:
+	if not _is_free(at, 3.5):
+		return
+	_house(at, Vector2(4.6, 4.0), rot, color, 0)
+
+
+func _ruin_corner(at: Vector2, rot: float) -> void:
+	if not _is_free(at, 3.0):
+		return
+	_block(at, Vector3(4.0, 2.6, 0.8), STONE, rot)
+	_block(at + Vector2(-1.6, 1.6).rotated(-rot), Vector3(0.8, 1.8, 3.2), STONE_DARK, rot)
+	_block(at + Vector2(1.5, 1.2).rotated(-rot), Vector3(1.0, 0.6, 1.0), STONE, rot + 0.4)
+
+
+func _rock_cluster(at: Vector2) -> void:
+	if not _is_free(at, 2.4):
+		return
+	for i in 3:
+		var offset := Vector2(_rng.randf_range(-1.6, 1.6), _rng.randf_range(-1.6, 1.6))
+		var size := Vector3(_rng.randf_range(1.2, 2.4), _rng.randf_range(0.9, 2.0), _rng.randf_range(1.2, 2.2))
+		_block(at + offset, size, ROCK.lerp(STONE, _rng.randf()), _rng.randf() * TAU, -0.2)
+
+
+func _pier(at: Vector2, rot: float, length: float) -> void:
+	var basis := Basis(Vector3.UP, rot)
+	var center := Vector3(at.x, 0.6, at.y) + basis * Vector3(0.0, 0.0, -length * 0.5)
+	_box(center, Vector3(2.2, 0.25, length), WOOD, rot)
+	for i in int(length / 2.0) + 1:
+		var post := Vector3(at.x, -0.6, at.y) + basis * Vector3(0.0, 0.0, -i * 2.0)
+		for side: float in [-1.0, 1.0]:
+			_box(post + basis * Vector3(side * 1.0, 0.0, 0.0), Vector3(0.2, 2.2, 0.2), WOOD_DARK, rot, false)
+
+
+## Wiecej zabudowy w kazdym z nazwanych miejsc: domy, wozy, stogi, wieze, namioty i ogniska.
+func _build_place_props() -> void:
+	var village: Vector2 = ValleyTerrain.place("village").at
+	if _is_free(village + Vector2(-26.0, -18.0), 3.5):
+		_house(village + Vector2(-26.0, -18.0), Vector2(5.0, 4.6), 0.4, WALLS[2], 1)
+	if _is_free(village + Vector2(26.0, -20.0), 3.5):
+		_house(village + Vector2(26.0, -20.0), Vector2(5.6, 4.6), -0.3, WALLS[4], 1)
+	_well(village + Vector2(-8.0, 3.0))
+	_cart(village + Vector2(10.0, 4.0), 0.6)
+	for at: Vector2 in [Vector2(-20.0, -4.0), Vector2(-21.0, 3.0), Vector2(20.0, 22.0)]:
+		_haystack(village + at, at.x * 0.1)
+	for at: Vector2 in [Vector2(-10.0, -18.0), Vector2(7.0, -10.0), Vector2(-11.0, 14.0), Vector2(10.0, 18.0)]:
+		_barrel(village + at)
+	_crates(village + Vector2(4.0, -6.0), 0.3)
+	_watchtower(village + Vector2(-28.0, 24.0), 4.5, 0.6)
+	_campfire(village + Vector2(4.0, 9.0))
+
+	var farm: Vector2 = ValleyTerrain.place("farm").at
+	if _is_free(farm + Vector2(14.0, -22.0), 3.5):
+		_house(farm + Vector2(14.0, -22.0), Vector2(6.0, 5.0), 0.0, WALLS[0], 0)
+	_cart(farm + Vector2(-2.0, 6.0), -0.4, Color("e6c35c"))
+	_cart(farm + Vector2(-14.0, 4.0), 1.2, Color("7a5236"))
+	for at: Vector2 in [Vector2(2.0, -12.0), Vector2(-12.0, -14.0), Vector2(8.0, 14.0), Vector2(-8.0, 10.0)]:
+		_haystack(farm + at, at.y * 0.05)
+	_well(farm + Vector2(6.0, -2.0))
+	_watchtower(farm + Vector2(-24.0, -24.0), 5.0, -0.8)
+	for at: Vector2 in [Vector2(16.0, -12.0), Vector2(17.0, -10.8)]:
+		_barrel(farm + at, Color("3a6ea5"))
+
+	var quarry: Vector2 = ValleyTerrain.place("quarry").at
+	_hut(quarry + Vector2(-20.0, -18.0), 0.5, Color("cfdcf2"))
+	_watchtower(quarry + Vector2(22.0, -16.0), 5.0, 2.2)
+	for at: Vector2 in [Vector2(-4.0, 10.0), Vector2(10.0, -2.0)]:
+		_cart(quarry + at, at.x * 0.2, ROCK)
+	_crates(quarry + Vector2(-12.0, -4.0), 0.8)
+	for at: Vector2 in [Vector2(6.0, 8.0), Vector2(7.2, 8.6), Vector2(-16.0, 12.0)]:
+		_barrel(quarry + at, Color("e4572e"))
+	# Podklady torow wagonikow przez dno kamieniolomu.
+	for i in 12:
+		var spot := quarry + Vector2(-16.0 + i * 2.6, -12.0 + i * 0.9)
+		_decal_box(Vector3(spot.x, _ground(spot.x, spot.y) + 0.05, spot.y), Vector3(0.4, 0.1, 1.8), WOOD_DARK, Vector3(0.0, -19.0, 0.0))
+
+	var lake: Vector2 = ValleyTerrain.place("lake").at
+	var radius: float = ValleyTerrain.place("lake").radius
+	_pier(lake + Vector2(radius * 0.95, 4.0), PI * 0.5, 10.0)
+	_hut(lake + Vector2(radius * 1.35, -12.0), -0.6, Color("f3d1d8"))
+	for tent: Array in [[Vector2(-radius * 1.3, 8.0), 0.4, Color("f2a541")], [Vector2(-radius * 1.25, 16.0), -0.2, Color("2f8f83")]]:
+		_tent(lake + tent[0], tent[1], tent[2])
+	_campfire(lake + Vector2(-radius * 1.35, 0.0))
+	if not _headless:
+		for boat: Array in [[Vector2(10.0, -12.0), 0.7, Color("5b8def")], [Vector2(-14.0, 6.0), -0.4, Color("ffcb47")]]:
+			var at: Vector2 = lake + boat[0]
+			var hull := LowPoly.part(_visuals, LowPoly.box(Vector3(1.4, 0.5, 3.4), 0.12), boat[2], Vector3(at.x, ValleyTerrain.WATER_LEVEL + 0.15, at.y))
+			hull.rotation.y = boat[1]
+
+	var camp: Vector2 = ValleyTerrain.place("camp").at
+	_campfire(camp + Vector2(-3.0, 1.0))
+	for at: Vector2 in [Vector2(14.0, -2.0), Vector2(-14.0, -8.0)]:
+		_crates(camp + at, at.x * 0.1)
+	_cart(camp + Vector2(-2.0, 15.0), 1.4, Color("2f8f83"))
+	for i in 9:
+		# Palisada z pali od strony stoku.
+		var angle := -0.6 + i * 0.16
+		var spot := camp + Vector2.from_angle(angle) * 18.0
+		if _is_free(spot, 0.3, false):
+			_block(spot, Vector3(0.4, 2.4, 0.4), WOOD_DARK, angle)
+
+	var ruins: Vector2 = ValleyTerrain.place("ruins").at
+	for corner: Array in [[Vector2(-20.0, -18.0), 0.3], [Vector2(20.0, 6.0), -0.6], [Vector2(-22.0, 16.0), 1.1]]:
+		_ruin_corner(ruins + corner[0], corner[1])
+	# Luk z dwoch filarow i nadprozu.
+	var arch := ruins + Vector2(0.0, -18.0)
+	if _is_free(arch, 3.0):
+		for side: float in [-1.6, 1.6]:
+			_block(arch + Vector2(side, 0.0), Vector3(0.9, 3.4, 0.9), STONE)
+		_box(Vector3(arch.x, _ground(arch.x, arch.y) + 3.7, arch.y), Vector3(4.2, 0.6, 1.0), STONE_DARK)
+	for at: Vector2 in [Vector2(-14.0, -2.0), Vector2(16.0, -4.0)]:
+		_rock_cluster(ruins + at)
+
+
+## Przy drogach: slupy, drogowskazy na rozstajach i porzucone wozy albo skalki w polowie drogi.
+func _build_roadside() -> void:
+	var index := 0
+	for road in ValleyTerrain.ROADS:
+		var a: Vector2 = ValleyTerrain.place(road[0]).at
+		var b: Vector2 = ValleyTerrain.place(road[1]).at
+		var along := (b - a).normalized()
+		var side := along.orthogonal()
+		var length := a.distance_to(b)
+		var start: float = ValleyTerrain.place(road[0]).radius + 6.0
+		var finish: float = length - ValleyTerrain.place(road[1]).radius - 6.0
+		var distance := start
+		while distance < finish:
+			_pole(a + along * distance + side * (ValleyTerrain.ROAD_WIDTH + 1.2))
+			distance += 16.0
+		_signpost(a + along * (start - 2.0) - side * (ValleyTerrain.ROAD_WIDTH + 1.0), atan2(-along.y, along.x))
+		var middle := a.lerp(b, 0.62) - side * (ValleyTerrain.ROAD_WIDTH + 3.5)
+		if index % 2 == 0:
+			_cart(middle, atan2(-along.y, along.x) + 0.4, Color("7a5236"))
+		else:
+			_rock_cluster(middle)
+		index += 1
+
+
+## Male punkty miedzy miejscami: obozowisko, chata, ruina, skalki albo wieza z jedna albo dwiema
+## skrzynkami. Kazdy daje oslone na otwartym polu.
+func _build_outposts() -> void:
+	for outpost: Array in OUTPOSTS:
+		var at: Vector2 = outpost[0]
+		if not _is_free(at, 5.0):
+			continue
+		_clear.append({ "at": at, "radius": 7.0 })
+		match outpost[1]:
+			"camp":
+				_tent(at + Vector2(-2.5, 0.0), 0.3, Color("ef6f6c"))
+				_campfire(at + Vector2(2.5, 1.5))
+				_chest_at(at + Vector2(0.5, -3.0))
+			"hut":
+				_hut(at, at.x * 0.01, WALLS[absi(int(at.y)) % WALLS.size()])
+				_chest_at(at, 0.2)
+				_barrel(at + Vector2(3.6, 1.0))
+			"ruin":
+				_ruin_corner(at, at.y * 0.02)
+				_chest_at(at + Vector2(0.6, 3.0))
+			"rocks":
+				_rock_cluster(at)
+				_chest_at(at + Vector2(3.4, 0.0))
+			"tower":
+				_watchtower(at, 4.0, 0.0)
+				_chest_at(at + Vector2(3.0, -3.0))
+
+
 # --- Roslinnosc --------------------------------------------------------------
 
 ## Drzewa, krzaki i kepy trawy jako MultiMesh w kawalkach mapy. Pnie maja kolizje.
@@ -497,6 +892,79 @@ func _build_vegetation() -> void:
 	_scatter(pines, _pine_parts(), TREE_VISIBLE)
 	_scatter(bushes, [[LowPoly.ball(0.8, 7, 4), Color("5a9a3e"), Vector3(0, 0.45, 0)]], BUSH_VISIBLE)
 	_scatter(grass, [[LowPoly.cylinder(0.0, 0.18, 0.7, 4), Color("7cbf52"), Vector3(0, 0.3, 0)]], GRASS_VISIBLE)
+	_build_ground_clutter()
+
+
+## Drobnica bez kolizji: kwiaty, kamyki i male krzaczki, takze w miejscach, gdzie nie rosna drzewa.
+## Kwiaty w trzech kolorach to jeden MultiMesh z kolorem egzemplarza, a calosc ma wieksze kawalki
+## i krotki zasieg widocznosci, wiec dodaje tylko kilka wywolan rysowania.
+func _build_ground_clutter() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var flowers: Array[Transform3D] = []
+	var flower_colors: Array[Color] = []
+	var pebbles: Array[Transform3D] = []
+	var shrubs: Array[Transform3D] = []
+	var palette: Array[Color] = [Color("f7d154"), Color("f78fb3"), Color("f4f1ea")]
+	for i in 7000:
+		var at := Vector2(rng.randf_range(-ValleyTerrain.RIM_START, ValleyTerrain.RIM_START), rng.randf_range(-ValleyTerrain.RIM_START, ValleyTerrain.RIM_START))
+		if at.length() > ValleyTerrain.RIM_START or ValleyTerrain.road_distance(at.x, at.y) < ValleyTerrain.ROAD_WIDTH:
+			continue
+		var y := _ground(at.x, at.y)
+		if y < ValleyTerrain.WATER_LEVEL + 0.2:
+			continue
+		var transform := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.7, 1.3)), Vector3(at.x, y, at.y))
+		var roll := rng.randf()
+		# Kwiaty rosna kepami na lakach, a kamyki i krzaczki wszedzie.
+		var meadow := sin(at.x * 0.05) * cos(at.y * 0.04)
+		if roll < 0.55 and meadow > 0.1:
+			var color := palette[i % palette.size()]
+			for j in 3:
+				var offset := Vector3(rng.randf_range(-0.6, 0.6), 0.0, rng.randf_range(-0.6, 0.6))
+				flowers.append(Transform3D(transform.basis, transform.origin + offset))
+				flower_colors.append(color)
+		elif roll < 0.8:
+			pebbles.append(transform)
+		else:
+			shrubs.append(transform)
+	_scatter_colored(flowers, flower_colors, LowPoly.ball(0.1, 5, 3), Vector3(0, 0.22, 0), CLUTTER_VISIBLE)
+	_scatter(pebbles, [[LowPoly.box(Vector3(0.4, 0.22, 0.32), 0.08), STONE, Vector3(0, 0.08, 0)]], CLUTTER_VISIBLE, CLUTTER_CELL)
+	_scatter(shrubs, [[LowPoly.ball(0.45, 6, 4), Color("6fae4a"), Vector3(0, 0.25, 0)]], CLUTTER_VISIBLE + 15.0, CLUTTER_CELL)
+
+
+## Jak _scatter, ale kazdy egzemplarz ma wlasny kolor, np. kwiaty roznych barw w jednym MultiMesh.
+func _scatter_colored(transforms: Array[Transform3D], colors: Array[Color], mesh: Mesh, offset: Vector3, visible_range: float) -> void:
+	var cells := {}
+	for index in transforms.size():
+		var origin := transforms[index].origin
+		var key := Vector2i(floori(origin.x / CLUTTER_CELL), floori(origin.z / CLUTTER_CELL))
+		if not cells.has(key):
+			cells[key] = []
+		cells[key].append(index)
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	material.roughness = 0.8
+	for key: Vector2i in cells:
+		var list: Array = cells[key]
+		var center := Vector3((key.x + 0.5) * CLUTTER_CELL, 0.0, (key.y + 0.5) * CLUTTER_CELL)
+		var multimesh := MultiMesh.new()
+		multimesh.transform_format = MultiMesh.TRANSFORM_3D
+		multimesh.use_colors = true
+		multimesh.mesh = mesh
+		multimesh.instance_count = list.size()
+		for slot in list.size():
+			var transform: Transform3D = transforms[list[slot]]
+			multimesh.set_instance_transform(slot, Transform3D(transform.basis, transform.origin - center + transform.basis * offset))
+			multimesh.set_instance_color(slot, colors[list[slot]])
+		var instance := MultiMeshInstance3D.new()
+		instance.multimesh = multimesh
+		instance.material_override = material
+		instance.position = center
+		instance.visibility_range_end = visible_range
+		instance.visibility_range_end_margin = 8.0
+		instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_visuals.add_child(instance)
 
 
 func _is_cleared(at: Vector2, margin: float) -> bool:
@@ -532,9 +1000,8 @@ func _pine_parts() -> Array:
 
 
 ## Rozdziela egzemplarze na kawalki mapy, zeby dalekie kawalki mozna bylo pomijac w rysowaniu.
-func _scatter(transforms: Array[Transform3D], parts: Array, visible_range: float) -> void:
+func _scatter(transforms: Array[Transform3D], parts: Array, visible_range: float, size := 64.0) -> void:
 	var cells := {}
-	var size := 64.0
 	for transform in transforms:
 		var key := Vector2i(floori(transform.origin.x / size), floori(transform.origin.z / size))
 		if not cells.has(key):

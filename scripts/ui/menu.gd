@@ -16,7 +16,9 @@ const TITLE_NOTES: Array[float] = [1.0, 1.122, 1.26, 1.498, 1.682]
 const LETTER_POP_SCALE := 1.16
 const LETTER_POP_SECONDS := 0.32
 const INTRO_STAGGER_SECONDS := 0.05
-const MODE_COLORS := { GameMode.Id.DEATHMATCH: UiStyle.CORAL, GameMode.Id.BATTLE_ROYALE: Color("9b7bff") }
+const MODE_COLORS := { GameMode.Id.DEATHMATCH: UiStyle.CORAL, GameMode.Id.TEAM_DEATHMATCH: Color("ff8a1f"), GameMode.Id.BATTLE_ROYALE: Color("9b7bff") }
+## Kolejnosc kart trybow: Team Deathmatch stoi przy zwyklym Deathmatchu.
+const MODE_ORDER: Array[int] = [GameMode.Id.DEATHMATCH, GameMode.Id.TEAM_DEATHMATCH, GameMode.Id.BATTLE_ROYALE]
 const MODE_OFF_TINT := Color(1.0, 1.0, 1.0, 0.65)
 const VERSION_MARGIN := 16.0
 
@@ -144,10 +146,19 @@ func _build_mode_picker() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	box.add_child(row)
-	for id: int in GameMode.INFO:
+	for id: int in MODE_ORDER:
 		var button := UiStyle.button(GameMode.title_of(id), MODE_COLORS[id], Color.WHITE, Sfx.UiCue.PRESS)
-		button.add_theme_font_size_override("font_size", 20)
-		button.custom_minimum_size.y = 50.0
+		# Trzy karty w jednym rzedzie: dluzsza nazwa lamie sie na dwie linie zamiast znikac.
+		button.add_theme_font_size_override("font_size", 17)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.custom_minimum_size = Vector2(0.0, 58.0)
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			var style := (button.get_theme_stylebox(state) as StyleBoxFlat).duplicate() as StyleBoxFlat
+			style.content_margin_left = 5 + 6
+			style.content_margin_right = 5 + 6
+			style.content_margin_top = 5 + 2
+			style.content_margin_bottom = 5 + 2
+			button.add_theme_stylebox_override(state, style)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_select_mode.bind(id))
 		row.add_child(button)

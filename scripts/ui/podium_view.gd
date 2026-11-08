@@ -50,6 +50,8 @@ func _show() -> void:
 		step.add_child(rig)
 		rig.setup(CharacterAssets.resolve(entry.get("character", ""), entry.id))
 		rig.set_item({})
+		if Match.is_team_mode():
+			rig.set_team(entry.get("team", Teams.NONE), Teams.color_of(entry.get("team", Teams.NONE)))
 		rig.set_dance(1 + (index + Match.round_number) % DanceCatalog.DANCES.size())
 		var label := Label3D.new()
 		label.text = "%d. %s" % [entry.place, _short(entry.name)]

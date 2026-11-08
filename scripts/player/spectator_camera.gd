@@ -70,6 +70,9 @@ func _show_tag_of(target: Player) -> void:
 
 
 func _should_watch(me: Player) -> bool:
+	# Gracz bez druzyny w Team Deathmatchu oglada mecz za oknem wyboru druzyny.
+	if Match.is_team_mode() and not me.info.in_match:
+		return true
 	if not Match.is_elimination() or me.info.alive:
 		return false
 	return NetworkTime.tick >= me.info.death_tick + NetworkTime.seconds_to_ticks(DELAY_SECONDS)
