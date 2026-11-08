@@ -26,7 +26,7 @@ const TEAM_KILL_LIMIT := 50
 const ROUND_RESULTS_SECONDS := 12.0
 const FINAL_WARNING_SECONDS := 30.0
 ## Mapy do wyboru w glosowaniu miedzy rundami Deathmatchu.
-const VOTE_MAPS: Array[String] = ["city", "forest"]
+const VOTE_MAPS: Array[String] = ["city", "desert", "forest"]
 ## Tick, ktory nigdy nie nadejdzie: wyeliminowany nie wraca sam do gry.
 const NEVER_TICK := 1 << 62
 

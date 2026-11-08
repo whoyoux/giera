@@ -7,7 +7,7 @@ extends StaticBody3D
 
 ## Rodzaj podloza pod stopami, od ktorego zalezy dzwiek kroku.
 ## Beton i metal wystepuja na innych mapach, np. w miasteczku.
-enum Ground { GRASS, DIRT, STONE, WATER, CONCRETE, METAL }
+enum Ground { GRASS, DIRT, STONE, WATER, CONCRETE, METAL, SAND }
 
 const CELL := 2.5
 const HALF_CELLS := 46

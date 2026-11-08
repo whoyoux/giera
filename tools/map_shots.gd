@@ -16,6 +16,18 @@ const VIEWS := {
 		["city_garage", Vector3(18.0, 1.4, 11.0), Vector3(26.0, 1.0, 11.0)],
 		["city_alley", Vector3(-31.0, 1.6, 33.0), Vector3(-30.0, 1.2, -10.0)],
 	],
+	"desert": [
+		["desert_air", Vector3(70.0, 70.0, 80.0), Vector3(0.0, 0.0, 0.0)],
+		["desert_station", Vector3(-6.0, 1.7, -36.0), Vector3(6.0, 2.0, -56.0)],
+		["desert_fort", Vector3(0.0, 1.7, 34.0), Vector3(0.0, 2.0, 52.0)],
+		["desert_market", Vector3(-14.0, 1.7, 16.0), Vector3(4.0, 2.0, -4.0)],
+		["desert_canyon", Vector3(-40.0, 1.7, -30.0), Vector3(-40.0, 3.0, 10.0)],
+		["desert_bridge", Vector3(-54.0, 6.8, -12.0), Vector3(-30.0, 5.0, 4.0)],
+		["desert_oasis", Vector3(26.0, 1.7, -14.0), Vector3(42.0, 1.0, 2.0)],
+		["desert_dunes", Vector3(6.0, 1.7, 20.0), Vector3(24.0, 1.0, 33.0)],
+		["desert_tower", Vector3(-21.0, 6.8, 46.0), Vector3(0.0, 1.0, 0.0)],
+		["desert_lane", Vector3(0.0, 1.7, -40.0), Vector3(0.0, 1.5, 40.0)],
+	],
 	"valley": [
 		["valley_air", Vector3(150.0, 120.0, 190.0), Vector3(0.0, 0.0, 0.0)],
 		["valley_village", Vector3(-80.0, 6.0, 95.0), Vector3(-105.0, 1.0, 70.0)],

@@ -206,7 +206,26 @@ static func footstep_on(ground: int) -> AudioStreamWAV:
 			return _footstep_concrete()
 		ForestTerrain.Ground.METAL:
 			return _footstep_metal()
+		ForestTerrain.Ground.SAND:
+			return _footstep_sand()
 	return _footstep_grass()
+
+
+## Miekki, suchy chrzest piasku bez twardego uderzenia.
+static func _footstep_sand() -> AudioStreamWAV:
+	return _make("footstep_sand", 0.2, func(t: float, _phase: float) -> float:
+		var thump := sin(TAU * 80.0 * t) * exp(-t * 45.0) * 0.45
+		var grain := randf_range(-0.5, 0.5) * sin(PI * minf(t / 0.2, 1.0)) * (0.6 + 0.4 * sin(t * 260.0))
+		return thump + grain * 0.8
+	, func(_t: float) -> float: return 0.0)
+
+
+## Poryw wiatru na pustyni: szum, ktory narasta, swiszcze i cichnie.
+static func desert_gust() -> AudioStreamWAV:
+	return _make("desert_gust", 3.0, func(t: float, phase: float) -> float:
+		var swell := sin(PI * t / 3.0)
+		return (randf_range(-0.6, 0.6) + sin(TAU * phase) * 0.15) * swell * swell
+	, func(t: float) -> float: return 620.0 + 260.0 * sin(t * 1.7))
 
 
 ## Krotkie klapniecie podeszwy o beton z odrobina piasku.

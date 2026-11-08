@@ -25,7 +25,7 @@ const INFO := {
 		"title": "Team Deathmatch",
 		"hint": "Dwie drużyny. Liczą się zabójstwa całej drużyny.",
 		"port": 7779,
-		"map": "city",
+		"map": "desert",
 	},
 }
 
