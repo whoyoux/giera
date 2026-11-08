@@ -62,8 +62,10 @@ Notatki etapu 2: miejsca Stacja, Twierdza, Targ, Kanion, Oaza, Wydmy. 20 punktó
 
 ### Etap 3: Lepszy model Desert Eagle
 
-- [ ] Nowy, dokładniejszy model Desert Eagle: charakterystyczny masywny zamek z wycięciem, trójkątna lufa, kurek, osłona spustu, okładziny chwytu, muszka i szczerbinka, kilka kolorów materiału (metal, ciemny chwyt, jasny akcent). Nadal low-poly w stylu gry, ale wyraźnie lepszy od obecnego. Zamek jako osobny węzeł, żeby mógł się cofać przy strzale (etap 4).
-- [ ] Model w ręku, na ziemi, w Zbrojowni i na ikonie (przerenderuj `tools/render_icons.gd`). Porównaj zrzut przed i po w opisie PR.
+- [x] Nowy, dokładniejszy model Desert Eagle: charakterystyczny masywny zamek z wycięciem, trójkątna lufa, kurek, osłona spustu, okładziny chwytu, muszka i szczerbinka, kilka kolorów materiału (metal, ciemny chwyt, jasny akcent). Nadal low-poly w stylu gry, ale wyraźnie lepszy od obecnego. Zamek jako osobny węzeł, żeby mógł się cofać przy strzale (etap 4).
+- [x] Model w ręku, na ziemi, w Zbrojowni i na ikonie (przerenderuj `tools/render_icons.gd`). Porównaj zrzut przed i po w opisie PR.
+
+Notatki etapu 3: model w `tools/build_weapon_models.gd` (`--only=deagle`), węzły `slide`, `hammer` i `magazine`. Porównanie: `docs/screenshots/noc2/deagle_przed.png` i `deagle_po.png`. Podgląd: `tools/weapon_preview.gd`, zrzuty w ręku i w Zbrojowni: `tools/hand_shot.gd`.
 
 ### Etap 4: Animacja odrzutu broni
 
