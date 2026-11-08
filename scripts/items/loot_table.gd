@@ -27,3 +27,22 @@ func _pick(weights: Array[int], rng: RandomNumberGenerator) -> int:
 		if left <= 0:
 			return index
 	return 0
+
+
+## Szansa, ze z jednej skrzynki wypadnie dany rodzaj, od 0 do 1.
+func chance_of(item: StringName) -> float:
+	var index := item_ids.find(item)
+	if index < 0:
+		return 0.0
+	var total := 0
+	for weight in item_weights:
+		total += weight
+	return float(item_weights[index]) / total if total > 0 else 0.0
+
+
+## Szansa na dana klase, od 0 do 1.
+func tier_chance(tier: int) -> float:
+	var total := 0
+	for weight in tier_weights:
+		total += weight
+	return float(tier_weights[tier]) / total if total > 0 and tier < tier_weights.size() else 0.0

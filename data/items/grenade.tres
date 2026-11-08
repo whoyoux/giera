@@ -16,4 +16,6 @@ model_scale = 1.35
 script = ExtResource("1_definition")
 id = &"grenade"
 display_name = "Granat"
+kind_name = "Granat odłamkowy"
+description = "Odliczanie rusza przy odbezpieczeniu, a nie przy rzucie, więc nie trzymaj go za długo."
 item_visual = SubResource("visual")

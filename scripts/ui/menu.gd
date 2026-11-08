@@ -5,6 +5,7 @@ extends CanvasLayer
 
 signal settings_requested
 signal stats_requested
+signal arsenal_requested
 
 const PICKER_LEFT := 520.0
 const TITLE_COLORS: Array[Color] = [UiStyle.CORAL, UiStyle.SUN, UiStyle.TEAL, UiStyle.BLUE, Color("9b7bff")]
@@ -101,12 +102,15 @@ func _ready() -> void:
 	var stats_button := UiStyle.button("Statystyki", Color("9b7bff"), Color.WHITE, Sfx.UiCue.NONE)
 	stats_button.add_theme_font_size_override("font_size", 20)
 	stats_button.pressed.connect(func() -> void: stats_requested.emit())
+	var arsenal_button := UiStyle.button("Zbrojownia", Color("f4a259"), Color.WHITE, Sfx.UiCue.NONE)
+	arsenal_button.name = "arsenal_button"
+	arsenal_button.pressed.connect(func() -> void: arsenal_requested.emit())
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	settings_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(settings_button)
-	row.add_child(stats_button)
+	for button: Button in [settings_button, stats_button, arsenal_button]:
+		button.add_theme_font_size_override("font_size", 19)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(button)
 	column.add_child(row)
 
 	if not Net.is_headless:

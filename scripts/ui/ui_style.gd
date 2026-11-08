@@ -34,6 +34,12 @@ static func apply_font() -> void:
 	_bold.variation_opentype = { TextServerManager.get_primary_interface().name_to_tag("wght"): 700 }
 
 
+## Czcionka gry do rysowania w _draw. Przed apply_font zwraca czcionke zastepcza.
+static func font(bold := true) -> Font:
+	var chosen: Font = _bold if bold else _regular
+	return chosen if chosen != null else ThemeDB.fallback_font
+
+
 static func sticker(fill: Color, radius := 18, border := 5) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill
