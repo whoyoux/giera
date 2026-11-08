@@ -8,6 +8,8 @@ extends RefCounted
 var id := ""
 var title := ""
 var scene_path := ""
+## Miniaturka do glosowania na mape. Robi ja tools/map_thumbnails.gd.
+var thumbnail := ""
 ## Strefa Battle Royale zaczyna sie od tego kola.
 var zone_radius := 50.0
 var zone_center := Vector2.ZERO

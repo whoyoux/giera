@@ -20,6 +20,15 @@ const PODIUM_CARD_BOTTOM := 24.0
 const RESULTS_CARD_WIDTH := 520.0
 ## Odliczanie stoi pod zegarem rundy Deathmatchu, ktory zajmuje gore ekranu.
 const BIG_LABEL_TOP := 132.0
+## Karty glosowania na mape stoja obok karty wynikow, pod podium.
+const VOTE_THUMB_SIZE := Vector2(192.0, 108.0)
+const VOTE_CARD_FILL := Color("f3ecdd")
+const VOTE_POP_SCALE := 1.06
+## Margines w StyleBoxFlat liczy sie od zewnetrznej krawedzi, wiec obejmuje obwodke. Wnetrze karty
+## ma 12 px oddechu od obwodki, a panel 16 (docs/UI.md).
+const VOTE_CARD_BORDER := 5
+const VOTE_CARD_PADDING := 12
+const VOTE_PANEL_BORDER := 6
 
 ## Prawa kolumna: lista gotowych w lobby i samouczek, jedno pod drugim.
 var side_column: VBoxContainer
@@ -42,7 +51,10 @@ var _results_card: PanelContainer
 var _results_title: Label
 var _results_rows: VBoxContainer
 var _results_timer: Label
-var _vote_label: Label
+var _vote_panel: PanelContainer
+## Karty map w kolejnosci Match.VOTE_MAPS: { card, count, badge, key, state }.
+var _vote_cards: Array[Dictionary] = []
+var _hovered_vote := -1
 var _watch_panel: PanelContainer
 var _watch_label: Label
 
@@ -66,11 +78,10 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if Match.can_vote() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	if Match.can_vote():
 		for index in Match.VOTE_MAPS.size():
 			if event.is_action_pressed("slot_%d" % (index + 1)):
-				Match.vote(Match.VOTE_MAPS[index])
-				UiSound.play(Sfx.UiCue.CONFIRM)
+				_cast_vote(index)
 	if event.is_action_pressed("toggle_ready") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and Match.can_change_ready():
 		Match.toggle_ready()
 		UiSound.play(Sfx.UiCue.CONFIRM)
@@ -81,9 +92,9 @@ func _process(_delta: float) -> void:
 	_update_match_info()
 	if _results_center.visible:
 		_results_timer.text = ("Powrót do lobby za %d" if Match.is_elimination() else "Nowa runda za %d") % ceili(Match.seconds_left())
-		_vote_label.visible = Match.can_vote()
-		if _vote_label.visible:
-			_vote_label.text = vote_text()
+		_vote_panel.visible = Match.can_vote()
+		if _vote_panel.visible:
+			_update_vote_cards()
 	var round_start := not Match.is_elimination() and Match.is_frozen_at(NetworkTime.tick)
 	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING or round_start
 	_big_panel.visible = counting
@@ -99,16 +110,53 @@ func _process(_delta: float) -> void:
 	UiSound.play(Sfx.UiCue.NOTE)
 
 
-## Glosowanie w jednej krotkiej linii: klawisz, mapa i liczba glosow, a wlasny glos ma kropke.
-func vote_text() -> String:
+## Glos na mape z karty albo klawisza. Drugi glos na te sama mape niczego nie zmienia.
+func _cast_vote(index: int) -> void:
+	var map_id := Match.VOTE_MAPS[index]
+	if Match.votes.get(multiplayer.get_unique_id(), "") == map_id:
+		return
+	Match.vote(map_id)
+	UiSound.play(Sfx.UiCue.CONFIRM)
+	var card: Control = _vote_cards[index].card
+	card.pivot_offset_ratio = Vector2(0.5, 0.5)
+	card.scale = Vector2.ONE * VOTE_POP_SCALE
+	card.create_tween().tween_property(card, "scale", Vector2.ONE, UiStyle.POP_SECONDS).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Liczba glosow, wlasny wybor i najechanie myszka. Styl zmienia sie tylko, gdy cos sie zmienilo.
+func _update_vote_cards() -> void:
 	var counts := Match.vote_counts()
 	var mine: String = Match.votes.get(multiplayer.get_unique_id(), "")
-	var parts: Array[String] = []
-	for index in Match.VOTE_MAPS.size():
+	for index in _vote_cards.size():
+		var entry := _vote_cards[index]
 		var map_id := Match.VOTE_MAPS[index]
-		var mark := "● " if map_id == mine else ""
-		parts.append("%s[%s] %s %d" % [mark, Keybinds.label_of("slot_%d" % (index + 1)), Maps.info(map_id).title, counts.get(map_id, 0)])
-	return "Następna mapa:  " + "   ".join(parts)
+		(entry.count as Label).text = votes_text(counts.get(map_id, 0))
+		(entry.key as Label).text = Keybinds.label_of("slot_%d" % (index + 1))
+		var state := 2 if map_id == mine else (1 if index == _hovered_vote else 0)
+		if state != entry.state:
+			entry.state = state
+			(entry.card as PanelContainer).add_theme_stylebox_override("panel", _vote_card_style(state))
+			(entry.badge as Control).visible = state == 2
+
+
+## Odmiana: 1 glos, 2 glosy, 5 glosow, 22 glosy.
+static func votes_text(count: int) -> String:
+	if count == 1:
+		return "1 głos"
+	var tens := count % 100
+	if count % 10 in [2, 3, 4] and not (tens >= 12 and tens <= 14):
+		return "%d głosy" % count
+	return "%d głosów" % count
+
+
+## 0: zwykla karta, 1: pod kursorem, 2: wlasny glos.
+func _vote_card_style(state: int) -> StyleBoxFlat:
+	var fills: Array[Color] = [VOTE_CARD_FILL, Color.WHITE, UiStyle.BLUE.lightened(0.75)]
+	var borders: Array[Color] = [Color.WHITE, UiStyle.SUN, UiStyle.BLUE]
+	var style := UiStyle.sticker(fills[state], 20, VOTE_CARD_BORDER)
+	style.border_color = borders[state]
+	style.set_content_margin_all(VOTE_CARD_BORDER + VOTE_CARD_PADDING)
+	return style
 
 
 ## Licznik zywych i strefa. Ostrzezenie dotyczy tylko zywej postaci gracza.
@@ -194,6 +242,9 @@ func _refresh_results() -> void:
 		_fill_results()
 		_place_results(not Match.is_elimination())
 		UiStyle.pop_in(_results_card)
+		if Match.can_vote():
+			_hovered_vote = -1
+			UiStyle.pop_in(_vote_panel, 0.08)
 	_results_center.visible = showing
 
 
@@ -382,7 +433,14 @@ func _build_results() -> void:
 	style.content_margin_right = 22
 	_results_card.add_theme_stylebox_override("panel", style)
 	_results_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_results_center.add_child(_results_card)
+	# Karta wynikow i glosowanie stoja obok siebie, rowno dolem.
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	row.add_theme_constant_override("separation", 18)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_results_center.add_child(row)
+	_results_card.size_flags_vertical = Control.SIZE_SHRINK_END
+	row.add_child(_results_card)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
 	_results_card.add_child(column)
@@ -395,10 +453,116 @@ func _build_results() -> void:
 	_results_timer = UiStyle.label("", 16, Color(UiStyle.INK, 0.65), false)
 	_results_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_results_timer)
-	_vote_label = UiStyle.label("", 16, UiStyle.BLUE, false)
-	_vote_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_vote_label.visible = false
-	column.add_child(_vote_label)
+	row.add_child(_build_vote_panel())
+
+
+## Panel "Wybierz następną mapę" z karta kazdej mapy: miniaturka, nazwa, klawisz i liczba glosow.
+func _build_vote_panel() -> PanelContainer:
+	_vote_panel = PanelContainer.new()
+	_vote_panel.size_flags_vertical = Control.SIZE_SHRINK_END
+	var style := UiStyle.sticker(UiStyle.PAPER, 24, VOTE_PANEL_BORDER)
+	style.set_content_margin_all(VOTE_PANEL_BORDER + 14)
+	style.content_margin_left = VOTE_PANEL_BORDER + 18
+	style.content_margin_right = VOTE_PANEL_BORDER + 18
+	_vote_panel.add_theme_stylebox_override("panel", style)
+	_vote_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_vote_panel.visible = false
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	_vote_panel.add_child(column)
+	var title := UiStyle.label("Wybierz następną mapę", 22, UiStyle.BLUE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(title)
+	var hint := UiStyle.label("Kliknij kartę albo naciśnij jej klawisz", 14, Color(UiStyle.INK, 0.65), false)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(hint)
+	var gap := Control.new()
+	gap.custom_minimum_size.y = 8
+	column.add_child(gap)
+	var cards := HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 14)
+	cards.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(cards)
+	for index in Match.VOTE_MAPS.size():
+		cards.add_child(_build_vote_card(index))
+	return _vote_panel
+
+
+func _build_vote_card(index: int) -> PanelContainer:
+	var info := Maps.info(Match.VOTE_MAPS[index])
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _vote_card_style(0))
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(column)
+
+	# Miniaturka z zaokraglonymi rogami: panel jest maska, a obraz rysuje sie tylko w nim.
+	# Nad obrazem klawisz w lewym gornym rogu i znaczek wlasnego glosu w prawym.
+	var overlay := Control.new()
+	overlay.custom_minimum_size = VOTE_THUMB_SIZE
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(overlay)
+	var frame := Panel.new()
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mask := StyleBoxFlat.new()
+	mask.set_corner_radius_all(8)
+	mask.anti_aliasing = true
+	frame.add_theme_stylebox_override("panel", mask)
+	overlay.add_child(frame)
+	var thumb := TextureRect.new()
+	if ResourceLoader.exists(info.thumbnail):
+		thumb.texture = load(info.thumbnail) as Texture2D
+	thumb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(thumb)
+	var chip := UiStyle.key_chip("", 26, 15)
+	chip.position = Vector2(8, 8)
+	overlay.add_child(chip)
+	var badge := PanelContainer.new()
+	var badge_style := UiStyle.sticker(UiStyle.BLUE, 12, 3)
+	badge_style.set_content_margin_all(3 + 3)
+	badge_style.content_margin_left = 3 + 8
+	badge_style.content_margin_right = 3 + 8
+	badge.add_theme_stylebox_override("panel", badge_style)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.add_child(UiStyle.label("✓ Twój głos", 13, Color.WHITE))
+	badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	badge.position += Vector2(-8, 8)
+	badge.visible = false
+	overlay.add_child(badge)
+
+	var footer := HBoxContainer.new()
+	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(footer)
+	var name_label := UiStyle.label(info.title, 17, UiStyle.INK)
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(name_label)
+	var count := UiStyle.label("", 14, Color(UiStyle.INK, 0.65), false)
+	footer.add_child(count)
+
+	card.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_cast_vote(index)
+			card.accept_event())
+	card.mouse_entered.connect(func() -> void:
+		_hovered_vote = index
+		UiSound.play(Sfx.UiCue.HOVER))
+	card.mouse_exited.connect(func() -> void:
+		if _hovered_vote == index:
+			_hovered_vote = -1)
+	_vote_cards.append({ "card": card, "count": count, "badge": badge, "key": chip.get_child(0), "state": 0 })
+	return card
 
 
 func _build_watch_hint() -> void:

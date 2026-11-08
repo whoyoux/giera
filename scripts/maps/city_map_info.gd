@@ -12,6 +12,7 @@ func _init() -> void:
 	id = "city"
 	title = "Miasteczko"
 	scene_path = "res://scenes/maps/city.tscn"
+	thumbnail = "res://assets/maps/city.png"
 	zone_radius = CityBuilder.HALF
 	menu_orbit = Vector3(34.0, 24.0, 2.0)
 	podium = Vector3(0.0, 0.0, 0.0)

@@ -85,6 +85,8 @@ var _streak_audio: AudioStreamPlayer
 var _protection_label: Label
 var _chat: ChatPanel
 var _match_panel: MatchPanel
+## Glosowanie na mape po rundzie Deathmatchu: wtedy kursor jest widoczny, zeby kliknac karte mapy.
+var _voting := false
 var _top_left: VBoxContainer
 var _name_center: Control
 var _prompt_center: Control
@@ -134,6 +136,7 @@ func _process(delta: float) -> void:
 		return
 	var info := _player.info
 	_update_vignette(delta, info)
+	_update_vote_cursor()
 	_fps_panel.visible = Settings.value("show_fps")
 	if _fps_panel.visible:
 		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
@@ -352,7 +355,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("dance") and _player.is_alive() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_dance_wheel.open()
 		_player.input.set_wheel_open(true)
-	elif event is InputEventMouseButton and event.pressed and not _pause.visible:
+	elif event is InputEventMouseButton and event.pressed and not _pause.visible and not Match.can_vote():
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -366,7 +369,23 @@ func _on_dance_chosen(dance_id: int) -> void:
 func _on_chat_closed() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Input.mouse_mode = _game_mouse_mode()
+	_player.input.block_fire()
+
+
+## Bez okna na wierzchu kursor jest schowany, chyba ze trwa glosowanie na mape.
+func _game_mouse_mode() -> Input.MouseMode:
+	return Input.MOUSE_MODE_VISIBLE if Match.can_vote() else Input.MOUSE_MODE_CAPTURED
+
+
+## Glosowanie odslania kursor, a jego koniec chowa go z powrotem. Klikniecie karty nie strzela.
+func _update_vote_cursor() -> void:
+	if _voting == Match.can_vote() or not Net.bot_mode.is_empty():
+		return
+	_voting = Match.can_vote()
+	if _pause.visible or _chat.is_open or not get_window().has_focus():
+		return
+	Input.mouse_mode = _game_mouse_mode()
 	_player.input.block_fire()
 
 
@@ -378,7 +397,7 @@ func _close_dance_wheel() -> void:
 
 func _set_paused(paused: bool) -> void:
 	_pause.visible = paused
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if paused else Input.MOUSE_MODE_CAPTURED
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if paused else _game_mouse_mode()
 	UiSound.play(Sfx.UiCue.OPEN if paused else Sfx.UiCue.CLOSE)
 	if paused:
 		UiStyle.pop_in(_pause_card)

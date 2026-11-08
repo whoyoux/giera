@@ -36,7 +36,7 @@ Po zmianie sieci podnieś `PROTOCOL_VERSION` w `scripts/core/net.gd`.
 | `scripts/items/` | System przedmiotów: definicje, ekwipunek, zachowania |
 | `scripts/player/` | Postać, broń w ręku, trafienia, animacje |
 | `scripts/core/` | Sieć, stan gry, ustawienia, dźwięki |
-| `scripts/ui/` | Menu, HUD i styl naklejek |
+| `scripts/ui/` | Menu, HUD i styl naklejek, zasady w [UI.md](UI.md) |
 | `scripts/world/` | Teren, drzewa, ruiny i efekty |
 | `scenes/world.tscn` | Leśna polana, edytowalna w Godocie |
 | `scenes/maps/` | Miasteczko i Dolina, budowane kodem (`scripts/maps/`) |
