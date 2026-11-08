@@ -85,6 +85,7 @@ var _streak_audio: AudioStreamPlayer
 var _protection_label: Label
 var _chat: ChatPanel
 var _match_panel: MatchPanel
+var _team_panel: TeamPanel
 ## Glosowanie na mape po rundzie Deathmatchu: wtedy kursor jest widoczny, zeby kliknac karte mapy.
 var _voting := false
 var _top_left: VBoxContainer
@@ -107,6 +108,7 @@ func _ready() -> void:
 	GameState.player_added.connect(func(_id: int) -> void: _refresh_scoreboard())
 	GameState.player_removed.connect(func(_id: int) -> void: _refresh_scoreboard())
 	GameState.pings_updated.connect(_refresh_scoreboard)
+	Match.team_scores_changed.connect(_refresh_scoreboard)
 	get_window().focus_exited.connect(_on_focus_lost)
 
 
@@ -137,6 +139,7 @@ func _process(delta: float) -> void:
 	var info := _player.info
 	_update_vignette(delta, info)
 	_update_vote_cursor()
+	_update_team_panel()
 	_fps_panel.visible = Settings.value("show_fps")
 	if _fps_panel.visible:
 		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
@@ -163,6 +166,7 @@ func _process(delta: float) -> void:
 	if _player.input.wheel_open != _dance_wheel.is_open:
 		_player.input.set_wheel_open(_dance_wheel.is_open)
 	_crosshair.aiming = _player.aiming
+	_crosshair.ally_color = _ally_in_sight()
 	_update_clutter()
 	_scope.amount = move_toward(_scope.amount, 1.0 if _player.is_scoped() else 0.0, get_process_delta_time() * (5.0 if _player.is_scoped() else 12.0))
 	_crosshair.visible = _crosshair.visible and _scope.amount < 0.5
@@ -189,6 +193,28 @@ func _update_clutter() -> void:
 	for control: CanvasItem in [_hotbar, _status_panel, _ammo_panel, _drop_hint, _crosshair, _indicator,
 			_name_center, _prompt_center, _use_center, _streak_center, _death_center, _protection_center]:
 		control.modulate.a = combat
+
+
+## Kolor druzyny sojusznika na linii strzalu albo przezroczysty. Sciana przed nim go zaslania.
+func _ally_in_sight() -> Color:
+	if not Teams.is_active() or not _player.is_alive():
+		return Color.TRANSPARENT
+	var from := _player.eye_position()
+	var direction := Hitscan.direction(_player.input.look_yaw, _player.input.look_pitch)
+	var reach := 120.0
+	var wall := _player.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + direction * reach, Hitscan.WORLD_MASK))
+	if not wall.is_empty():
+		reach = from.distance_to(wall.position)
+	for node in get_tree().get_nodes_in_group(&"players"):
+		var other := node as Player
+		if other == _player or not other.is_alive() or not Teams.are_allies(_player.peer_id, other.peer_id):
+			continue
+		var bottom := other.position + Vector3.UP * 0.2
+		var top := other.position + Vector3.UP * 1.6
+		var closest := Geometry3D.get_closest_points_between_segments(from, from + direction * reach, bottom, top)
+		if closest[0].distance_to(closest[1]) < 0.45:
+			return Teams.color_of(Teams.team_of(other.peer_id))
+	return Color.TRANSPARENT
 
 
 ## Celownik pokazuje, gdzie naprawde moze poleciec pocisk.
@@ -348,14 +374,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			_chat.close()
 	elif event.is_action_pressed("pause"):
 		_set_paused(not _pause.visible)
-	elif event.is_action_pressed("chat") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	elif (event.is_action_pressed("chat") or (event.is_action_pressed("team_chat") and Teams.is_active())) and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		_chat.open()
+		_chat.open(event.is_action_pressed("team_chat"))
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("team_select") and Teams.is_active() and not _team_panel.visible:
+		_team_panel.open()
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("dance") and _player.is_alive() and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_dance_wheel.open()
 		_player.input.set_wheel_open(true)
-	elif event is InputEventMouseButton and event.pressed and not _pause.visible and not Match.can_vote():
+	elif event is InputEventMouseButton and event.pressed and not _pause.visible and not Match.can_vote() and not _team_panel.visible:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -375,7 +405,23 @@ func _on_chat_closed() -> void:
 
 ## Bez okna na wierzchu kursor jest schowany, chyba ze trwa glosowanie na mape.
 func _game_mouse_mode() -> Input.MouseMode:
-	return Input.MOUSE_MODE_VISIBLE if Match.can_vote() else Input.MOUSE_MODE_CAPTURED
+	return Input.MOUSE_MODE_VISIBLE if Match.can_vote() or _team_panel.visible else Input.MOUSE_MODE_CAPTURED
+
+
+## Gracz bez druzyny ma przed soba wybor druzyny i kursor, zeby kliknac karte.
+func _update_team_panel() -> void:
+	if not _team_panel.must_choose() or _team_panel.visible or Match.phase == Match.Phase.RESULTS:
+		return
+	_team_panel.open()
+	if not _pause.visible and get_window().has_focus() and Net.bot_mode.is_empty():
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func _on_team_panel_closed() -> void:
+	if _player == null or not is_instance_valid(_player) or _pause.visible:
+		return
+	Input.mouse_mode = _game_mouse_mode()
+	_player.input.block_fire()
 
 
 ## Glosowanie odslania kursor, a jego koniec chowa go z powrotem. Klikniecie karty nie strzela.
@@ -515,12 +561,12 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 8)
 	line.add_child(_avatar_of(killer_id, FEED_AVATAR_SIDE))
-	line.add_child(UiStyle.label(_short_name(killer_id), 17, UiStyle.BLUE))
+	line.add_child(UiStyle.label(_short_name(killer_id), 17, Teams.player_color(killer_id, UiStyle.BLUE).darkened(0.1 if Teams.is_active() else 0.0)))
 	line.add_child(_kill_cause(victim_id))
 	if GameState.players.get(victim_id, {}).get("death_headshot", false):
 		line.add_child(UiStyle.label("◎", 17, Color("d99a00")))
 	line.add_child(_avatar_of(victim_id, FEED_AVATAR_SIDE))
-	line.add_child(UiStyle.label(_short_name(victim_id), 17, UiStyle.CORAL))
+	line.add_child(UiStyle.label(_short_name(victim_id), 17, Teams.player_color(victim_id, UiStyle.CORAL).darkened(0.1 if Teams.is_active() else 0.0)))
 	# Liczbe zywych w Battle Royale podaje pasek u gory, wiec wiersz zostaje krotki.
 	_add_feed_row(line, UiStyle.PAPER)
 
@@ -586,7 +632,10 @@ func _update_death_panel(info: Dictionary) -> void:
 	_hotbar.visible = not watching
 	_crosshair.visible = not watching and _scope.amount < 0.5
 	if not Match.is_elimination():
-		_death_panel.visible = not info.alive
+		_death_panel.visible = not info.alive and info.in_match
+		# W Team Deathmatchu tlo ma kolor druzyny zabojcy.
+		var killer_team := Teams.team_of(info.get("killer_id", 0)) if Teams.is_active() else Teams.NONE
+		(_death_panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = Teams.color_of(killer_team) if killer_team != Teams.NONE else UiStyle.CORAL
 		if not info.alive:
 			var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
 			_death_label.text = "%s\nWracasz za %d" % [_death_cause(info, multiplayer.get_unique_id()), ceili(seconds)]
@@ -622,6 +671,10 @@ func _refresh_scoreboard() -> void:
 		return
 	for child in _score_rows.get_children():
 		child.free()
+	_score_card.custom_minimum_size.x = 860.0 if Teams.is_active() else 700.0
+	if Teams.is_active():
+		_refresh_team_scoreboard()
+		return
 	var ids := GameState.players.keys()
 	var elimination := Match.is_elimination()
 	var places := {}
@@ -644,6 +697,64 @@ func _refresh_scoreboard() -> void:
 		row.add_child(_avatar_of(id, SCORE_AVATAR_SIDE))
 		row.move_child(row.get_child(-1), 0)
 		_score_rows.add_child(row)
+
+
+## Tabela Team Deathmatchu: dwie kolumny druzyn obok siebie, kazda z wynikiem w naglowku.
+## Gracze bez druzyny stoja pod spodem jako widzowie.
+func _refresh_team_scoreboard() -> void:
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 20)
+	_score_rows.add_child(columns)
+	for team in Teams.COUNT:
+		var column := VBoxContainer.new()
+		column.add_theme_constant_override("separation", 6)
+		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		columns.add_child(column)
+		var header := HBoxContainer.new()
+		header.add_theme_constant_override("separation", 8)
+		column.add_child(header)
+		var title := UiStyle.label(Teams.name_of(team), 22, Teams.color_of(team).darkened(0.2))
+		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header.add_child(title)
+		header.add_child(UiStyle.label(str(Match.team_scores[team]), 22, Teams.color_of(team).darkened(0.2)))
+		column.add_child(_team_score_row("Gracz", "Z", "Ś", "Ping", Color(UiStyle.INK, 0.65), Color(UiStyle.INK, 0.65), false))
+		var members := Teams.members(team)
+		members.sort_custom(func(a: int, b: int) -> bool:
+			return GameState.players[a].kills > GameState.players[b].kills or (GameState.players[a].kills == GameState.players[b].kills and a < b))
+		for id: int in members:
+			var info: Dictionary = GameState.players[id]
+			var ping: int = GameState.pings.get(id, -1)
+			var mine := id == multiplayer.get_unique_id()
+			var row := _team_score_row(info.name, str(info.kills), str(info.deaths), "%d ms" % ping if ping >= 0 else "–", UiStyle.BLUE if mine else UiStyle.INK, _ping_color(ping), mine)
+			row.add_child(_avatar_of(id, 28.0))
+			row.move_child(row.get_child(-1), 0)
+			column.add_child(row)
+		if members.is_empty():
+			column.add_child(UiStyle.label("Nikogo jeszcze nie ma", 14, Color(UiStyle.INK, 0.65), false))
+	var watching := Teams.members(Teams.NONE)
+	if not watching.is_empty():
+		var names := watching.map(func(id: int) -> String: return _short_name(id))
+		_score_rows.add_child(UiStyle.label("Wybierają drużynę: " + ", ".join(names), 14, Color(UiStyle.INK, 0.65), false))
+
+
+func _team_score_row(player_name: String, kills: String, deaths: String, ping: String, color: Color, ping_color: Color, bold: bool) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var name_label := UiStyle.label(player_name, 17, color, bold)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	row.add_child(name_label)
+	for value in [kills, deaths]:
+		var cell := UiStyle.label(value, 17, color)
+		cell.custom_minimum_size = Vector2(44, 0)
+		cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row.add_child(cell)
+	var ping_cell := UiStyle.label(ping, 15, ping_color, false)
+	ping_cell.custom_minimum_size = Vector2(64, 0)
+	ping_cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(ping_cell)
+	return row
 
 
 ## Co gracz robi teraz w Battle Royale.
@@ -859,6 +970,11 @@ func _build() -> void:
 	_score_rows.add_theme_constant_override("separation", 8)
 	_score_card.add_child(_score_rows)
 	_add_shade_behind(_score_center)
+
+	_team_panel = TeamPanel.new()
+	_team_panel.closed.connect(_on_team_panel_closed)
+	add_child(_team_panel)
+	_add_shade_behind(_team_panel)
 
 	_pause = CenterContainer.new()
 	_pause.set_anchors_preset(Control.PRESET_FULL_RECT)

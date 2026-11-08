@@ -19,6 +19,12 @@ func spawn_point(peer_id: int, respawn_number: int) -> Vector3:
 	var info: Dictionary = GameState.players.get(peer_id, {})
 	var chosen: int = info.get("spawn_index", -1)
 	var index := chosen if chosen >= 0 else absi(hash(peer_id * 37 + respawn_number * 19))
+	# W Team Deathmatchu losowanie wybiera tylko z punktow wlasnej druzyny.
+	var team: int = info.get("team", Teams.NONE)
+	if chosen < 0 and Match.is_team_mode() and team != Teams.NONE:
+		var own := Teams.spawn_indices(team)
+		if not own.is_empty():
+			index = own[index % own.size()]
 	return (points[index % points.size()] as Node3D).global_position
 
 

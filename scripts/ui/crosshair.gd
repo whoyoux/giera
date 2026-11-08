@@ -16,6 +16,8 @@ var spread_radius := 0.0
 var _shown_radius := 0.0
 ## Trafienie w glowe ma wiekszy znacznik z kolkiem.
 var _headshot := false
+## Kolor druzyny, gdy celownik stoi na sojuszniku. Przezroczysty, gdy nie stoi.
+var ally_color := Color.TRANSPARENT
 
 
 func flash_hit(killed: bool, headshot := false) -> void:
@@ -42,11 +44,15 @@ func _draw() -> void:
 	if not hidden_for_sprint:
 		var gap := maxf(lerpf(7.0, 3.5, _aim), _shown_radius) + _spread * lerpf(7.0, 3.0, _aim)
 		var length := lerpf(8.0, 5.0, _aim)
+		# Na sojuszniku celownik bierze kolor jego druzyny, a srodek znika, zeby nie kusil do strzalu.
+		var ally := ally_color.a > 0.0
+		var color := ally_color if ally else Color.WHITE
 		for dir: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 			draw_line(center + dir * gap, center + dir * (gap + length), OUTLINE, 5.0, true)
-			draw_line(center + dir * gap, center + dir * (gap + length), Color.WHITE, 2.5, true)
-		draw_circle(center, 2.6, OUTLINE, true, -1.0, true)
-		draw_circle(center, 1.5, Color.WHITE, true, -1.0, true)
+			draw_line(center + dir * gap, center + dir * (gap + length), color, 2.5, true)
+		if not ally:
+			draw_circle(center, 2.6, OUTLINE, true, -1.0, true)
+			draw_circle(center, 1.5, Color.WHITE, true, -1.0, true)
 	if _hit <= 0.0:
 		return
 	var grow := 1.35 if _headshot else 1.0

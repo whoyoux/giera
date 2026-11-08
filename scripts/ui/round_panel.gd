@@ -21,6 +21,13 @@ var _audio: AudioStreamPlayer
 var _shown_second := -1
 var _warned_round := -1
 var _dirty := true
+var _banner_label: Label
+var _banner_style: StyleBoxFlat
+## Wynik obu druzyn po bokach zegara w Team Deathmatchu.
+var _team_chips: Array[PanelContainer] = []
+var _team_scores: Array[Label] = []
+var _seen_leading := -2
+var _seen_round := -1
 
 
 func _ready() -> void:
@@ -31,6 +38,7 @@ func _ready() -> void:
 	GameState.player_added.connect(func(_id: int) -> void: _dirty = true)
 	GameState.player_removed.connect(func(_id: int) -> void: _dirty = true)
 	Match.phase_changed.connect(func() -> void: _dirty = true)
+	Match.team_scores_changed.connect(_on_team_scores_changed)
 	set_process(not Net.is_headless)
 
 
@@ -38,6 +46,8 @@ func _process(delta: float) -> void:
 	var shown := Net.in_session and not Match.is_elimination() and Match.phase == Match.Phase.LIVE
 	_clock_panel.visible = shown
 	_top_card.visible = shown and GameState.players.size() > 1
+	for chip in _team_chips:
+		chip.visible = shown and Match.is_team_mode()
 	if not shown:
 		_banner.visible = false
 		_shown_second = -1
@@ -87,8 +97,7 @@ func _update_clock(delta: float) -> void:
 	_clock.add_theme_color_override("font_color", Color.WHITE if final else UiStyle.INK)
 	if final and _warned_round != Match.round_number:
 		_warned_round = Match.round_number
-		_banner_timer = BANNER_SECONDS
-		UiStyle.pop_in(_banner)
+		_show_banner("Ostatnie 30 sekund!", UiStyle.CORAL)
 		_audio.stream = Sfx.match_start()
 		_audio.play()
 	if final and left != _shown_second and left <= TICKING_FROM:
@@ -101,20 +110,63 @@ func _update_clock(delta: float) -> void:
 	_banner.visible = _banner_timer > 0.0
 
 
+func _show_banner(text: String, color: Color) -> void:
+	_banner_label.text = text
+	_banner_style.bg_color = color
+	_banner_timer = BANNER_SECONDS
+	_banner.visible = true
+	UiStyle.pop_in(_banner)
+
+
+## Krotki napis, gdy prowadzenie przechodzi na druga strone. Remis niczego nie oglasza.
+func _on_team_scores_changed() -> void:
+	_dirty = true
+	if not Match.is_team_mode():
+		return
+	if _seen_round != Match.round_number:
+		_seen_round = Match.round_number
+		_seen_leading = -1
+	var leading := Match.leading_team()
+	var mine := Teams.team_of(multiplayer.get_unique_id())
+	if leading < 0 or leading == _seen_leading:
+		return
+	_seen_leading = leading
+	if mine == Teams.NONE or Match.phase != Match.Phase.LIVE:
+		return
+	if leading == mine:
+		_show_banner("Twoja drużyna prowadzi!", UiStyle.TEAL)
+	else:
+		_show_banner("Twoja drużyna przegrywa", Teams.color_of(leading))
+	UiSound.play(Sfx.UiCue.NOTE, 1.2 if leading == mine else 0.85)
+
+
+## Napis o druzynach zamiast lidera: do ilu gramy i w ktorej druzynie jest gracz.
+func _refresh_team_status() -> void:
+	for team in Teams.COUNT:
+		_team_scores[team].text = str(Match.team_scores[team])
+	var mine := Teams.team_of(multiplayer.get_unique_id())
+	_leader.text = "Gramy do %d zabójstw" % Match.kill_limit
+	_place.text = "Wybierz drużynę" if mine == Teams.NONE else "Grasz w drużynie %s" % Teams.name_of(mine)
+
+
 func _refresh_standings() -> void:
 	var rows := Match.standings()
 	var my_id := multiplayer.get_unique_id()
 	if rows.is_empty():
 		return
+	if Match.is_team_mode():
+		_refresh_team_status()
 	var leaders := rows.filter(func(row: Dictionary) -> bool: return row.place == 1)
-	if rows[0].kills == 0:
+	if Match.is_team_mode():
+		pass
+	elif rows[0].kills == 0:
 		_leader.text = "Nikt jeszcze nie prowadzi"
 	elif leaders.size() > 1:
 		_leader.text = "Remis na prowadzeniu · %d" % rows[0].kills
 	else:
 		_leader.text = "Prowadzi %s · %d" % [_short(leaders[0].name), rows[0].kills]
 	for row: Dictionary in rows:
-		if row.id == my_id:
+		if row.id == my_id and not Match.is_team_mode():
 			_place.text = "Twoje miejsce: %d z %d · do %d" % [row.place, rows.size(), Match.kill_limit]
 	for child in _top_rows.get_children():
 		child.free()
@@ -122,7 +174,7 @@ func _refresh_standings() -> void:
 		var row: Dictionary = rows[index]
 		var line := HBoxContainer.new()
 		line.add_theme_constant_override("separation", 8)
-		var color := UiStyle.BLUE if row.id == my_id else UiStyle.INK
+		var color := UiStyle.BLUE if row.id == my_id else Teams.player_color(row.id, UiStyle.INK).darkened(0.15 if Match.is_team_mode() else 0.0)
 		line.add_child(UiStyle.label("%d." % row.place, 17, color))
 		var name_label := UiStyle.label(_short(row.name), 17, color, false)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -149,7 +201,15 @@ func _build() -> void:
 	_clock_style.content_margin_right = 18
 	_clock_panel.add_theme_stylebox_override("panel", _clock_style)
 	_clock_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top.add_child(_clock_panel)
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 12)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.add_child(bar)
+	for team in Teams.COUNT:
+		var chip := _build_team_chip(team)
+		bar.add_child(chip)
+		if team == 0:
+			bar.add_child(_clock_panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 0)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -187,11 +247,39 @@ func _build() -> void:
 	banner_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(banner_center)
 	_banner = PanelContainer.new()
-	_banner.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.CORAL, 22, 6))
+	_banner_style = UiStyle.sticker(UiStyle.CORAL, 22, 6)
+	_banner.add_theme_stylebox_override("panel", _banner_style)
 	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_banner.visible = false
 	banner_center.add_child(_banner)
-	_banner.add_child(UiStyle.label("Ostatnie 30 sekund!", 26, Color.WHITE))
+	_banner_label = UiStyle.label("Ostatnie 30 sekund!", 26, Color.WHITE)
+	_banner.add_child(_banner_label)
 
 	_audio = AudioStreamPlayer.new()
 	add_child(_audio)
+
+
+## Naklejka w kolorze druzyny: duzy wynik i nazwa pod nim.
+func _build_team_chip(team: int) -> PanelContainer:
+	var chip := PanelContainer.new()
+	var style := UiStyle.sticker(Teams.color_of(team), 18, 5)
+	style.set_content_margin_all(5 + 4)
+	style.content_margin_left = 5 + 16
+	style.content_margin_right = 5 + 16
+	chip.add_theme_stylebox_override("panel", style)
+	chip.custom_minimum_size.x = 112
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.visible = false
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 0)
+	chip.add_child(column)
+	var score := UiStyle.label("0", 32, Color.WHITE)
+	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(score)
+	var title := UiStyle.label(Teams.name_of(team), 14, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(title)
+	_team_chips.append(chip)
+	_team_scores.append(score)
+	return chip

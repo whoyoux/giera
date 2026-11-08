@@ -16,7 +16,9 @@ const TITLE_NOTES: Array[float] = [1.0, 1.122, 1.26, 1.498, 1.682]
 const LETTER_POP_SCALE := 1.16
 const LETTER_POP_SECONDS := 0.32
 const INTRO_STAGGER_SECONDS := 0.05
-const MODE_COLORS := { GameMode.Id.DEATHMATCH: UiStyle.CORAL, GameMode.Id.BATTLE_ROYALE: Color("9b7bff") }
+const MODE_COLORS := { GameMode.Id.DEATHMATCH: UiStyle.CORAL, GameMode.Id.TEAM_DEATHMATCH: Color("ff8a1f"), GameMode.Id.BATTLE_ROYALE: Color("9b7bff") }
+## Kolejnosc kart trybow: Team Deathmatch stoi przy zwyklym Deathmatchu.
+const MODE_ORDER: Array[int] = [GameMode.Id.DEATHMATCH, GameMode.Id.TEAM_DEATHMATCH, GameMode.Id.BATTLE_ROYALE]
 const MODE_OFF_TINT := Color(1.0, 1.0, 1.0, 0.65)
 const VERSION_MARGIN := 16.0
 
@@ -144,9 +146,11 @@ func _build_mode_picker() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	box.add_child(row)
-	for id: int in GameMode.INFO:
+	for id: int in MODE_ORDER:
 		var button := UiStyle.button(GameMode.title_of(id), MODE_COLORS[id], Color.WHITE, Sfx.UiCue.PRESS)
-		button.add_theme_font_size_override("font_size", 20)
+		button.add_theme_font_size_override("font_size", 18)
+		button.clip_text = true
+		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		button.custom_minimum_size.y = 50.0
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_select_mode.bind(id))

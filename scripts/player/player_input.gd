@@ -423,7 +423,7 @@ func _nearest_enemy(me: Player) -> Player:
 	var best_distance := INF
 	for node in get_tree().get_nodes_in_group(&"players"):
 		var other := node as Player
-		if other == me or not other.is_alive():
+		if other == me or not other.is_alive() or Teams.are_allies(me.peer_id, other.peer_id):
 			continue
 		# Ktos pietro wyzej jest dla bota daleko, bo nie umie znalezc schodow.
 		var climb := (other.position.y - me.position.y) * 8.0

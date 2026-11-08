@@ -19,6 +19,8 @@ const ROW_PADDING := 24.0
 const WIDTH_SLACK := 3.0
 
 var is_open := false
+## Pole pisze do wlasnej druzyny zamiast do wszystkich.
+var team_only := false
 
 var _column: VBoxContainer
 var _scroll: ScrollContainer
@@ -35,8 +37,12 @@ func _ready() -> void:
 	Chat.cleared.connect(_on_cleared)
 
 
-func open() -> void:
+func open(to_team := false) -> void:
 	is_open = true
+	team_only = to_team and Teams.is_active()
+	_input.placeholder_text = "Do drużyny · Enter wysyła, Esc zamyka" if team_only else "Enter wysyła, Esc zamyka"
+	var style := _input_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	style.border_color = Teams.color_of(Teams.team_of(multiplayer.get_unique_id())) if team_only else Color.WHITE
 	_input.text = ""
 	_input_panel.visible = true
 	_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -60,9 +66,11 @@ func _process(delta: float) -> void:
 		row.modulate.a = move_toward(row.modulate.a, 1.0 if shown else 0.0, delta / FADE_SECONDS)
 
 
-func _on_message(sender_id: int, text: String) -> void:
+func _on_message(sender_id: int, text: String, to_team := false) -> void:
 	var mine := sender_id == multiplayer.get_unique_id()
-	_rows.add_child(_message_row(_short_name(sender_id), text, UiStyle.CORAL if mine else UiStyle.BLUE))
+	var color := Teams.player_color(sender_id, UiStyle.CORAL if mine else UiStyle.BLUE)
+	var sender := ("[DRUŻYNA] " if to_team else "") + _short_name(sender_id)
+	_rows.add_child(_message_row(sender, text, color))
 	if _rows.get_child_count() > MAX_ROWS:
 		_rows.get_child(0).free()
 	if not mine:
@@ -76,7 +84,7 @@ func _on_cleared() -> void:
 
 
 func _on_submitted(text: String) -> void:
-	if Chat.send(text):
+	if Chat.send(text, team_only):
 		close()
 		return
 	# Za szybko: tekst zostaje w polu, zeby mozna go bylo wyslac za chwile.

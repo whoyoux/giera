@@ -27,6 +27,8 @@ const ACTIONS: Array[Dictionary] = [
 	{ "action": "toggle_ready", "label": "Gotowość w lobby" },
 	{ "action": "dance", "label": "Koło tańców" },
 	{ "action": "chat", "label": "Czat" },
+	{ "action": "team_chat", "label": "Czat drużyny" },
+	{ "action": "team_select", "label": "Wybór drużyny" },
 	{ "action": "scoreboard", "label": "Tabela wyników" },
 	{ "action": "map", "label": "Duża mapa" },
 	{ "action": "pause", "label": "Pauza" },

@@ -30,14 +30,15 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	var holding := Input.is_action_pressed("map") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-	visible = not Match.zone_state().is_empty() and holding == big
+	var team_map := Match.is_team_mode() and Match.phase == Match.Phase.LIVE
+	visible = (not Match.zone_state().is_empty() or team_map) and holding == big
 	if visible:
 		queue_redraw()
 
 
 func _draw() -> void:
 	var state := Match.zone_state()
-	if state.is_empty():
+	if state.is_empty() and not Match.is_team_mode():
 		return
 	var middle := size * 0.5
 	var map_scale := (side * 0.5 - INNER_MARGIN) / Maps.info().zone_radius
@@ -45,6 +46,13 @@ func _draw() -> void:
 	var outer_middle := size * 0.5
 	draw_circle(outer_middle + Vector2(0.0, 4.0), side * 0.5, UiStyle.SHADOW)
 	draw_circle(outer_middle, side * 0.5, Color.WHITE)
+	if state.is_empty():
+		# Team Deathmatch nie ma strefy: cala mapa jest bezpieczna, a liczy sie, gdzie sa swoi.
+		draw_circle(outer_middle, side * 0.5 - BORDER, SAFE_COLOR)
+		_draw_places(middle, map_scale)
+		_draw_allies(middle, map_scale)
+		_draw_player(middle, map_scale)
+		return
 	draw_circle(outer_middle, side * 0.5 - BORDER, DANGER_COLOR)
 	var center: Vector2 = state.center
 	draw_circle(middle + center * map_scale, state.radius * map_scale, SAFE_COLOR)
@@ -81,6 +89,23 @@ func _draw_player(middle: Vector2, map_scale: float) -> void:
 	var points := PackedVector2Array([at + forward * ARROW_LENGTH, at - forward * ARROW_LENGTH * 0.5 + side, at - forward * ARROW_LENGTH * 0.5 - side])
 	draw_colored_polygon(points, UiStyle.CORAL)
 	draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[0]]), Color.WHITE, 1.5, true)
+
+
+## Sojusznicy jako kropki w kolorze druzyny. Wrogow mapa nie zdradza.
+func _draw_allies(middle: Vector2, map_scale: float) -> void:
+	var me := multiplayer.get_unique_id()
+	var radius := 5.0 if big else 3.5
+	var limit := side * 0.5 - BORDER - radius
+	for node in get_tree().get_nodes_in_group(&"players"):
+		var other := node as Player
+		if other.peer_id == me or not other.is_alive() or not Teams.are_allies(me, other.peer_id):
+			continue
+		var at := middle + Vector2(other.position.x, other.position.z) * map_scale
+		var offset := at - size * 0.5
+		if offset.length() > limit:
+			at = size * 0.5 + offset.normalized() * limit
+		draw_circle(at, radius + 1.5, Color.WHITE)
+		draw_circle(at, radius, Teams.color_of(Teams.team_of(other.peer_id)))
 
 
 func _followed_player() -> Player:

@@ -192,8 +192,10 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		"shots": 0,
 		"hits": 0,
 		"headshots": 0,
+		# Druzyna w Team Deathmatchu. -1, dopoki gracz jej nie wybierze, a do tego czasu oglada mecz.
+		"team": Teams.NONE,
 	}
-	if not Match.accepts_new_players():
+	if not Match.accepts_new_players() or Match.is_team_mode():
 		_set_spectator(players[id], NetworkTime.tick)
 	_adding_player = true
 	_give_starting_items(id)
@@ -216,6 +218,9 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		return
 	# Ochrona chroni przed innymi graczami, ale nie przed strefa ani wlasnym granatem.
 	if NetworkTime.tick < victim.get("protected_until", -1) and attacker_id != ZONE_ATTACKER and attacker_id != victim_id:
+		return
+	# Bez ognia przyjacielskiego: sojusznik nie traci zdrowia i strzelajacy nie widzi trafienia.
+	if Teams.are_allies(attacker_id, victim_id):
 		return
 	var dealt := mini(amount, victim.health)
 	victim.health = maxi(0, victim.health - amount)
@@ -245,6 +250,7 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		# Wlasny granat to smierc, ale nie punkt.
 		if players.has(attacker_id) and attacker_id != victim_id:
 			players[attacker_id].kills += 1
+			Match.server_on_team_kill(players[attacker_id].get("team", Teams.NONE))
 			_update_streak(attacker_id, victim_id)
 			_broadcast(attacker_id)
 		victim.streak = 0
@@ -270,16 +276,22 @@ func server_on_shot(id: int) -> void:
 
 
 ## Punkt odrodzenia najdalej od zywych przeciwnikow. Liczy sie najblizszy przeciwnik.
+## W Team Deathmatchu tylko punkty wlasnej druzyny, a sojusznicy nie przeszkadzaja.
 func _safest_spawn(victim_id: int) -> int:
 	var points := get_tree().get_nodes_in_group(&"spawn_points")
+	var candidates: Array = range(points.size())
+	if Match.is_team_mode() and Teams.team_of(victim_id) != Teams.NONE:
+		var own := Teams.spawn_indices(Teams.team_of(victim_id))
+		if not own.is_empty():
+			candidates = own
 	var best := -1
 	var best_distance := -1.0
-	for index in points.size():
+	for index: int in candidates:
 		var at := (points[index] as Node3D).global_position
 		var nearest := INF
 		for id: int in players:
 			var node := player_node(id)
-			if id != victim_id and node != null and players[id].alive:
+			if id != victim_id and node != null and players[id].alive and not Teams.are_allies(id, victim_id):
 				nearest = minf(nearest, node.position.distance_to(at))
 		# Rowne odleglosci rozstrzyga numer gracza, zeby nie wybierac zawsze tego samego punktu.
 		nearest += float(absi(hash(index * 31 + victim_id)) % 100) * 0.001
@@ -323,6 +335,26 @@ func server_finish_respawn(id: int) -> void:
 		info.protected_until = NetworkTime.tick + NetworkTime.seconds_to_ticks(SPAWN_PROTECTION_SECONDS)
 		_give_debug_items(id)
 	print("[serwer] %s wraca do gry" % display_name(id))
+	_broadcast(id)
+
+
+## Gracz wybral druzyne. Kto juz byl w grze, wraca od razu po stronie nowej druzyny, bez punktu
+## smierci. Kto ogladal, dolacza do meczu.
+func server_set_team(id: int, team: int) -> void:
+	var info: Dictionary = players.get(id, {})
+	if info.is_empty():
+		return
+	info.team = team
+	info.in_match = true
+	info.streak = 0
+	info.respawn_id += 1
+	info.alive = false
+	info.death_tick = NetworkTime.tick
+	info.respawn_tick = NetworkTime.tick + NetworkTime.seconds_to_ticks(0.2)
+	info.killer_id = ZONE_ATTACKER
+	info.death_weapon = {}
+	info.spawn_index = _safest_spawn(id)
+	print("[serwer] %s gra w druzynie %s" % [info.name, Teams.name_of(team)])
 	_broadcast(id)
 
 

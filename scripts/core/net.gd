@@ -5,10 +5,11 @@ extends Node
 ##   --server              serwer dedykowany (bez gracza)
 ##   --connect=ADRES       od razu dolacz do serwera
 ##   --port=7777           port UDP, domyslnie ten przypisany do trybu
-##   --mode=battle_royale  tryb serwera: deathmatch albo battle_royale
+##   --mode=battle_royale  tryb serwera: deathmatch, team_deathmatch albo battle_royale
 ##   --map=city            mapa serwera, domyslnie ta przypisana do trybu
 ##   --name=Nick           nazwa gracza, bez konta Steam
 ##   --character=knight    postac gracza, np. skeleton_warrior
+##   --team=0              bot w Team Deathmatchu wybiera te druzyne, bez tego mniejsza
 ##   --bot=runner|shooter|headhunter|brawler|pumper  sterowanie automatyczne, np. cel do cwiczen
 ##   --tool=res://sciezka  dodatkowy skrypt testowy
 ##   --debug-items         serwer daje kazdemu dodatkowe bronie do testow
@@ -27,7 +28,7 @@ const MAX_CLIENTS := 32
 const CONNECT_TIMEOUT_SECONDS := 8.0
 const DEDICATED_MAX_FPS := 60
 ## Podnies przy kazdej zmianie, po ktorej stary build nie dogada sie z serwerem.
-const PROTOCOL_VERSION := 30
+const PROTOCOL_VERSION := 31
 const JOIN_ANSWER_SECONDS := 6.0
 const OUTDATED_MESSAGE := "Masz inną wersję gry niż serwer. Uruchom grę ponownie, żeby ją zaktualizować."
 

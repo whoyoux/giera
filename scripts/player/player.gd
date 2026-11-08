@@ -121,6 +121,7 @@ var _tag_root: Node3D
 var _seen_present := true
 var _seen_crouching := false
 var _seen_sliding := false
+var _seen_team := -2
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -535,6 +536,7 @@ func _process(delta: float) -> void:
 		model.play_hit()
 	_seen_health = health
 	_update_presence()
+	_update_team_look()
 	_update_crouch_view()
 	_update_body_feedback(delta, grounded)
 	_update_prime_beep(delta)
@@ -575,7 +577,7 @@ func set_name_tag_visible(shown: bool) -> void:
 func _update_presence() -> void:
 	if is_local():
 		return
-	var present: bool = info.alive or (info.in_match and NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(CORPSE_SECONDS)) or not Match.is_elimination()
+	var present: bool = info.alive or (info.in_match and NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(CORPSE_SECONDS)) or (not Match.is_elimination() and info.in_match)
 	if present == _seen_present:
 		return
 	_seen_present = present
@@ -583,6 +585,24 @@ func _update_presence() -> void:
 	name_label.visible = present
 	if _tag_root != null:
 		_tag_root.visible = present
+
+
+## Kolor druzyny na postaci i plakietce. Plakietke sojusznika widac przez sciany, a wroga tylko
+## wtedy, gdy nic jej nie zaslania, jak w zwyklym Deathmatchu.
+func _update_team_look() -> void:
+	if is_local():
+		return
+	var team: int = info.get("team", Teams.NONE) if Teams.is_active() else Teams.NONE
+	var ally := Teams.are_allies(multiplayer.get_unique_id(), peer_id)
+	var key := team * 2 + (1 if ally else 0)
+	if key == _seen_team:
+		return
+	_seen_team = key
+	model.set_team(team, Teams.color_of(team))
+	name_label.outline_modulate = Teams.color_of(team).darkened(0.45) if team != Teams.NONE else Color.BLACK
+	name_label.no_depth_test = ally
+	name_label.render_priority = 10 if ally else 0
+	name_label.outline_render_priority = 9 if ally else -1
 
 
 ## Inni widza poze kucania, a nazwa nad glowa opada razem z nia.
@@ -602,7 +622,9 @@ func _update_crouch_view() -> void:
 	model.set_crouch(amount)
 	# Gracz pod ochrona po odrodzeniu jest polprzezroczysty dla innych.
 	var protected: bool = NetworkTime.tick < info.get("protected_until", -1)
-	name_label.modulate = Color(0.55, 1.0, 0.95) if protected else Color.WHITE
+	var team: int = info.get("team", Teams.NONE) if Teams.is_active() else Teams.NONE
+	var plain := Teams.light_of(team) if team != Teams.NONE else Color.WHITE
+	name_label.modulate = Color(0.55, 1.0, 0.95) if protected else plain
 	var drop := Vector3.DOWN * CROUCH_DROP * amount
 	name_label.position.y = NAME_LABEL_HEIGHT + drop.y
 	if _tag_root != null:

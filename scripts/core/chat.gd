@@ -2,7 +2,8 @@ extends Node
 ## Czat tekstowy. Serwer tylko przekazuje wiadomosci dalej, a historia jest w pamieci klienta
 ## do konca sesji. Tresci nie wolno wypisywac do logu ani nigdzie zapisywac.
 
-signal message_received(sender_id: int, text: String)
+## team_only oznacza wiadomosc tylko do wlasnej druzyny w Team Deathmatchu.
+signal message_received(sender_id: int, text: String, team_only: bool)
 signal cleared
 
 const MAX_LENGTH := 120
@@ -21,13 +22,13 @@ func _ready() -> void:
 
 
 ## Wysyla wiadomosc. Zwraca false, gdy gracz pisze za szybko. Pusty tekst nie idzie nigdzie.
-func send(raw: String) -> bool:
+func send(raw: String, team_only := false) -> bool:
 	var text := GameState.clean_text(raw, MAX_LENGTH)
 	if text.is_empty():
 		return true
 	if not _within_limit(_sent_ms, BURST):
 		return false
-	_submit.rpc_id(1, text)
+	_submit.rpc_id(1, text, team_only and Teams.is_active())
 	return true
 
 
@@ -50,7 +51,7 @@ func _clear() -> void:
 
 
 @rpc("any_peer", "call_local", "reliable")
-func _submit(raw: String) -> void:
+func _submit(raw: String, team_only: bool) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
@@ -59,10 +60,17 @@ func _submit(raw: String) -> void:
 		return
 	if not _received_ms.has(sender):
 		_received_ms[sender] = [] as Array[int]
-	if _within_limit(_received_ms[sender], BURST + SERVER_SLACK):
-		_deliver.rpc(sender, text)
+	if not _within_limit(_received_ms[sender], BURST + SERVER_SLACK):
+		return
+	if not team_only or not Teams.is_active():
+		_deliver.rpc(sender, text, false)
+		return
+	# Wiadomosc druzyny dostaje tylko ona. Gracz bez druzyny pisze sam do siebie.
+	for id: int in GameState.players:
+		if id == sender or Teams.are_allies(id, sender):
+			_deliver.rpc_id(id, sender, text, true)
 
 
 @rpc("authority", "call_local", "reliable")
-func _deliver(sender_id: int, text: String) -> void:
-	message_received.emit(sender_id, text)
+func _deliver(sender_id: int, text: String, team_only: bool) -> void:
+	message_received.emit(sender_id, text, team_only)
