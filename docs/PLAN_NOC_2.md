@@ -8,8 +8,8 @@ Start: Sun 08 Nov 2026 01:59 (`date +%s` = 1794099588). Gałąź `feature/noc-2`
 
 - [x] Keep-awake: wywołanie odrzucone przez klasyfikator uprawnień, użytkownik sam wyłączył usypianie.
 - [x] Lektura dokumentów i kodu, gałąź `feature/noc-2`, import Godota.
-- [ ] Testy bazowe (wynik poniżej).
-- [ ] Draft PR.
+- [x] Testy bazowe na czystym `main` (b4f13bd): 50 zaliczonych, 2 błędne: `br_reset_test` i `city_bots_test` (BLAD(1), stare błędy). Pełna tabela: `tools/logs/baza.txt` (lokalnie, poza repo).
+- [x] Draft PR: https://github.com/whoyoux/giera/pull/50
 
 ## 1. Zasady, których nie wolno złamać
 
@@ -81,11 +81,14 @@ Notatki etapu 4: pola `kick_*` i `cycle_*` w `WeaponStats` mnożone przez `recoi
 
 ### Etap 5: Więcej życia na mapie Battle Royale (dolina)
 
-- [ ] Przejdź mapę doliny zrzutami z góry i z poziomu gracza, wypisz puste miejsca i dopiero wtedy dodawaj.
-- [ ] **Każde z nazwanych miejsc** dostaje więcej zabudowy i rekwizytów: dodatkowe budynki do wejścia, płoty, stogi, wozy, beczki, skrzynie, studnie, wieże obserwacyjne, namioty, pomosty, ogniska.
-- [ ] **Między miejscami:** drogi i ścieżki z rekwizytami (słupy, drogowskazy, porzucone wozy, mostki), małe obozowiska, pojedyncze chaty, ruiny, skałki i kępy drzew jako osłony, żeby przejście przez otwarte pole nie było puste. Kilka małych, nowych punktów z 1–2 skrzynkami.
-- [ ] Gęstsza roślinność i drobnica (kwiaty, krzaki, kamienie) przez `MultiMesh` z `visibility_range`.
-- [ ] **Wydajność:** zmierz `tools/perf_probe.gd` przed i po. Spadek o więcej niż 10% trzeba naprawić (LOD, zasięg widoczności, łączenie siatek).
+- [x] Przejdź mapę doliny zrzutami z góry i z poziomu gracza, wypisz puste miejsca i dopiero wtedy dodawaj.
+- [x] **Każde z nazwanych miejsc** dostaje więcej zabudowy i rekwizytów: dodatkowe budynki do wejścia, płoty, stogi, wozy, beczki, skrzynie, studnie, wieże obserwacyjne, namioty, pomosty, ogniska.
+- [x] **Między miejscami:** drogi i ścieżki z rekwizytami (słupy, drogowskazy, porzucone wozy, mostki), małe obozowiska, pojedyncze chaty, ruiny, skałki i kępy drzew jako osłony, żeby przejście przez otwarte pole nie było puste. Kilka małych, nowych punktów z 1–2 skrzynkami.
+- [x] Gęstsza roślinność i drobnica (kwiaty, krzaki, kamienie) przez `MultiMesh` z `visibility_range`.
+- [x] **Wydajność:** zmierz `tools/perf_probe.gd` przed i po. Spadek o więcej niż 10% trzeba naprawić (LOD, zasięg widoczności, łączenie siatek).
+
+Notatki etapu 5: puste miejsca przed zmianą: wioska z trzema domami, gospodarstwo ze stodołą i płotem, kamieniołom z kilkoma blokami, jezioro z samą plażą i mostem, obóz z wieżą i dwiema skrzynkami, ruiny z kilkoma murami, a między nimi same drogi i trawa. Dodane: domy, wozy, stogi, studnie, beczki, skrzynie, wieże obserwacyjne z pochylnią, namioty, pomosty, łódki, ogniska, palisada, łuk i narożniki ruin, szyny w kamieniołomie; przy drogach słupy, drogowskazy, porzucone wozy i skałki; 12 małych punktów z jedną skrzynką (`ValleyBuilder.OUTPOSTS`); kwiaty, kamyki i krzaczki jako MultiMesh. Rekwizyty są scalane w jedną siatkę na kawałek mapy i materiał (`_merge_visuals`), drobne bez cienia.
+Wydajność doliny, 1920×1080, wysoka jakość: przed GPU 1,09–1,10 ms, klatka 2,07–2,11 ms; po GPU 1,10–1,12 ms, klatka 2,19–2,33 ms (+6–10%). Bez scalania było +15%.
 
 ## 4. Dodatki zatwierdzone przez użytkownika (po etapach 1–5)
 
