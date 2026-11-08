@@ -17,4 +17,4 @@ func _ready() -> void:
 	await get_tree().create_timer(Chat.BURST_SECONDS + 3.0).timeout
 	for index in SPAM:
 		Chat._submit.rpc_id(1, "spam", false)
-	Chat._submit.rpc_id(1, " \n\t ")
+	Chat._submit.rpc_id(1, " \n\t ", false)
