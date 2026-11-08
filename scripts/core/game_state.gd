@@ -11,7 +11,7 @@ signal player_removed(id: int)
 signal player_changed(id: int)
 signal kill_announced(killer_id: int, victim_id: int)
 signal hit_confirmed(killed: bool)
-## Szczegoly trafienia dla atakujacego: { killed, headshot, amount, position, victim }.
+## Szczegoly trafienia dla atakujacego: { killed, headshot, amount, position, victim, item }.
 signal hit_details(details: Dictionary)
 ## Seria zabojstw lub inne wydarzenie: kind to first_blood, double, triple, streak albo ended.
 signal streak_announced(kind: String, killer_id: int, victim_id: int, count: int)
@@ -261,7 +261,7 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		_announce_kill.rpc(attacker_id, victim_id)
 	_notify_damage(victim_id, amount, attacker_id, source)
 	if attacker_id != victim_id:
-		_notify_hit(attacker_id, killed, { "killed": killed, "headshot": headshot, "amount": dealt, "position": details.get("position", Vector3.INF), "victim": victim_id })
+		_notify_hit(attacker_id, killed, { "killed": killed, "headshot": headshot, "amount": dealt, "position": details.get("position", Vector3.INF), "victim": victim_id, "item": weapon.get("item", &"") })
 
 
 ## Strzal liczy sie do celnosci i konczy ochrone po odrodzeniu.

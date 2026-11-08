@@ -68,6 +68,9 @@ var _vote_timer: Label
 ## Karty map w kolejnosci Match.VOTE_MAPS: { card, count, badge, key, state }.
 var _vote_cards: Array[Dictionary] = []
 var _hovered_vote := -1
+var _round_divider: Control
+## Sekcja "Twoja runda": wlasne liczby z tej rundy i strzalki wzgledem poprzedniej.
+var _round_section: VBoxContainer
 var _watch_panel: PanelContainer
 var _watch_label: Label
 
@@ -264,6 +267,8 @@ func _refresh_results() -> void:
 	var showing := Match.phase == Match.Phase.RESULTS
 	if showing and not _results_center.visible:
 		_fill_results()
+		# Statystyki zamrazaja runde w tym samym sygnale, wiec czytamy je chwile pozniej.
+		_fill_round_stats.call_deferred()
 		_place_results(not Match.is_elimination())
 		UiStyle.pop_in(_results_card)
 		_hovered_vote = -1
@@ -384,6 +389,78 @@ func _team_column(team: int, my_id: int) -> VBoxContainer:
 	elif rows.size() > TEAM_ROWS:
 		column.add_child(UiStyle.label("i %d więcej" % (rows.size() - TEAM_ROWS), 13, Color(UiStyle.INK, 0.65), false))
 	return column
+
+
+## Liczby gracza z tej rundy, liczone u niego na komputerze przez PlayerStats. Strzalka mowi,
+## czy jest lepiej niz w poprzedniej rundzie. Bez statystyk (np. bez okna) sekcji nie ma.
+func _fill_round_stats() -> void:
+	for child in _round_section.get_children():
+		child.free()
+	var stats := get_tree().get_first_node_in_group(PlayerStats.GROUP) as PlayerStats
+	var shown: bool = stats != null and not stats.last_round.is_empty() and GameState.players.get(multiplayer.get_unique_id(), {}).get("in_match", true)
+	_round_section.visible = shown
+	_round_divider.visible = shown
+	if not shown:
+		return
+	var now: Dictionary = stats.last_round
+	var before: Dictionary = stats.previous_round
+	var header := HBoxContainer.new()
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_round_section.add_child(header)
+	var title := UiStyle.label("Twoja runda", 17, UiStyle.INK)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	header.add_child(UiStyle.label("strzałki: w porównaniu z poprzednią rundą" if not before.is_empty() else "pierwsza runda w tej sesji", 13, Color(UiStyle.INK, 0.65), false))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_round_section.add_child(row)
+	var accuracy := PlayerStats.round_accuracy(now)
+	var cells: Array[Array] = [
+		["Zabójstwa", str(now.kills), _compare(now.kills, before.get("kills", -1), true)],
+		["Śmierci", str(now.deaths), _compare(now.deaths, before.get("deaths", -1), false)],
+		["Celność", "%d%%" % accuracy if accuracy >= 0 else "–", _compare(accuracy, PlayerStats.round_accuracy(before) if not before.is_empty() else -1, true)],
+		["W głowę", str(now.headshots), _compare(now.headshots, before.get("headshots", -1), true)],
+		["Obrażenia", str(now.damage), _compare(now.damage, before.get("damage", -1), true)],
+		["Najdłuższe", "%d m" % roundi(now.longest) if now.longest > 0.0 else "–", _compare(roundi(now.longest), roundi(before.get("longest", -1.0)), true)],
+	]
+	for cell: Array in cells:
+		row.add_child(_stat_cell(cell[0], cell[1], cell[2]))
+	var favorite := PlayerStats.round_favorite(now)
+	row.add_child(_stat_cell("Ulubiona broń", favorite if not favorite.is_empty() else "–", 0, 150.0))
+
+
+## -1 brak porownania, 0 bez zmian, a dalej: 1 wzroslo i dobrze, 2 wzroslo i zle,
+## 3 spadlo i dobrze, 4 spadlo i zle. Np. mniej smierci to strzalka w dol w kolorze "dobrze".
+static func _compare(value: int, previous: int, more_is_better: bool) -> int:
+	if previous < 0 or value < 0:
+		return -1
+	if value == previous:
+		return 0
+	var up := value > previous
+	var good := up == more_is_better
+	return (1 if up else 3) + (0 if good else 1)
+
+
+func _stat_cell(caption: String, value: String, trend: int, width := 84.0) -> VBoxContainer:
+	var cell := VBoxContainer.new()
+	cell.add_theme_constant_override("separation", 0)
+	cell.custom_minimum_size.x = width
+	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 4)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(line)
+	var number := UiStyle.label(value, 17, UiStyle.INK)
+	number.clip_text = true
+	number.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	number.custom_minimum_size.x = minf(UiStyle.text_width(value, 17, true) + 2.0, width - 18.0)
+	line.add_child(number)
+	if trend > 0:
+		var good := trend == 1 or trend == 3
+		line.add_child(UiStyle.label("▲" if trend <= 2 else "▼", 14, UiStyle.TEAL.darkened(0.15) if good else UiStyle.CORAL))
+	cell.add_child(UiStyle.label(caption, 13, Color(UiStyle.INK, 0.65), false))
+	return cell
 
 
 func _short(player_name: String) -> String:
@@ -519,10 +596,23 @@ func _build_results() -> void:
 	_results_card.add_theme_stylebox_override("panel", style)
 	_results_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_results_center.add_child(_results_card)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 12)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_results_card.add_child(stack)
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", SECTION_GAP)
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_results_card.add_child(body)
+	stack.add_child(body)
+	_round_divider = ColorRect.new()
+	(_round_divider as ColorRect).color = DIVIDER_COLOR
+	_round_divider.custom_minimum_size.y = 2
+	_round_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(_round_divider)
+	_round_section = VBoxContainer.new()
+	_round_section.add_theme_constant_override("separation", 6)
+	_round_section.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(_round_section)
 
 	# Wynik rundy: zwyciezca jest najwazniejszy, pod nim wlasne miejsce i nagrody.
 	_results_summary = VBoxContainer.new()

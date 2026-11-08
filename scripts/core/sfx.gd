@@ -573,6 +573,24 @@ static func kill() -> AudioStreamWAV:
 	, func(t: float) -> float: return 880.0 if t < 0.1 else 1320.0)
 
 
+## Zabojstwo w glowe: dwie nuty zabojstwa i wysoki, krotki brzdek na koncu.
+static func kill_headshot() -> AudioStreamWAV:
+	return _make("kill_headshot", 0.38, func(t: float, phase: float) -> float:
+		var notes := sin(TAU * phase) * (1.0 - t / 0.38) * (1.0 if t < 0.24 else 0.0)
+		var since := maxf(t - 0.22, 0.0)
+		var sparkle := (sin(TAU * 2640.0 * since) * 0.5 + sin(TAU * 3960.0 * since) * 0.25) * exp(-since * 18.0) if t >= 0.22 else 0.0
+		return notes * 0.8 + sparkle
+	, func(t: float) -> float: return [880.0, 1320.0, 1760.0][mini(int(t / 0.08), 2)])
+
+
+## Dzwiek dzwonka po zabiciu z AWP: czysty ton z alikwotami, ktory dlugo wybrzmiewa.
+static func sniper_ding() -> AudioStreamWAV:
+	return _make("sniper_ding", 0.55, func(t: float, _phase: float) -> float:
+		var bell := sin(TAU * 1568.0 * t) * 0.55 + sin(TAU * 3920.0 * t) * 0.18 + sin(TAU * 2349.0 * t) * 0.12
+		return bell * exp(-t * 7.0) * minf(t / 0.004, 1.0)
+	, func(_t: float) -> float: return 0.0)
+
+
 ## Ledwie slyszalne tykniecie pod kursorem. Pada czesto, wiec musi byc najcichsze i najkrotsze.
 static func ui_hover() -> AudioStreamWAV:
 	return _make("ui_hover", 0.035, func(t: float, _phase: float) -> float:

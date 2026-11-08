@@ -95,7 +95,7 @@ func _ready() -> void:
 	_check("limit nie wyslal wiadomosci", chat._rows.get_child_count() == Chat.BURST)
 	if Net.args.has("shot"):
 		chat._input.text = ""
-		Chat.message_received.emit(2, "Długa wiadomość, która na pewno nie zmieści się w jednej linijce czatu")
+		Chat.message_received.emit(2, "Długa wiadomość, która na pewno nie zmieści się w jednej linijce czatu", false)
 		await _wait(0.5)
 		get_viewport().get_texture().get_image().save_png(Net.args.shot)
 	await _tap(KEY_ESCAPE)

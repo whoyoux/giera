@@ -478,11 +478,26 @@ func _on_focus_lost() -> void:
 func _on_hit_details(details: Dictionary) -> void:
 	var killed: bool = details.get("killed", false)
 	var headshot: bool = details.get("headshot", false)
-	_crosshair.flash_hit(killed, headshot)
+	var kind := Crosshair.hit_kind(killed, headshot, StringName(details.get("item", &"")) == &"awp")
+	_crosshair.flash_kind(kind)
 	if killed and _player != null and is_instance_valid(_player):
 		_player.shake_camera(KILL_SHAKE)
-	_audio.stream = Sfx.kill() if killed else (Sfx.headshot() if headshot else Sfx.hit())
+	_audio.stream = hit_sound(kind)
 	_audio.play()
+
+
+## Kazdy rodzaj trafienia brzmi inaczej, wiec bez patrzenia wiadomo, co sie stalo.
+static func hit_sound(kind: String) -> AudioStreamWAV:
+	match kind:
+		"headshot":
+			return Sfx.headshot()
+		"kill":
+			return Sfx.kill()
+		"kill_headshot":
+			return Sfx.kill_headshot()
+		"sniper":
+			return Sfx.sniper_ding()
+	return Sfx.hit()
 
 
 ## Pierwsza krew, podwojne i potrojne zabojstwo, seria i jej przerwanie. Wlasny wyczyn to krotki

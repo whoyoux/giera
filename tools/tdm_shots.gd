@@ -2,6 +2,7 @@ extends Node
 ## Narzedzie: zrzuty Team Deathmatchu w 1280x720: wybor druzyny, HUD z wynikiem druzyn, tabela
 ## pod Tab, lista zabojstw, mapka i panel konca rundy. Gracze poza hostem sa sztuczni.
 ## Uzycie: -- --tool=res://tools/tdm_shots.gd --dir=C:/folder [--map=city]
+## --dm robi tylko panel konca rundy zwyklego Deathmatchu, z sekcja "Twoja runda".
 
 const NAMES: Array[String] = ["Ziutek", "Basia", "Mietek", "Zosia", "Franek", "Jadzia", "Dlugi Nick Na Steamie"]
 
@@ -11,11 +12,21 @@ var _dir := ""
 func _ready() -> void:
 	_dir = Net.args.get("dir", OS.get_user_data_dir())
 	Net.player_name = "Kapitan"
-	Net.start_server(8043, false, GameMode.Id.TEAM_DEATHMATCH)
+	var dm := Net.args.has("dm")
+	Net.start_server(8043, false, GameMode.Id.DEATHMATCH if dm else GameMode.Id.TEAM_DEATHMATCH)
 	await _wait(1.0)
 	for index in NAMES.size():
 		GameState.server_add_player(index + 2, NAMES[index])
 	await _wait(0.2)
+	if dm:
+		_fake_round_stats()
+		for id: int in [1, 2, 3, 4]:
+			GameState.players[id].kills = 7 - id
+		Match._finish_round(Match.standings())
+		await _wait(1.2)
+		await _shot("dm_results.png")
+		get_tree().quit()
+		return
 	for index in NAMES.size():
 		if index < 5:
 			GameState.server_set_team(index + 2, index % 2)
@@ -50,10 +61,22 @@ func _ready() -> void:
 	Input.action_release("map")
 
 	Match.team_scores = [50, 38]
+	_fake_round_stats()
 	Match._finish_round(Match.standings())
 	await _wait(1.2)
 	await _shot("tdm_results.png")
 	get_tree().quit()
+
+
+## Kilka trafien z AWP i Desert Eagle oraz poprzednia runda, zeby bylo widac strzalki.
+func _fake_round_stats() -> void:
+	var stats := get_tree().get_first_node_in_group(PlayerStats.GROUP) as PlayerStats
+	if stats == null:
+		return
+	stats.round_stats.shots += 14
+	for hit: Array in [[48, true, false, &"deagle"], [55, false, true, &"deagle"], [90, true, true, &"awp"], [30, false, false, &"blaster"]]:
+		GameState.hit_details.emit({ "amount": hit[0], "headshot": hit[1], "killed": hit[2], "item": hit[3], "position": GameState.player_node(1).position + Vector3(0.0, 1.0, 42.0), "victim": 3 })
+	stats.previous_round = { "kills": 1, "deaths": 1, "shots": 10, "hits": 3, "headshots": 0, "damage": 160, "longest": 18.0, "weapons": {}, "fired": {} }
 
 
 func _wait(seconds: float) -> void:

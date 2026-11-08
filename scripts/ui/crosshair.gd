@@ -20,10 +20,34 @@ var _headshot := false
 var ally_color := Color.TRANSPARENT
 
 
+## Kolory znacznika odpowiadaja dzwiekom: zwykle trafienie, w glowe, zabojstwo, zabojstwo w glowe
+## i zabojstwo z AWP, ktore ma wlasny dzwonek.
+const HIT_COLORS := {
+	"hit": Color.WHITE,
+	"headshot": Color("ffcb47"),
+	"kill": UiStyle.CORAL,
+	"kill_headshot": Color("ff4fa3"),
+	"sniper": Color("7fd3ff"),
+}
+
+
 func flash_hit(killed: bool, headshot := false) -> void:
+	flash_kind(hit_kind(killed, headshot, false))
+
+
+## Rodzaj trafienia do dzwieku i koloru znacznika.
+static func hit_kind(killed: bool, headshot: bool, sniper: bool) -> String:
+	if killed and sniper:
+		return "sniper"
+	if killed:
+		return "kill_headshot" if headshot else "kill"
+	return "headshot" if headshot else "hit"
+
+
+func flash_kind(kind: String) -> void:
 	_hit = 1.0
-	_hit_color = UiStyle.CORAL if killed else (Color("ffcb47") if headshot else Color.WHITE)
-	_headshot = headshot
+	_hit_color = HIT_COLORS.get(kind, Color.WHITE)
+	_headshot = kind in ["headshot", "kill_headshot", "sniper"]
 	queue_redraw()
 
 
