@@ -92,6 +92,7 @@ exit 0
 #- round_test --round-seconds=40 --round-kill-limit=3
 #- city_map_test --map=city
 #- valley_map_test --map=valley
+#- desert_map_test --map=desert
 #- features_test
 # KONIEC
 # SIEC
@@ -117,4 +118,5 @@ exit 0
 #- dm_rounds_test
 #- city_bots_test
 #- br_valley_test
+#- tdm_net_test
 # KONIEC

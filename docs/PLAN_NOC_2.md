@@ -94,16 +94,18 @@ Wydajność doliny, 1920×1080, wysoka jakość: przed GPU 1,09–1,10 ms, klatk
 
 Tylko te dwa. Innych dodatków nie dokładaj.
 
-- [ ] **Różne dźwięki trafienia:** osobny dźwięk zwykłego trafienia, trafienia w głowę, zabójstwa i zabójstwa w głowę, krótki „ding” przy zabiciu z AWP. Dźwięki generowane skryptem jak pozostałe (bez kopiowania z innych gier), znacznik trafienia w kolorze zgodnym z dźwiękiem. Działa w DM, TDM i BR.
-- [ ] **Statystyki gracza po rundzie:** sekcja „Twoja runda” w panelu końca rundy (zgodnie z zasadą „jeden moment, jeden panel”): zabójstwa, śmierci, celność, trafienia w głowę, zadane obrażenia, najdłuższe zabójstwo w metrach, ulubiona broń rundy i strzałki porównania z poprzednią rundą. Liczone lokalnie u klienta i dopisywane do istniejących statystyk osobistych. Sprawdź zrzutem 1280×720 w DM i TDM.
+- [x] **Różne dźwięki trafienia:** osobny dźwięk zwykłego trafienia, trafienia w głowę, zabójstwa i zabójstwa w głowę, krótki „ding” przy zabiciu z AWP. Dźwięki generowane skryptem jak pozostałe (bez kopiowania z innych gier), znacznik trafienia w kolorze zgodnym z dźwiękiem. Działa w DM, TDM i BR.
+- [x] **Statystyki gracza po rundzie:** sekcja „Twoja runda” w panelu końca rundy (zgodnie z zasadą „jeden moment, jeden panel”): zabójstwa, śmierci, celność, trafienia w głowę, zadane obrażenia, najdłuższe zabójstwo w metrach, ulubiona broń rundy i strzałki porównania z poprzednią rundą. Liczone lokalnie u klienta i dopisywane do istniejących statystyk osobistych. Sprawdź zrzutem 1280×720 w DM i TDM.
 
 ## 5. Zakończenie (zawsze, nawet gdy część punktów ma `[!]`)
 
-- [ ] Pełne testy `bash tools/all_tests.sh tools/logs/koniec.txt` i porównanie z bazą. Nowe błędy napraw.
-- [ ] Nowe testy: `tdm_test` (przydział i równowaga drużyn, brak ognia przyjacielskiego, wynik drużyny, koniec rundy), `tools/tdm_net_test.sh` z botami w dwóch drużynach, `desert_map_test.gd` (punkty startu, brak utknięć, wyjście poza mapę), krótki test profilu odrzutu. Wzór w istniejących testach i `docs/DEVELOPMENT.md`.
-- [ ] Przegląd własnego diffu (`/code-review` albo subagent) i poprawki.
-- [ ] README: nowe funkcje, sterowanie, licencje nowych zasobów, **bez notatek roboczych** (te idą do `docs/DEVELOPMENT.md`). Odśwież zrzuty `tools/readme_shots.gd` z `--fake-steam=Kapitan:76561197960265729`, dodaj zrzuty lobby TDM, HUD TDM, pustyni, Desert Eagle i doliny. Przykładowe nicki i adresy, bez prawdziwego IP.
-- [ ] `docs/DEVELOPMENT.md`: architektura drużyn, mapa pustynna, profil odrzutu, nowe testy.
-- [ ] Sprawdzenie całej historii gałęzi i plików pod kątem adresu IP i danych logowania.
+- [!] Pełne testy `bash tools/all_tests.sh tools/logs/koniec.txt` i porównanie z bazą. Nowe błędy napraw.
+- [!] Nowe testy: `tdm_test` (przydział i równowaga drużyn, brak ognia przyjacielskiego, wynik drużyny, koniec rundy), `tools/tdm_net_test.sh` z botami w dwóch drużynach, `desert_map_test.gd` (punkty startu, brak utknięć, wyjście poza mapę), krótki test profilu odrzutu. Wzór w istniejących testach i `docs/DEVELOPMENT.md`.
+- [!] Przegląd własnego diffu (`/code-review` albo subagent) i poprawki.
+- [x] README: nowe funkcje, sterowanie, licencje nowych zasobów, **bez notatek roboczych** (te idą do `docs/DEVELOPMENT.md`). Odśwież zrzuty `tools/readme_shots.gd` z `--fake-steam=Kapitan:76561197960265729`, dodaj zrzuty lobby TDM, HUD TDM, pustyni, Desert Eagle i doliny. Przykładowe nicki i adresy, bez prawdziwego IP.
+- [x] `docs/DEVELOPMENT.md`: architektura drużyn, mapa pustynna, profil odrzutu, nowe testy.
+- [x] Sprawdzenie całej historii gałęzi i plików pod kątem adresu IP i danych logowania.
 - [ ] Opis draft PR: co zrobiono (z zrzutami), jak zagrać lokalnie w TDM (gotowe polecenia dla początkującego, np. `tools\run_local.ps1` z odpowiednim trybem), co wymaga oceny człowieka, „Do decyzji”, wyniki testów i wydajności, czynności na VPS (port 7779). PR zostaje szkicem.
 - [ ] Ostatni commit i push planu z wszystkimi znacznikami. Dopiero teraz możesz zakończyć turę.
+
+Zakończenie na prośbę użytkownika (rano przerwał noc: „skończ etap, wrzuć PR, merguj i wydaj tag”). Zamiast pełnej rundy testów poszedł zestaw regresji dotkniętych obszarów (`tools/logs/koniec.txt`). Nowe testy: `desert_map_test` i `tools/tdm_net_test.sh` są w `all_tests.sh`; osobnego `tdm_test` bez sieci i testu profilu odrzutu nie ma. Przeglądu diffu subagentem nie było.
