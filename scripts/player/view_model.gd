@@ -17,6 +17,10 @@ const EDGE_SHADER := preload("res://shaders/overlay_edges.gdshader")
 const PRIMED_OFFSET := Vector3(0.06, 0.1, 0.2)
 const PRIMED_SPEED := 9.0
 const SLASH_SECONDS := 0.34
+## Krok calkowania sprezyny odrzutu. Krotki, zeby szybka sprezyna nie wpadla w drgania przy niskim FPS.
+const SPRING_STEP := 1.0 / 240.0
+## Wyjmowanie broni: lekki obrot przy wjezdzaniu od dolu.
+const DRAW_TILT := 0.6
 
 var _main_camera: Camera3D
 var _overlay_camera: Camera3D
@@ -54,6 +58,25 @@ var _priming := 0.0
 var _priming_target := false
 var _slash := 1.0
 var _pose_callbacks: Array[Callable] = []
+## Sprezyna odrzutu: wychylenie i predkosc cofniecia (z) oraz obrotow (x w gore, y i z w bok).
+var _kick_offset := Vector4.ZERO
+var _kick_speed := Vector4.ZERO
+var _kick_return := 16.0
+var _kick_damping := 1.0
+## Ruch czesci po strzale: zamek, rygiel albo pompka. Czas od strzalu albo -1, gdy nic sie nie rusza.
+var _cycle_time := -1.0
+var _cycle_action := 0
+var _cycle_delay := 0.0
+var _cycle_seconds := 0.1
+var _cycle_travel := 0.05
+var _slide: Node3D
+var _slide_home := Vector3.ZERO
+var _hammer: Node3D
+var _hammer_home := Vector3.ZERO
+var _bolt: Node3D
+var _bolt_home := Transform3D.IDENTITY
+## Jak daleko lewa reka cofnela pompke albo rygiel, od 0 do 1.
+var _pump := 0.0
 
 
 func setup(character_id: String) -> void:
@@ -238,12 +261,41 @@ func _load_model(visual: ItemVisual) -> void:
 	_magazine = _model.find_child("magazine", true, false) as Node3D
 	if _magazine != null:
 		_magazine_home = _magazine.position
+	_slide = _model.find_child("slide", true, false) as Node3D
+	_slide_home = _slide.position if _slide != null else Vector3.ZERO
+	_hammer = _model.find_child("hammer", true, false) as Node3D
+	_hammer_home = _hammer.rotation if _hammer != null else Vector3.ZERO
+	_bolt = _model.find_child("bolt", true, false) as Node3D
+	_bolt_home = _bolt.transform if _bolt != null else Transform3D.IDENTITY
+	_cycle_time = -1.0
 	_put_on_overlay_layer(_model)
 
 
 func kick(strength := 1.0) -> void:
 	_recoil = 1.0
 	_recoil_strength = strength
+	_show_flash()
+
+
+## Odrzut wedlug profilu broni: pchniecie sprezyny cofniecia, podbicia i obrotu w bok oraz ruch
+## zamka, rygla albo pompki. "scale" zmniejsza odrzut przy celowaniu.
+func kick_with(stats: WeaponStats, scale := 1.0) -> void:
+	var strength := stats.recoil * scale
+	_kick_return = maxf(stats.kick_return, 1.0)
+	_kick_damping = lerpf(1.0, 0.22, stats.kick_bounce)
+	# Pchniecie predkoscia tak dobrane, ze szczyt wychylenia wypada mniej wiecej na zadana wartosc.
+	var push := _kick_return * 2.2 * strength
+	var side := (stats.kick_side + randf_range(-1.0, 1.0) * stats.kick_jitter) * (-1.0 if randf() < 0.5 else 1.0)
+	_kick_speed += Vector4(stats.kick_back, stats.kick_rise + randf_range(-0.5, 0.5) * stats.kick_jitter, side, side * 0.6) * push
+	_cycle_action = stats.cycle_action
+	_cycle_delay = stats.cycle_delay
+	_cycle_seconds = maxf(stats.cycle_seconds, 0.01)
+	_cycle_travel = stats.cycle_travel
+	_cycle_time = 0.0 if _cycle_action != 0 else -1.0
+	_show_flash()
+
+
+func _show_flash() -> void:
 	_flash_time = 0.05
 	if _flash != null:
 		_flash.visible = true
@@ -296,6 +348,9 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 		return
 	_time += delta * lerpf(6.0, 13.0, clampf(speed_ratio, 0.0, 1.0))
 	_recoil = move_toward(_recoil, 0.0, delta * 8.0)
+	_update_kick_spring(delta)
+	_pump = _update_cycle(delta)
+	var pump := _pump
 	_hide = move_toward(_hide, 1.0 if dead else 0.0, delta * 3.5)
 	_sprint = move_toward(_sprint, 1.0 if sprinting else 0.0, delta * 7.0)
 	_aim = move_toward(_aim, 1.0 if _aim_target and not dead else 0.0, delta * AIM_SPEED)
@@ -322,12 +377,14 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 	_bob_amount = move_toward(_bob_amount, minf(speed_ratio, 1.5) if on_floor else 0.0, delta * 5.0)
 	_lift = lerpf(_lift, clampf(vertical_speed * 0.006, -0.05, 0.05), minf(delta * 10.0, 1.0))
 	var recoil_curve := _recoil * _recoil * _recoil_strength
+	var drawn := smoothstep(0.0, 1.0, _hide)
 	# Pelna fala cosinusa zamiast wartosci bezwzglednej: bez ostrego odbicia przy kazdym kroku.
-	var position_offset := Vector3(sin(_time) * 0.012 * _bob_amount * steadiness, -(1.0 - cos(_time * 2.0)) * 0.007 * _bob_amount * steadiness, recoil_curve * 0.07)
+	var position_offset := Vector3(sin(_time) * 0.012 * _bob_amount * steadiness, -(1.0 - cos(_time * 2.0)) * 0.007 * _bob_amount * steadiness, recoil_curve * 0.07 + _kick_offset.x)
 	_landing_shown = lerpf(_landing_shown, _landing, minf(delta * 22.0, 1.0))
 	position_offset.y += _lift - _landing_shown * 0.08
 	position_offset += Vector3(-0.1, -0.13, 0.06) * _sprint
-	position_offset += Vector3.DOWN * _hide * 0.6
+	position_offset += Vector3.DOWN * drawn * 0.6
+	position_offset += Vector3(0.0, -0.02, 0.03) * pump
 	position_offset += Vector3(_sway.x * -0.01, _sway.y * 0.01, 0.0) * steadiness
 	position_offset += Vector3(-0.05, 0.02, 0.03) * reload_tilt
 	_slash = minf(_slash + delta / SLASH_SECONDS, 1.0)
@@ -336,9 +393,63 @@ func update_pose(delta: float, speed_ratio: float, on_floor: bool, vertical_spee
 	var hold := _visual.hold_offset if _visual != null else Vector3.ZERO
 	_gun.position = (BASE_POSITION + hold).lerp(_aim_position(), aim_blend) + position_offset + PRIMED_OFFSET * _priming
 	_gun.rotation = Vector3(
-		recoil_curve * 0.16 - _sprint * 0.35 + reload_tilt * 0.5 - swing * 0.2,
-		_sprint * 0.9 + reload_tilt * 0.45 + swing * 0.4,
-		_sway.x * 0.012 * steadiness + _sprint * 0.25 + reload_tilt * 0.35 + swing * 0.9)
+		recoil_curve * 0.16 + _kick_offset.y - _sprint * 0.35 + reload_tilt * 0.5 - swing * 0.2 - drawn * DRAW_TILT * 0.5 - pump * 0.08,
+		_sprint * 0.9 + reload_tilt * 0.45 + swing * 0.4 + _kick_offset.z,
+		_sway.x * 0.012 * steadiness + _sprint * 0.25 + reload_tilt * 0.35 + swing * 0.9 + _kick_offset.w + drawn * DRAW_TILT)
+
+
+## Tlumiona sprezyna: szybkie cofniecie i powrot, a przy wiekszej sprezystosci lekkie przestrzelenie.
+func _update_kick_spring(delta: float) -> void:
+	var left := minf(delta, 0.1)
+	var stiffness := _kick_return * _kick_return
+	var damping := 2.0 * _kick_damping * _kick_return
+	while left > 0.0:
+		var step := minf(left, SPRING_STEP)
+		_kick_speed += (-_kick_offset * stiffness - _kick_speed * damping) * step
+		_kick_offset += _kick_speed * step
+		left -= step
+
+
+## Ruch czesci po strzale. Zwraca, jak daleko jest pompka (0 do 1), bo przesuwa ja lewa reka.
+func _update_cycle(delta: float) -> float:
+	if _cycle_time < 0.0:
+		return 0.0
+	_cycle_time += delta
+	var t := (_cycle_time - _cycle_delay) / _cycle_seconds
+	if t >= 1.0:
+		_cycle_time = -1.0
+		_reset_parts()
+		return 0.0
+	if t < 0.0:
+		return 0.0
+	match _cycle_action:
+		1:
+			# Zamek: blyskawicznie do tylu i nieco wolniej z powrotem, a kurek odskakuje.
+			var back := smoothstep(0.0, 0.25, t) * (1.0 - smoothstep(0.35, 1.0, t))
+			if _slide != null:
+				_slide.position = _slide_home + Vector3(0.0, 0.0, _cycle_travel * back)
+			if _hammer != null:
+				_hammer.rotation = _hammer_home + Vector3(-0.9 * back, 0.0, 0.0)
+		2:
+			# Rygiel: obrot w gore, do tylu, do przodu i w dol.
+			var lift := smoothstep(0.0, 0.18, t) * (1.0 - smoothstep(0.82, 1.0, t))
+			var pull := smoothstep(0.2, 0.42, t) * (1.0 - smoothstep(0.55, 0.78, t))
+			if _bolt != null:
+				_bolt.transform = _bolt_home.translated_local(Vector3(0.0, 0.0, _cycle_travel * pull)).rotated_local(Vector3.FORWARD, -1.2 * lift)
+			return lift * 0.6
+		3:
+			# Pompka: lewa reka szarpie w tyl i wraca.
+			return smoothstep(0.0, 0.35, t) * (1.0 - smoothstep(0.45, 1.0, t))
+	return 0.0
+
+
+func _reset_parts() -> void:
+	if _slide != null:
+		_slide.position = _slide_home
+	if _hammer != null:
+		_hammer.rotation = _hammer_home
+	if _bolt != null:
+		_bolt.transform = _bolt_home
 
 
 ## Szybki wymach na poczatku i wolniejszy powrot.
@@ -376,7 +487,7 @@ func _update_reload(delta: float, reloading: bool) -> float:
 		left_offset = Vector3(-0.02, -0.48, 0.22) * hand_away
 	if _magazine != null:
 		_magazine.position = _magazine_home + magazine_offset
-	_left.position = _left_home + left_offset
+	_left.position = _left_home + left_offset + Vector3(0.02, -0.02, _cycle_travel * 2.0 + 0.06) * _pump
 	return tilt
 
 

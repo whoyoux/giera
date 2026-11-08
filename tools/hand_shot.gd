@@ -19,8 +19,11 @@ func _ready() -> void:
 	await _wait(1.2)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await _shot("%s_reka.png" % item)
-	var steps: Array[float] = [0.016, 0.05, 0.12, 0.3]
-	me.equipment.fired.emit()
+	var steps: Array[float] = [0.016, 0.05, 0.12, 0.3, 0.5, 0.7]
+	var stats := ItemRegistry.weapon_stats(item, Rarity.Tier.EPIC)
+	if stats != null:
+		var empty: Array[Dictionary] = []
+		me.show_shots(empty, stats, Rarity.Tier.EPIC)
 	var elapsed := 0.0
 	for step in steps:
 		await _wait(step - elapsed)

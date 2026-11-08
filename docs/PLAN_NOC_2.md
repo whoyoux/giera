@@ -71,11 +71,13 @@ Notatki etapu 3: model w `tools/build_weapon_models.gd` (`--only=deagle`), węz�
 
 Dziś `view_model.gd` ma prosty `kick()`. Rozbuduj go.
 
-- [ ] **Profil odrzutu na broń:** pola wizualne w `WeaponStats` (grupa „Odrzut wizualny”): cofnięcie, podbicie lufy, obrót w bok, szybkość powrotu, sprężystość. Desert Eagle mocno podbija lufę, AWP ciężko cofa się w ramię, strzelba szarpie, blaster lekko drży w serii. Powrót na sprężynie (lekkie przestrzelenie i powrót), a nie liniowy.
-- [ ] **Ruchome części:** zamek pistoletu cofa się i wraca, u AWP po strzale widoczny ruch zamka (przeładowanie czółenkowe), u strzelby przesuw pompki.
-- [ ] **Kamera:** krótkie, małe uderzenie kamery zależne od broni, tylko wizualne. **Kierunek pocisku i rozrzut się nie zmieniają**, bo liczy je rollback. Opcja w ustawieniach „Siła odrzutu kamery” (0–100%).
-- [ ] **Widok z trzeciej osoby:** inni gracze widzą szarpnięcie rąk przy strzale.
-- [ ] Przy okazji: płynniejsza animacja przeładowania i wyjmowania broni, jeśli obecna jest sztywna.
+- [x] **Profil odrzutu na broń:** pola wizualne w `WeaponStats` (grupa „Odrzut wizualny”): cofnięcie, podbicie lufy, obrót w bok, szybkość powrotu, sprężystość. Desert Eagle mocno podbija lufę, AWP ciężko cofa się w ramię, strzelba szarpie, blaster lekko drży w serii. Powrót na sprężynie (lekkie przestrzelenie i powrót), a nie liniowy.
+- [x] **Ruchome części:** zamek pistoletu cofa się i wraca, u AWP po strzale widoczny ruch zamka (przeładowanie czółenkowe), u strzelby przesuw pompki.
+- [x] **Kamera:** krótkie, małe uderzenie kamery zależne od broni, tylko wizualne. **Kierunek pocisku i rozrzut się nie zmieniają**, bo liczy je rollback. Opcja w ustawieniach „Siła odrzutu kamery” (0–100%).
+- [x] **Widok z trzeciej osoby:** inni gracze widzą szarpnięcie rąk przy strzale.
+- [x] Przy okazji: płynniejsza animacja przeładowania i wyjmowania broni, jeśli obecna jest sztywna.
+
+Notatki etapu 4: pola `kick_*` i `cycle_*` w `WeaponStats` mnożone przez `recoil` (klasa broni), sprężyna w `ViewModel._update_kick_spring`. Węzły modeli: `slide`/`hammer` (Desert Eagle), `bolt` (AWP), pompkę strzelby cofa lewa ręka, bo model z paczki Kenney nie ma osobnej części. Suwak „Siła odrzutu kamery” (`recoil_camera`). Wyjmowanie broni wjeżdża z łagodnym wygaszeniem i obrotem.
 
 ### Etap 5: Więcej życia na mapie Battle Royale (dolina)
 

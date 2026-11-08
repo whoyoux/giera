@@ -26,6 +26,8 @@ const POSITION_HISTORY_TICKS := 30
 const AIM_ZOOM_SPEED := 12.0
 ## Odrzut w rekach i szarpniecie kamery sa mniejsze przy celowaniu.
 const AIM_RECOIL_SCALE := 0.55
+## Jak szybko kamera wraca po uderzeniu od strzalu.
+const RECOIL_PUNCH_RETURN := 14.0
 const STEP_DISTANCE := 2.3
 const SPRINT_STEP_DISTANCE := 3.0
 const MIN_STEP_SPEED := 1.2
@@ -95,6 +97,8 @@ var _last_position := Vector3.ZERO
 var _velocity_smoothed := Vector3.ZERO
 var _seen_health := 0
 var _punch := Vector3.ZERO
+## Uderzenie kamery od wlasnego strzalu. Ma osobny suwak w ustawieniach.
+var _recoil_punch := Vector3.ZERO
 var _view_speed := 0.0
 var _switch_audio: AudioStreamPlayer
 var _item_audio: AudioStreamPlayer
@@ -550,7 +554,8 @@ func _process(delta: float) -> void:
 		var sprint_fov := lerpf(camera.fov / maxf(_view_zoom, 0.01), base_fov + SPRINT_FOV_BONUS if sprinting else base_fov, minf(delta * 8.0, 1.0))
 		camera.fov = sprint_fov * _view_zoom
 		_punch = _punch.lerp(Vector3.ZERO, minf(delta * 9.0, 1.0))
-		var kick := (_punch + _shake.update(delta)) * float(Settings.value("camera_shake"))
+		_recoil_punch = _recoil_punch.lerp(Vector3.ZERO, minf(delta * RECOIL_PUNCH_RETURN, 1.0))
+		var kick := (_punch + _shake.update(delta)) * float(Settings.value("camera_shake")) + _recoil_punch
 		_dance_camera.update(self, delta)
 		if _dance_camera.is_active():
 			model.update_pose(delta, Vector2.ZERO, true, 0.0, false, not info.alive)
@@ -795,11 +800,14 @@ func show_shots(hits: Array[Dictionary], stats: WeaponStats, tier: int) -> void:
 	var effect_color := Rarity.effect_color(tier)
 	if is_local():
 		var steady := AIM_RECOIL_SCALE if aiming else 1.0
-		view_model.kick(stats.recoil * steady)
-		_punch.x += stats.camera_kick * steady
+		view_model.kick_with(stats, steady)
+		# Uderzenie kamery jest tylko na ekranie: strzal leci tam, gdzie celownik.
+		var camera_scale: float = steady * float(Settings.value("recoil_camera"))
+		_recoil_punch.x += stats.camera_kick * camera_scale
+		_recoil_punch.y += stats.camera_kick * stats.kick_side / maxf(stats.kick_rise, 0.01) * randf_range(-1.0, 1.0) * camera_scale
 		view_model.on_next_pose(_show_shot.bind(hits, effect_color, stats.tracer_width))
 	else:
-		model.play_shot()
+		model.play_shot(stats.recoil * stats.kick_rise)
 		_show_shot(model.muzzle_position(), hits, effect_color, stats.tracer_width)
 
 

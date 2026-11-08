@@ -45,6 +45,28 @@ extends Resource
 ## Szarpniecie kamery w radianach. Nie zmienia kierunku strzalu.
 @export var camera_kick := 0.006
 @export var tracer_width := 0.05
+
+@export_group("Odrzut wizualny")
+## Ksztalt odrzutu w rekach przy sile "recoil" rownej 1. Liczy sie tylko na ekranie: kierunek pocisku
+## i rozrzut zostaja takie same, bo liczy je rollback. Cofniecie w metrach, obroty w radianach.
+@export var kick_back := 0.07
+## Podbicie lufy do gory.
+@export var kick_rise := 0.16
+## Obrot w bok, za kazdym razem w losowa strone.
+@export var kick_side := 0.0
+## Szybkosc powrotu na sprezynie: im wieksza, tym krocej trwa odrzut.
+@export var kick_return := 16.0
+## Sprezystosc: 0 wraca gladko, a wyzej bron lekko przestrzeliwuje i wraca.
+@export_range(0.0, 1.0) var kick_bounce := 0.2
+## Drganie przy kazdym strzale, np. w serii blastera.
+@export var kick_jitter := 0.0
+## Ruch czesci broni po strzale: zamek pistoletu, rygiel snajperki albo pompka strzelby.
+@export_enum("Brak", "Zamek", "Rygiel", "Pompka") var cycle_action := 0
+## Po ilu sekundach od strzalu rusza ta czesc i ile trwa jej ruch.
+@export var cycle_delay := 0.0
+@export var cycle_seconds := 0.1
+## Jak daleko jedzie czesc, w metrach modelu.
+@export var cycle_travel := 0.05
 @export var shot_start_hz := 880.0
 @export var shot_end_hz := 130.0
 @export var shot_seconds := 0.2

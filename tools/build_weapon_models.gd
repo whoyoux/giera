@@ -116,9 +116,13 @@ func _awp() -> Node3D:
 	LowPoly.part(root, LowPoly.cylinder(0.012, 0.012, 0.03, 6), INK, Vector3(0.035, 0.14, -0.03), Vector3(0, 0, 90))
 	for z: float in [-0.12, 0.06]:
 		LowPoly.part(root, LowPoly.box(Vector3(0.03, 0.05, 0.03), 0.008), STEEL, Vector3(0.0, 0.095, z))
-	# Rygiel zamka po prawej stronie.
-	LowPoly.part(root, LowPoly.cylinder(0.008, 0.008, 0.07, 6), STEEL, Vector3(0.06, 0.05, 0.1), Vector3(0, 0, 90))
-	LowPoly.part(root, LowPoly.box(Vector3(0.034, 0.034, 0.034), 0.01), CORAL, Vector3(0.095, 0.05, 0.1))
+	# Rygiel zamka po prawej stronie: osobny wezel "bolt", ktory po strzale obraca sie i cofa.
+	var bolt := Node3D.new()
+	bolt.name = "bolt"
+	bolt.position = Vector3(0.03, 0.05, 0.1)
+	root.add_child(bolt)
+	LowPoly.part(bolt, LowPoly.cylinder(0.008, 0.008, 0.07, 6), STEEL, Vector3(0.03, 0.0, 0.0), Vector3(0, 0, 90))
+	LowPoly.part(bolt, LowPoly.box(Vector3(0.034, 0.034, 0.034), 0.01), CORAL, Vector3(0.065, 0.0, 0.0))
 	var grip := LowPoly.part(root, LowPoly.box(Vector3(0.055, 0.14, 0.07), 0.018), INK, Vector3(0.0, -0.08, 0.12), Vector3(18, 0, 0))
 	grip.name = "Grip"
 	LowPoly.part(root, LowPoly.box(Vector3(0.02, 0.012, 0.09), 0.004), INK, Vector3(0.0, -0.06, 0.05))

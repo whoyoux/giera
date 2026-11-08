@@ -1,6 +1,7 @@
 extends Node
 ## Narzedzie: postacie obu druzyn Team Deathmatchu z bliska albo z daleka, zeby sprawdzic,
 ## czy druzyne widac od razu. Uzycie: -- --tool=res://tools/team_preview.gd --shot=C:/plik.png [--distance=30]
+## --kick=0.4 pokazuje szarpniecie rak po strzale u co drugiej postaci.
 
 
 func _ready() -> void:
@@ -32,6 +33,10 @@ func _ready() -> void:
 		for rig in rigs:
 			rig.update_pose(1.0 / 60.0, Vector2.ZERO, true, 0.0, false, false)
 		await get_tree().process_frame
+		if frame == 36 and Net.args.has("kick"):
+			for i in rigs.size():
+				if i % 2 == 1:
+					rigs[i].play_shot(float(Net.args.kick))
 	await RenderingServer.frame_post_draw
 	var path: String = Net.args.get("shot", "user://team.png")
 	print("[test] zrzut %s: %s" % [path, error_string(get_viewport().get_texture().get_image().save_png(path))])

@@ -25,6 +25,8 @@ const DEFAULTS := {
 	"invert_y": false,
 	"fov": 80.0,
 	"camera_shake": 1.0,
+	# Uderzenie kamery od wlasnego strzalu, od 0 do 1. Nie zmienia kierunku pocisku.
+	"recoil_camera": 1.0,
 	"aim_sensitivity": 1.0,
 	"fullscreen": false,
 	"vsync": true,

@@ -117,8 +117,12 @@ func _attach_ring(bone: String, material: Material, outer: float, height: float,
 	return slot
 
 
-func play_shot() -> void:
+## Strzal widziany przez innych: animacja strzalu i szarpniecie rak w gore, tym mocniejsze,
+## im silniejszy odrzut broni.
+func play_shot(kick := 0.16) -> void:
 	_fire("shoot")
+	if _aim != null and not _dead:
+		_aim.kick(kick)
 
 
 func play_melee() -> void:
