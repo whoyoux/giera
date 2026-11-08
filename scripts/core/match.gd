@@ -59,7 +59,7 @@ var _ranking := {}
 var _pending_out: Array[int] = []
 var _settle_queued := false
 var _zone_timer := 0.0
-var _team_requested := false
+var _team_retry_ms := 0
 
 
 func _ready() -> void:
@@ -134,11 +134,13 @@ func seconds_left() -> float:
 
 ## Boty same wybieraja druzyne, zeby dalo sie testowac Team Deathmatch bez klikania.
 ## --team=0 albo --team=1 wskazuje druzyne, a bez tego bot idzie do mniejszej.
+## Serwer odmawia, gdy wybrana druzyna jest za duza, wiec bot ponawia prosbe co chwile.
 func _on_player_changed(id: int) -> void:
-	if Net.bot_mode.is_empty() or not is_team_mode() or id != multiplayer.get_unique_id() or _team_requested:
+	if Net.bot_mode.is_empty() or not is_team_mode() or id != multiplayer.get_unique_id():
 		return
-	if Teams.team_of(id) == Teams.NONE:
-		_team_requested = true
+	var now := Time.get_ticks_msec()
+	if Teams.team_of(id) == Teams.NONE and now >= _team_retry_ms:
+		_team_retry_ms = now + 2000
 		request_team(int(Net.args.get("team", Teams.NONE)))
 
 
@@ -183,6 +185,8 @@ func server_send_state(id: int) -> void:
 
 
 func _process(delta: float) -> void:
+	if Net.in_session and not multiplayer.is_server() and not Net.bot_mode.is_empty() and Engine.get_process_frames() % 30 == 0:
+		_on_player_changed(multiplayer.get_unique_id())
 	if not Net.in_session or not multiplayer.is_server():
 		return
 	if not is_elimination():
@@ -436,7 +440,7 @@ func _state() -> Dictionary:
 
 
 func _clear() -> void:
-	_team_requested = false
+	_team_retry_ms = 0
 	mode = GameMode.Id.DEATHMATCH
 	team_scores = [0, 0]
 	winning_team = -1

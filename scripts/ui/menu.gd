@@ -148,10 +148,17 @@ func _build_mode_picker() -> Control:
 	box.add_child(row)
 	for id: int in MODE_ORDER:
 		var button := UiStyle.button(GameMode.title_of(id), MODE_COLORS[id], Color.WHITE, Sfx.UiCue.PRESS)
-		button.add_theme_font_size_override("font_size", 18)
-		button.clip_text = true
-		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		button.custom_minimum_size.y = 50.0
+		# Trzy karty w jednym rzedzie: dluzsza nazwa lamie sie na dwie linie zamiast znikac.
+		button.add_theme_font_size_override("font_size", 17)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.custom_minimum_size = Vector2(0.0, 58.0)
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			var style := (button.get_theme_stylebox(state) as StyleBoxFlat).duplicate() as StyleBoxFlat
+			style.content_margin_left = 5 + 6
+			style.content_margin_right = 5 + 6
+			style.content_margin_top = 5 + 2
+			style.content_margin_bottom = 5 + 2
+			button.add_theme_stylebox_override(state, style)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_select_mode.bind(id))
 		row.add_child(button)
