@@ -14,21 +14,23 @@ const MAP_MARGIN_BOTTOM := 136.0
 const BIG_MAP_SIDE := 600.0
 ## Prawa kolumna zaczyna sie pod lista zabojstw, ktora ma najwyzej piec wierszy.
 const SIDE_COLUMN_TOP := 290.0
-## Na podium Deathmatchu karta wynikow jest mala i stoi przy dolnej krawedzi, zeby nie zaslaniac postaci.
-const PODIUM_CARD_WIDTH := 460.0
+## Na podium Deathmatchu jeden niski panel stoi przy dolnej krawedzi, zeby nie zaslaniac postaci:
+## po lewej wynik rundy, po prawej glosowanie na nastepna mape.
+const PODIUM_SUMMARY_WIDTH := 260.0
 const PODIUM_CARD_BOTTOM := 24.0
 const RESULTS_CARD_WIDTH := 520.0
 ## Odliczanie stoi pod zegarem rundy Deathmatchu, ktory zajmuje gore ekranu.
 const BIG_LABEL_TOP := 132.0
-## Karty glosowania na mape stoja obok karty wynikow, pod podium.
-const VOTE_THUMB_SIZE := Vector2(192.0, 108.0)
+const VOTE_THUMB_SIZE := Vector2(160.0, 90.0)
 const VOTE_CARD_FILL := Color("f3ecdd")
 const VOTE_POP_SCALE := 1.06
 ## Margines w StyleBoxFlat liczy sie od zewnetrznej krawedzi, wiec obejmuje obwodke. Wnetrze karty
 ## ma 12 px oddechu od obwodki, a panel 16 (docs/UI.md).
 const VOTE_CARD_BORDER := 5
 const VOTE_CARD_PADDING := 12
-const VOTE_PANEL_BORDER := 6
+const RESULTS_BORDER := 6
+const SECTION_GAP := 24
+const DIVIDER_COLOR := Color(0.18, 0.16, 0.24, 0.12)
 
 ## Prawa kolumna: lista gotowych w lobby i samouczek, jedno pod drugim.
 var side_column: VBoxContainer
@@ -48,10 +50,17 @@ var _phase_audio: AudioStreamPlayer
 var _shown_phase := -1
 var _results_center: VBoxContainer
 var _results_card: PanelContainer
+var _results_summary: VBoxContainer
 var _results_title: Label
+## Tylko na podium: nadtytul nad zwyciezca i podpowiedz o pelnej tabeli na dole.
+var _results_eyebrow: Label
+var _results_tab_hint: Label
 var _results_rows: VBoxContainer
 var _results_timer: Label
-var _vote_panel: PanelContainer
+## Prawa czesc panelu wynikow z kreska oddzielajaca ja od wyniku.
+var _vote_panel: VBoxContainer
+var _vote_divider: Control
+var _vote_timer: Label
 ## Karty map w kolejnosci Match.VOTE_MAPS: { card, count, badge, key, state }.
 var _vote_cards: Array[Dictionary] = []
 var _hovered_vote := -1
@@ -92,8 +101,12 @@ func _process(_delta: float) -> void:
 	_update_match_info()
 	if _results_center.visible:
 		_results_timer.text = ("Powrót do lobby za %d" if Match.is_elimination() else "Nowa runda za %d") % ceili(Match.seconds_left())
-		_vote_panel.visible = Match.can_vote()
-		if _vote_panel.visible:
+		var voting := Match.can_vote()
+		_vote_panel.visible = voting
+		_vote_divider.visible = voting
+		_results_timer.visible = not voting
+		if voting:
+			_vote_timer.text = _results_timer.text
 			_update_vote_cards()
 	var round_start := not Match.is_elimination() and Match.is_frozen_at(NetworkTime.tick)
 	var counting := Match.phase == Match.Phase.COUNTDOWN or Match.phase == Match.Phase.STARTING or round_start
@@ -242,9 +255,7 @@ func _refresh_results() -> void:
 		_fill_results()
 		_place_results(not Match.is_elimination())
 		UiStyle.pop_in(_results_card)
-		if Match.can_vote():
-			_hovered_vote = -1
-			UiStyle.pop_in(_vote_panel, 0.08)
+		_hovered_vote = -1
 	_results_center.visible = showing
 
 
@@ -252,8 +263,15 @@ func _refresh_results() -> void:
 func _place_results(podium: bool) -> void:
 	_results_center.alignment = BoxContainer.ALIGNMENT_END if podium else BoxContainer.ALIGNMENT_CENTER
 	_results_center.offset_bottom = -PODIUM_CARD_BOTTOM if podium else 0.0
-	_results_card.custom_minimum_size.x = PODIUM_CARD_WIDTH if podium else RESULTS_CARD_WIDTH
+	_results_card.custom_minimum_size.x = 0.0 if podium else RESULTS_CARD_WIDTH
+	_results_summary.custom_minimum_size.x = PODIUM_SUMMARY_WIDTH if podium else 0.0
 	_results_title.add_theme_font_size_override("font_size", 28 if podium else 38)
+	# Na podium obie czesci panelu czyta sie od lewej gornej krawedzi, jak jeden uklad.
+	_results_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if podium else HORIZONTAL_ALIGNMENT_CENTER
+	_results_summary.size_flags_vertical = Control.SIZE_FILL if podium else Control.SIZE_SHRINK_CENTER
+	_results_eyebrow.visible = podium
+	_results_tab_hint.visible = podium
+	_results_tab_hint.text = "%s: pełna tabela" % Keybinds.label_of("scoreboard")
 
 
 func _fill_results() -> void:
@@ -290,12 +308,10 @@ func _fill_results() -> void:
 func _fill_podium_rows(my_id: int) -> void:
 	for entry: Dictionary in Match.results:
 		if entry.id == my_id:
-			var mine := UiStyle.label("Twoje miejsce: %d z %d  ·  zabójstwa: %d" % [entry.place, Match.results.size(), entry.kills], 18, UiStyle.BLUE)
-			mine.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			var mine := UiStyle.label("Twoje miejsce: %d z %d  ·  zabójstwa: %d" % [entry.place, Match.results.size(), entry.kills], 15, UiStyle.BLUE)
 			_results_rows.add_child(mine)
 	for line in PodiumView.awards(Match.results).slice(1):
-		var award := UiStyle.label("★ " + line, 15, Color("b07d00"), false)
-		award.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var award := UiStyle.label("★ " + line, 14, Color("b07d00"), false)
 		award.clip_text = true
 		award.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_results_rows.add_child(award)
@@ -427,63 +443,76 @@ func _build_results() -> void:
 	_results_card = PanelContainer.new()
 	_results_card.custom_minimum_size = Vector2(RESULTS_CARD_WIDTH, 0)
 	_results_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var style := UiStyle.sticker(UiStyle.PAPER, 22, 6)
-	style.set_content_margin_all(14)
-	style.content_margin_left = 22
-	style.content_margin_right = 22
+	var style := UiStyle.sticker(UiStyle.PAPER, 24, RESULTS_BORDER)
+	style.set_content_margin_all(RESULTS_BORDER + 14)
+	style.content_margin_left = RESULTS_BORDER + 20
+	style.content_margin_right = RESULTS_BORDER + 20
 	_results_card.add_theme_stylebox_override("panel", style)
 	_results_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Karta wynikow i glosowanie stoja obok siebie, rowno dolem.
-	var row := HBoxContainer.new()
-	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	row.add_theme_constant_override("separation", 18)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_results_center.add_child(row)
-	_results_card.size_flags_vertical = Control.SIZE_SHRINK_END
-	row.add_child(_results_card)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 6)
-	_results_card.add_child(column)
+	_results_center.add_child(_results_card)
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", SECTION_GAP)
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_results_card.add_child(body)
+
+	# Wynik rundy: zwyciezca jest najwazniejszy, pod nim wlasne miejsce i nagrody.
+	_results_summary = VBoxContainer.new()
+	_results_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_results_summary.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_results_summary.add_theme_constant_override("separation", 4)
+	_results_summary.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(_results_summary)
+	_results_eyebrow = UiStyle.label("Koniec rundy", 14, Color(UiStyle.INK, 0.65), false)
+	_results_summary.add_child(_results_eyebrow)
 	_results_title = UiStyle.label("", 38, UiStyle.CORAL)
+	_results_title.clip_text = true
+	_results_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_results_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(_results_title)
+	_results_summary.add_child(_results_title)
 	_results_rows = VBoxContainer.new()
 	_results_rows.add_theme_constant_override("separation", 4)
-	column.add_child(_results_rows)
+	_results_summary.add_child(_results_rows)
 	_results_timer = UiStyle.label("", 16, Color(UiStyle.INK, 0.65), false)
 	_results_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(_results_timer)
-	row.add_child(_build_vote_panel())
+	_results_summary.add_child(_results_timer)
+	var push_down := Control.new()
+	push_down.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	push_down.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_results_summary.add_child(push_down)
+	_results_tab_hint = UiStyle.label("", 14, Color(UiStyle.INK, 0.65), false)
+	_results_summary.add_child(_results_tab_hint)
+
+	_vote_divider = ColorRect.new()
+	(_vote_divider as ColorRect).color = DIVIDER_COLOR
+	_vote_divider.custom_minimum_size.x = 2
+	_vote_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_vote_divider.visible = false
+	body.add_child(_vote_divider)
+	body.add_child(_build_vote_panel())
 
 
-## Panel "Wybierz następną mapę" z karta kazdej mapy: miniaturka, nazwa, klawisz i liczba glosow.
-func _build_vote_panel() -> PanelContainer:
-	_vote_panel = PanelContainer.new()
-	_vote_panel.size_flags_vertical = Control.SIZE_SHRINK_END
-	var style := UiStyle.sticker(UiStyle.PAPER, 24, VOTE_PANEL_BORDER)
-	style.set_content_margin_all(VOTE_PANEL_BORDER + 14)
-	style.content_margin_left = VOTE_PANEL_BORDER + 18
-	style.content_margin_right = VOTE_PANEL_BORDER + 18
-	_vote_panel.add_theme_stylebox_override("panel", style)
+## Glosowanie: naglowek z odliczaniem, podpowiedz i karta kazdej mapy.
+func _build_vote_panel() -> VBoxContainer:
+	_vote_panel = VBoxContainer.new()
+	_vote_panel.add_theme_constant_override("separation", 2)
 	_vote_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_vote_panel.visible = false
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 2)
-	_vote_panel.add_child(column)
-	var title := UiStyle.label("Wybierz następną mapę", 22, UiStyle.BLUE)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(title)
-	var hint := UiStyle.label("Kliknij kartę albo naciśnij jej klawisz", 14, Color(UiStyle.INK, 0.65), false)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(hint)
+	var header := HBoxContainer.new()
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_vote_panel.add_child(header)
+	var title := UiStyle.label("Następna mapa", 18, UiStyle.INK)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	_vote_timer = UiStyle.label("", 14, Color(UiStyle.INK, 0.65), false)
+	header.add_child(_vote_timer)
+	_vote_panel.add_child(UiStyle.label("Kliknij kartę albo naciśnij jej klawisz", 14, Color(UiStyle.INK, 0.65), false))
 	var gap := Control.new()
 	gap.custom_minimum_size.y = 8
-	column.add_child(gap)
+	_vote_panel.add_child(gap)
 	var cards := HBoxContainer.new()
-	cards.add_theme_constant_override("separation", 14)
-	cards.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards.add_theme_constant_override("separation", 12)
 	cards.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(cards)
+	_vote_panel.add_child(cards)
 	for index in Match.VOTE_MAPS.size():
 		cards.add_child(_build_vote_card(index))
 	return _vote_panel
@@ -543,7 +572,7 @@ func _build_vote_card(index: int) -> PanelContainer:
 	var footer := HBoxContainer.new()
 	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(footer)
-	var name_label := UiStyle.label(info.title, 17, UiStyle.INK)
+	var name_label := UiStyle.label(info.title, 16, UiStyle.INK)
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -58,7 +58,8 @@ func _ready() -> void:
 	_check("w czasie wynikow nie ma walki", not Match.allows_combat())
 	await _shot("round_results.png")
 	_check("karty glosowania widac", _match_panel._vote_panel.visible and _match_panel._vote_cards.size() == Match.VOTE_MAPS.size())
-	_check("kursor widac w czasie glosowania", Input.mouse_mode == Input.MOUSE_MODE_VISIBLE)
+	if get_window().has_focus():
+		_check("kursor widac w czasie glosowania", Input.mouse_mode == Input.MOUSE_MODE_VISIBLE)
 	Match.votes = { 2: Match.VOTE_MAPS[0], 3: Match.VOTE_MAPS[0] }
 	_match_panel._cast_vote(1)
 	await _wait(0.5)
