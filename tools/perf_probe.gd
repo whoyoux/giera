@@ -15,6 +15,11 @@ const VALLEY_VIEWS: Array[Array] = [
 	[Vector3(60.0, 3.0, 20.0), Vector3(-12.0, 2.0, -18.0)],
 	[Vector3(10.0, 14.0, 132.0), Vector3(-12.0, 2.0, -18.0)],
 ]
+## Widoki dla pustyni: z targu na twierdze i z wiezy twierdzy na cala mape.
+const DESERT_VIEWS: Array[Array] = [
+	[Vector3(-14.0, 1.7, 16.0), Vector3(0.0, 2.0, 52.0)],
+	[Vector3(-21.0, 6.8, 46.0), Vector3(0.0, 1.0, -40.0)],
+]
 const PRESETS: Array[Array] = [
 	["wysoka 100", Settings.Graphics.HIGH, 1.0],
 	["srednia 100", Settings.Graphics.MEDIUM, 1.0],
@@ -41,7 +46,7 @@ func _ready() -> void:
 	add_child(camera)
 	camera.fov = 80.0
 	camera.current = true
-	var views: Array[Array] = VALLEY_VIEWS if Maps.current_id == "valley" else VIEWS
+	var views: Array[Array] = VALLEY_VIEWS if Maps.current_id == "valley" else (DESERT_VIEWS if Maps.current_id == "desert" else VIEWS)
 	for view_index in views.size():
 		var from: Vector3 = views[view_index][0]
 		if Maps.current_id == "valley":

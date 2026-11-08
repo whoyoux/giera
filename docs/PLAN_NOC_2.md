@@ -51,12 +51,14 @@ Notatki etapu 1: drużyny „Kaktusy” (pomarańczowe) i „Żuczki” (niebies
 
 ### Etap 2: Mapa pustynna do DM i TDM
 
-- [ ] **Własna, duża mapa** `desert` (ok. 130×130 m, dwa razy większa od miasta), scena w `scenes/maps/`, generator kodem w `scripts/maps/` jak miasto i dolina, opis mapy (`MapInfo`) i miniaturka w `assets/maps/` do kart głosowania. Dostępna w głosowaniu DM i TDM.
-- [ ] **Układ pod oba tryby:** dwie bazy drużyn na przeciwnych końcach i środek z kilkoma trasami (co najmniej 3 równoległe linie przejścia), żeby TDM nie zamieniał się w jeden korytarz. W DM punkty startu rozłożone po całej mapie (co najmniej 16), w TDM co najmniej 8 na drużynę.
-- [ ] **Klimat:** co najmniej 5 odrębnych miejsc z polskimi nazwami, np. targ z płóciennymi daszkami, oaza z palmami i wodą, ruiny glinianej twierdzy, kanion z mostem linowym, stacja kolejki z wagonami, wydmy z wrakiem ciężarówki. Ciepłe, złote światło nisko nad horyzontem, długie cienie, lekka mgiełka w oddali, przelatujący piasek i krzaki-kulki (cząsteczki), odgłosy wiatru, kroki po piasku. Kolory kreskówkowe, nie brudne.
-- [ ] **Rozgrywka:** dachy i piętra dostępne schodami lub drabinami, osłony na otwartych przestrzeniach, długie i krótkie linie strzału dla AWP i strzelby. Kolizje bez miejsc do utknięcia i bez wyjścia poza mapę (niewidzialne ściany przy krawędzi, które wyglądają naturalnie, np. skały kanionu).
-- [ ] **Wydajność:** `MultiMesh` i `visibility_range` dla drobnicy, kolizje uproszczone, cel jak na mieście. Zmierz `tools/perf_probe.gd` i zapisz wynik obok miasta.
-- [ ] Zrzuty mapy przez `tools/map_shots.gd` (dodaj obsługę `--map=desert`) i obejrzyj je.
+- [x] **Własna, duża mapa** `desert` (ok. 130×130 m, dwa razy większa od miasta), scena w `scenes/maps/`, generator kodem w `scripts/maps/` jak miasto i dolina, opis mapy (`MapInfo`) i miniaturka w `assets/maps/` do kart głosowania. Dostępna w głosowaniu DM i TDM.
+- [x] **Układ pod oba tryby:** dwie bazy drużyn na przeciwnych końcach i środek z kilkoma trasami (co najmniej 3 równoległe linie przejścia), żeby TDM nie zamieniał się w jeden korytarz. W DM punkty startu rozłożone po całej mapie (co najmniej 16), w TDM co najmniej 8 na drużynę.
+- [x] **Klimat:** co najmniej 5 odrębnych miejsc z polskimi nazwami, np. targ z płóciennymi daszkami, oaza z palmami i wodą, ruiny glinianej twierdzy, kanion z mostem linowym, stacja kolejki z wagonami, wydmy z wrakiem ciężarówki. Ciepłe, złote światło nisko nad horyzontem, długie cienie, lekka mgiełka w oddali, przelatujący piasek i krzaki-kulki (cząsteczki), odgłosy wiatru, kroki po piasku. Kolory kreskówkowe, nie brudne.
+- [x] **Rozgrywka:** dachy i piętra dostępne schodami lub drabinami, osłony na otwartych przestrzeniach, długie i krótkie linie strzału dla AWP i strzelby. Kolizje bez miejsc do utknięcia i bez wyjścia poza mapę (niewidzialne ściany przy krawędzi, które wyglądają naturalnie, np. skały kanionu).
+- [x] **Wydajność:** `MultiMesh` i `visibility_range` dla drobnicy, kolizje uproszczone, cel jak na mieście. Zmierz `tools/perf_probe.gd` i zapisz wynik obok miasta.
+- [x] Zrzuty mapy przez `tools/map_shots.gd` (dodaj obsługę `--map=desert`) i obejrzyj je.
+
+Notatki etapu 2: miejsca Stacja, Twierdza, Targ, Kanion, Oaza, Wydmy. 20 punktów drużyn (10 na drużynę) i 12 tylko dla Deathmatchu. `tools/desert_map_test.gd` przechodzi (137 sprawdzeń). Wydajność, 1920×1080, RTX 5070 Ti, wysoka jakość: miasto GPU 0,85–0,88 ms, klatka 1,3–1,6 ms; pustynia GPU 0,83–0,88 ms, klatka 1,5–2,0 ms.
 
 ### Etap 3: Lepszy model Desert Eagle
 
