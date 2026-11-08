@@ -7,6 +7,7 @@ func _init() -> void:
 	id = "valley"
 	title = "Dolina"
 	scene_path = "res://scenes/maps/valley.tscn"
+	thumbnail = "res://assets/maps/valley.png"
 	zone_radius = ValleyTerrain.RADIUS - 8.0
 	menu_orbit = Vector3(70.0, 48.0, 4.0)
 	podium = Vector3(-12.0, ValleyTerrain.surface(-12.0, -18.0), -18.0)

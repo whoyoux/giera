@@ -35,7 +35,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 ## Co jest w grze
 
 - **Dwa tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, a w Battle Royale masz jedno życie.
-- **Rundy Deathmatchu:** runda trwa 5 minut albo do 25 zabójstw lidera. Na górze ekranu widać zegar, lidera i Twoje miejsce, a z boku najlepszą trójkę. Ostatnie 30 sekund ma wyraźny sygnał. Na koniec trójka zwycięzców tańczy na podium, są nagrody za zabójstwa, celność i trafienia w głowę, a po 12 s rusza nowa runda z czystym stanem. Między rundami głosujesz klawiszami 1 i 2 na następną mapę.
+- **Rundy Deathmatchu:** runda trwa 5 minut albo do 25 zabójstw lidera. Na górze ekranu widać zegar, lidera i Twoje miejsce, a z boku najlepszą trójkę. Ostatnie 30 sekund ma wyraźny sygnał. Na koniec trójka zwycięzców tańczy na podium, są nagrody za zabójstwa, celność i trafienia w głowę, a po 12 s rusza nowa runda z czystym stanem. Między rundami głosujesz na następną mapę: klikasz jej kartę z podglądem albo naciskasz 1 lub 2.
 - **Mapy:** Deathmatch gra w kolorowym **Miasteczku** o zachodzie słońca, z ulicami, placem z fontanną, kamienicą i hotelem z wejściem na dach, kontenerami i zaułkami. Są tam drabiny, rura i dwa przejścia tylko w kucki. Battle Royale gra w dużej **Dolinie** (ok. 200 m promienia) z sześcioma miejscami: Stare ruiny, Wioska, Gospodarstwo, Kamieniołom, Jezioro z mostem i Obóz na wzgórzu.
 - **Regeneracja w Deathmatchu:** nie ma apteczek. Po 6 s bez obrażeń zdrowie wraca o 8 punktów na sekundę, a każde trafienie przerywa leczenie.
 - **Desert Eagle i AWP:** Desert Eagle zabija dwoma trafieniami, a rzadki AWP jednym, z każdej odległości. Prawy przycisk z AWP daje lunetę na cały ekran, a strzał z niej wyrzuca.

@@ -57,7 +57,21 @@ func _ready() -> void:
 	_check("odliczanie do nowej rundy", _match_panel._results_timer.text.begins_with("Nowa runda za"))
 	_check("w czasie wynikow nie ma walki", not Match.allows_combat())
 	await _shot("round_results.png")
+	_check("karty glosowania widac", _match_panel._vote_panel.visible and _match_panel._vote_cards.size() == Match.VOTE_MAPS.size())
+	if get_window().has_focus():
+		_check("kursor widac w czasie glosowania", Input.mouse_mode == Input.MOUSE_MODE_VISIBLE)
+	Match.votes = { 2: Match.VOTE_MAPS[0], 3: Match.VOTE_MAPS[0] }
+	_match_panel._cast_vote(1)
+	await _wait(0.5)
+	_check("wlasny glos zaznaczony", Match.votes.get(1, "") == Match.VOTE_MAPS[1] and _match_panel._vote_cards[1].badge.visible)
+	_check("liczba glosow na karcie", _match_panel._vote_cards[0].count.text == "2 głosy" and _match_panel._vote_cards[1].count.text == "1 głos")
+	_check("odmiana glosow", MatchPanel.votes_text(0) == "0 głosów" and MatchPanel.votes_text(13) == "13 głosów" and MatchPanel.votes_text(22) == "22 głosy")
+	await _shot("map_vote.png")
+	Match.votes.clear()
 	await _wait(Match.ROUND_RESULTS_SECONDS + 1.0)
+	# Bez fokusu okno nie lapie kursora, wiec sprawdzamy to tylko, gdy test ma fokus.
+	if get_window().has_focus():
+		_check("po glosowaniu kursor znika", Input.mouse_mode == Input.MOUSE_MODE_CAPTURED)
 	_check("nowa runda bez restartu", Match.phase == Match.Phase.LIVE and Match.round_number == 2)
 	_check("wyniki wyzerowane", _all_zero())
 	_check("lup sprzatniety", WorldItems.items.is_empty())
