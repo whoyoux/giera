@@ -8,6 +8,10 @@ extends Resource
 ## Nazwa rodzaju zenskiego, wiec klasa ma inna odmiane.
 @export var feminine_name := false
 @export_range(1, 99) var max_stack := 1
+## Rodzaj pokazywany w Zbrojowni, np. "Pistolet".
+@export var kind_name := ""
+## Krotki opis do Zbrojowni: do czego sluzy i na co uwazac.
+@export_multiline var description := ""
 
 
 ## Zachowanie przedmiotu trzymanego w reku. Podklasy zwracaja wlasne ItemBehavior.

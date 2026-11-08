@@ -28,6 +28,7 @@ func _ready() -> void:
 	menu._picker.select("skeleton_warrior", false)
 	await _wait(1.5)
 	await _shot("menu.png")
+	await _arsenal_shots(main)
 
 	Net.player_name = EXAMPLE_NICK
 	Net.start_server(int(Net.args.get("port", 8040)))
@@ -235,6 +236,24 @@ func _local_player() -> Player:
 
 func _wait(seconds: float) -> void:
 	await get_tree().create_timer(seconds).timeout
+
+
+## Zbrojownia z menu: legendarna strzelba w szczegolach i porownanie dwoch broni.
+func _arsenal_shots(main: Node) -> void:
+	var panel: ArsenalPanel = null
+	for child in main.get_children():
+		if child is ArsenalPanel:
+			panel = child
+	panel.open()
+	panel._set_tier(Rarity.Tier.LEGENDARY)
+	panel._select(ItemRegistry.get_definition(&"shotgun"))
+	await _wait(0.6)
+	await _shot("arsenal.png")
+	panel._show_page(1)
+	await _wait(0.4)
+	await _shot("arsenal_compare.png")
+	panel.close()
+	await _wait(0.2)
 
 
 func _shot(file_name: String) -> void:

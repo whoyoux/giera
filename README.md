@@ -24,9 +24,9 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 |---|---|---|---|---|
 | ![Luneta AWP](docs/screenshots/awp_scope.png) | ![Desert Eagle](docs/screenshots/deagle.png) | ![Zegar rundy i ranking](docs/screenshots/round_hud.png) | ![Wyniki rundy](docs/screenshots/round_results.png) | ![Regeneracja zdrowia](docs/screenshots/regen.png) |
 
-| Kucanie | Zmiana klawiszy |
-|---|---|
-| ![Postacie stojące i kucające](docs/screenshots/crouch.png) | ![Panel zmiany klawiszy](docs/screenshots/keybinds.png) |
+| Kucanie | Zmiana klawiszy | Zbrojownia | Porównanie broni |
+|---|---|---|---|
+| ![Postacie stojące i kucające](docs/screenshots/crouch.png) | ![Panel zmiany klawiszy](docs/screenshots/keybinds.png) | ![Zbrojownia](docs/screenshots/arsenal.png) | ![Porównanie broni](docs/screenshots/arsenal_compare.png) |
 
 | Strzelba | Nóż | Menu | Wyniki | Obrażenia |
 |---|---|---|---|---|
@@ -44,6 +44,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Serie zabójstw:** pierwsza krew, podwójne i potrójne zabójstwo, serie i ich przerwanie.
 - **Zrzuty zaopatrzenia w Battle Royale:** skrzynia spada na spadochronie z kolorowym dymem i daje legendarny łup. Widać ją na mapce, a pod klawiszem M jest duża mapa z nazwami miejsc.
 - **Ślady po kulach:** pociski zostawiają ślady i odpryski w kolorze powierzchni, a metal sypie iskrami.
+- **Zbrojownia:** w menu głównym są wszystkie bronie i przedmioty z rodzajem, opisem, statystykami każdej klasy i szansą wypadnięcia ze skrzyni. Druga zakładka porównuje dwie bronie na wykresie i w tabeli.
 - **Statystyki:** zabójstwa, celność i ulubiona broń zapisane tylko na Twoim komputerze, w menu pod przyciskiem Statystyki. Przy pierwszej grze samouczek pokazuje Twoje klawisze.
 - **Battle Royale:** gracze czekają w lobby, aż wszyscy klikną Gotowe. Każdy startuje w innym miejscu i bez broni, więc pierwsze sekundy to wyścig do skrzynek. Strefa zacieśnia się w czterech fazach, a mapka pokazuje, dokąd uciekać. Wyeliminowani oglądają mecz do końca.
 - **Multiplayer na żywo:** serwer dedykowany albo hostowanie z menu. Ruch reaguje od razu, a strzały liczą się tam, gdzie gracz widział cel na ekranie.

@@ -38,6 +38,9 @@ func _ready() -> void:
 		var stats_panel := StatsPanel.new()
 		add_child(stats_panel)
 		menu.stats_requested.connect(func() -> void: stats_panel.open(stats))
+		var arsenal_panel := ArsenalPanel.new()
+		add_child(arsenal_panel)
+		menu.arsenal_requested.connect(arsenal_panel.open)
 	_apply_quality()
 	hud.visible = false
 	if Net.is_headless:
