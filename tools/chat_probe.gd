@@ -16,5 +16,5 @@ func _ready() -> void:
 	# Czeka, az minie okno limitu, a potem omija limit klienta, jak zmieniony klient.
 	await get_tree().create_timer(Chat.BURST_SECONDS + 3.0).timeout
 	for index in SPAM:
-		Chat._submit.rpc_id(1, "spam")
+		Chat._submit.rpc_id(1, "spam", false)
 	Chat._submit.rpc_id(1, " \n\t ")

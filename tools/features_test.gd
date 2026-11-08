@@ -118,7 +118,7 @@ func _ready() -> void:
 
 	# Statystyki i samouczek.
 	var stats := get_node("/root/Main/PlayerStats") as PlayerStats
-	_check("statystyki licza zabojstwa", stats.value("kills") >= 2 and stats.summary().size() == 6)
+	_check("statystyki licza zabojstwa", stats.value("kills") >= 2 and stats.summary().size() == 8)
 	_check("samouczek nie przeszkadza testom", not TutorialPanel.should_show())
 
 	# Zrzut zaopatrzenia w Battle Royale.
