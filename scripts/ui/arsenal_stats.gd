@@ -17,7 +17,7 @@ const CATEGORY_COLORS := {
 	Category.THROWN: Color("f4a259"),
 	Category.HEALING: UiStyle.TEAL,
 }
-const TICKS_PER_SECOND := 30.0
+const TICKS_PER_SECOND := 60.0
 ## Rozrzut przy celowaniu, przy ktorym pasek celnosci jest pusty.
 const WORST_AIM_SPREAD := 6.0
 ## Pasek nigdy nie jest calkiem pusty, zeby bylo widac, ze cos tam jest.

@@ -3,9 +3,9 @@ extends Node
 ## Uzycie: godot --headless --path . -- --tool=res://tools/remote_motion_test.gd
 
 const FRAME := 1.0 / 60.0
-const FRAME_PER_TICK := 2.0
+const FRAME_PER_TICK := 1.0
 ## Tyle metrow bot przebiega w ticku.
-const STEP := 0.3
+const STEP := 0.15
 
 var _failures := 0
 
@@ -22,15 +22,15 @@ func _ready() -> void:
 
 func _test_steady() -> void:
 	var motion := RemoteMotion.new()
-	var biggest := _run(motion, 0, 120, -1, -1)
-	_check("rowne stany daja rowny ruch", biggest <= STEP * 0.75)
+	var biggest := _run(motion, 0, 240, -1, -1)
+	_check("rowne stany daja rowny ruch", biggest <= STEP / FRAME_PER_TICK * 1.5)
 
 
 ## Gracz nie wysyla nic przez 233 ms, a potem wszystko dochodzi naraz.
 func _test_gap() -> void:
 	var motion := RemoteMotion.new()
-	var biggest := _run(motion, 0, 200, 60, 67)
-	_check("po przerwie nie ma przeskoku (%.2f m na klatke)" % biggest, biggest <= STEP * 1.0)
+	var biggest := _run(motion, 0, 400, 120, 134)
+	_check("po przerwie nie ma przeskoku (%.2f m na klatke)" % biggest, biggest <= STEP / FRAME_PER_TICK * 2.0)
 
 
 func _test_teleport() -> void:
@@ -75,7 +75,7 @@ func _with_ages(base: float, spread: float, gap := 1) -> RemoteMotion:
 	return motion
 
 
-## Stany dochodza 3 ticki po czasie, a te z przerwy dopiero po niej.
+## Stany dochodza 6 tickow po czasie, a te z przerwy dopiero po niej.
 func _run(motion: RemoteMotion, first: int, last: int, gap_from: int, gap_to: int) -> float:
 	var biggest := 0.0
 	var previous := Vector3.ZERO
@@ -83,12 +83,12 @@ func _run(motion: RemoteMotion, first: int, last: int, gap_from: int, gap_to: in
 	var frames := int((last - first) * FRAME_PER_TICK)
 	for frame in frames:
 		var clock := first + frame / FRAME_PER_TICK
-		var arrived := int(clock) - 3
+		var arrived := int(clock) - 6
 		if arrived >= gap_from and arrived < gap_to:
 			arrived = gap_from - 1
 		for tick in range(motion.newest_tick + 1, arrived + 1):
 			motion.add_sample(tick, Vector3(tick * STEP, 0, 0), 0.0, 0.0)
-		motion.advance(FRAME, clock - 6.0)
+		motion.advance(FRAME, clock - 12.0)
 		if motion.has_samples():
 			if started:
 				biggest = maxf(biggest, motion.shown_position.distance_to(previous))

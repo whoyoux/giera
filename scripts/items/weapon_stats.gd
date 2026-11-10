@@ -10,8 +10,8 @@ extends Resource
 @export var headshot_damage := 40
 ## Ile pociskow leci w jednym strzale.
 @export_range(1, 16) var pellets := 1
-## Gra dziala w 30 tickach na sekunde, wiec odstep liczymy w tickach.
-@export_range(1, 60) var fire_interval_ticks := 6
+## W tickach sieci, ktorych jest 60 na sekunde.
+@export_range(1, 120) var fire_interval_ticks := 12
 @export var magazine := 12
 @export var reload_seconds := 1.6
 @export var draw_seconds := 0.25
