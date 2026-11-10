@@ -1,5 +1,5 @@
 extends Node
-## Narzedzie: buduje kodem modele Desert Eagle i AWP i zapisuje je jako .glb w assets/weapons.
+## Narzedzie: buduje kodem modele Desert Eagle, AWP i Uzi i zapisuje je jako .glb w assets/weapons.
 ## Uzycie: godot --path . --headless -- --tool=res://tools/build_weapon_models.gd [--only=deagle]
 ## Potem: godot --headless --path . --import, a ikony: --tool=res://tools/render_icons.gd --only=deagle,awp
 ## Uklad jak w paczce blasterow: lufa w -Z, gora w +Y, a wezel "magazine" wypada przy przeladowaniu.
@@ -22,6 +22,8 @@ func _ready() -> void:
 		_save(_deagle(), "res://assets/weapons/deagle.glb")
 	if only.is_empty() or only.split(",").has("awp"):
 		_save(_awp(), "res://assets/weapons/awp.glb")
+	if only.is_empty() or only.split(",").has("uzi"):
+		_save(_uzi(), "res://assets/weapons/uzi.glb")
 	get_tree().quit()
 
 
@@ -131,6 +133,54 @@ func _awp() -> Node3D:
 	magazine.position = Vector3(0.0, -0.05, -0.08)
 	root.add_child(magazine)
 	LowPoly.part(magazine, LowPoly.box(Vector3(0.055, 0.09, 0.08), 0.014), CORAL)
+	return root
+
+
+## Pistolet maszynowy: kanciasta komora z blachy, krotka lufa z nakretka, dlugi magazynek w rekojesci
+## i zlozona kolba pod spodem. Galka napinacza na wierzchu to wezel "slide", ktory skacze przy strzale.
+func _uzi() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Uzi"
+	# Komora: dluga skrzynka z jasniejsza pokrywa i zebrami po bokach.
+	LowPoly.part(root, LowPoly.box(Vector3(0.07, 0.085, 0.3), 0.014), INK, Vector3(0.0, 0.07, -0.08))
+	LowPoly.part(root, LowPoly.box(Vector3(0.062, 0.016, 0.28), 0.006), STEEL, Vector3(0.0, 0.118, -0.08))
+	for side: float in [-1.0, 1.0]:
+		for i in 4:
+			LowPoly.part(root, LowPoly.box(Vector3(0.006, 0.05, 0.012), 0.002), STEEL.darkened(0.2), Vector3(side * 0.036, 0.07, -0.19 + i * 0.03))
+		LowPoly.part(root, LowPoly.box(Vector3(0.005, 0.012, 0.12), 0.002), CORAL, Vector3(side * 0.036, 0.095, 0.0))
+	# Lufa z nakretka i wylotem.
+	var barrel := LowPoly.part(root, LowPoly.cylinder(0.02, 0.02, 0.09, 8), STEEL.darkened(0.1), Vector3(0.0, 0.075, -0.27), Vector3(90, 0, 0))
+	barrel.name = "Barrel"
+	LowPoly.part(root, LowPoly.cylinder(0.03, 0.03, 0.03, 8), INK, Vector3(0.0, 0.075, -0.24), Vector3(90, 0, 0))
+	LowPoly.part(root, LowPoly.cylinder(0.012, 0.012, 0.006, 8), INK.darkened(0.4), Vector3(0.0, 0.075, -0.316), Vector3(90, 0, 0))
+	# Przyrzady: muszka w oslonie z przodu i szczerbinka z tylu.
+	for side: float in [-1.0, 1.0]:
+		LowPoly.part(root, LowPoly.box(Vector3(0.008, 0.03, 0.02), 0.003), INK, Vector3(side * 0.016, 0.138, -0.2))
+		LowPoly.part(root, LowPoly.box(Vector3(0.008, 0.026, 0.016), 0.003), INK, Vector3(side * 0.016, 0.136, 0.045))
+	LowPoly.part(root, LowPoly.box(Vector3(0.006, 0.018, 0.006), 0.002), CORAL, Vector3(0.0, 0.134, -0.2))
+	# Galka napinacza: osobny wezel, zeby przy strzale mogla skoczyc do tylu.
+	var slide := Node3D.new()
+	slide.name = "slide"
+	root.add_child(slide)
+	LowPoly.part(slide, LowPoly.box(Vector3(0.03, 0.02, 0.04), 0.006), GOLD, Vector3(0.0, 0.136, -0.1))
+	# Rekojesc na srodku, kablak i spust.
+	var grip := LowPoly.part(root, LowPoly.box(Vector3(0.056, 0.15, 0.07), 0.014), GRIP, Vector3(0.0, -0.045, 0.0), Vector3(8, 0, 0))
+	grip.name = "Grip"
+	LowPoly.part(root, LowPoly.box(Vector3(0.012, 0.012, 0.1), 0.004), INK, Vector3(0.0, -0.035, -0.085))
+	LowPoly.part(root, LowPoly.box(Vector3(0.012, 0.05, 0.012), 0.004), INK, Vector3(0.0, -0.01, -0.13))
+	LowPoly.part(root, LowPoly.box(Vector3(0.01, 0.03, 0.012), 0.003), GOLD, Vector3(0.0, 0.0, -0.06), Vector3(-15, 0, 0))
+	# Zlozona kolba: dwa prety pod komora i stopka z tylu.
+	for side: float in [-1.0, 1.0]:
+		LowPoly.part(root, LowPoly.box(Vector3(0.008, 0.01, 0.16), 0.003), STEEL.darkened(0.25), Vector3(side * 0.03, 0.03, 0.12))
+	LowPoly.part(root, LowPoly.box(Vector3(0.07, 0.06, 0.014), 0.005), STEEL.darkened(0.25), Vector3(0.0, 0.05, 0.2))
+	# Dlugi magazynek wystaje z rekojesci i wypada przy przeladowaniu.
+	var magazine := Node3D.new()
+	magazine.name = "magazine"
+	magazine.position = Vector3(0.0, -0.17, 0.012)
+	magazine.rotation_degrees = Vector3(8, 0, 0)
+	root.add_child(magazine)
+	LowPoly.part(magazine, LowPoly.box(Vector3(0.04, 0.14, 0.05), 0.008), STEEL)
+	LowPoly.part(magazine, LowPoly.box(Vector3(0.046, 0.014, 0.056), 0.004), CORAL, Vector3(0.0, -0.07, 0.0))
 	return root
 
 

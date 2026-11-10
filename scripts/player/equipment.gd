@@ -12,13 +12,13 @@ signal action_cancelled
 ## Zmienil sie przedmiot w reku: inny slot albo inny egzemplarz w tym samym slocie.
 signal active_item_changed
 
-const ACTION_CORRECTION_TICKS := 8
+const ACTION_CORRECTION_TICKS := 16
 ## Wartosc last_fire i last_throw, gdy nic sie jeszcze nie stalo.
 const NO_FIRE_TICK := -1000
 ## Granica cofania czasu, zeby gracz z bardzo slabym laczem nie trafial "przez sciany".
 const MAX_REWIND_SECONDS := 0.4
 ## Rozrzut z serii zaczyna opadac chwile po tym, jak mogl pasc kolejny strzal.
-const SPREAD_HOLD_TICKS := 3
+const SPREAD_HOLD_TICKS := 6
 ## Kucajac strzela sie celniej.
 const CROUCH_SPREAD_SCALE := 0.6
 ## W powietrzu strzela sie gorzej niz w pelnym biegu.

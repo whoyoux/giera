@@ -4,7 +4,7 @@ extends ItemDefinition
 
 @export var damage := 50
 ## Gra dziala w 30 tickach na sekunde, wiec odstep liczymy w tickach.
-@export_range(1, 60) var swing_interval_ticks := 15
+@export_range(1, 120) var swing_interval_ticks := 30
 ## Zasieg od oczu gracza, w metrach.
 @export var reach := 2.6
 ## Jak daleko od srodka celownika cios wciaz trafia, w stopniach.

@@ -157,6 +157,7 @@ func _test_settings() -> void:
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(shot_dir.path_join("settings_feel.png"))
 
+	_panel._show_page("controls")
 	var toggle := _panel.find_child("invert_y", true, false) as Button
 	# Przelacznik lezy nizej na przewijanej liscie, wiec najpierw trzeba go pokazac.
 	_panel._scroll.ensure_control_visible(toggle)

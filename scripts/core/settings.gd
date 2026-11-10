@@ -14,6 +14,15 @@ const UI_SIZE_MIN := 0.6
 ## HUD jest ulozony dla 1280x720 punktow. Wiekszy nie miesci sie bez nakladania sie elementow.
 const UI_SIZE_MAX := 1.0
 const OLD_UI_SCALES: Array[float] = [0.85, 1.0, 1.2]
+## Tryb okna: zwykle okno, pelny ekran bez ramki albo pelny ekran na wylacznosc.
+enum WindowMode { WINDOWED, BORDERLESS, EXCLUSIVE }
+const WINDOW_MODE_NAMES: Array[String] = ["Okno", "Bez ramki", "Pełny ekran"]
+## Rozmiary okna do wyboru. Pierwsza pozycja zostawia okno takie, jak ustawil je gracz.
+const WINDOW_SIZES: Array[Vector2i] = [Vector2i.ZERO, Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440)]
+## Limity klatek do wyboru. Zero oznacza brak limitu.
+const FPS_LIMITS: Array[int] = [0, 30, 60, 90, 120, 144, 165, 240]
+const CROSSHAIR_COLORS: Array[Color] = [Color.WHITE, Color("5dff7a"), Color("ffe14d"), Color("5de8ff"), Color("ff7ad9"), Color("ff5d5d")]
+const CROSSHAIR_COLOR_NAMES: Array[String] = ["Biały", "Zielony", "Żółty", "Błękitny", "Różowy", "Czerwony"]
 
 ## Domyslne wartosci. Nowe ustawienie wystarczy dopisac tutaj.
 const DEFAULTS := {
@@ -28,7 +37,10 @@ const DEFAULTS := {
 	# Uderzenie kamery od wlasnego strzalu, od 0 do 1. Nie zmienia kierunku pocisku.
 	"recoil_camera": 1.0,
 	"aim_sensitivity": 1.0,
-	"fullscreen": false,
+	"window_mode": WindowMode.WINDOWED,
+	# Numer pozycji z WINDOW_SIZES i FPS_LIMITS.
+	"window_size": 0,
+	"fps_limit": 0,
 	"vsync": true,
 	"graphics": Graphics.HIGH,
 	"render_scale": 1.0,
@@ -36,6 +48,17 @@ const DEFAULTS := {
 	"show_net_graph": false,
 	"show_damage_numbers": true,
 	"ui_size": 1.0,
+	# Przelaczanie zamiast trzymania klawisza.
+	"toggle_aim": false,
+	"toggle_crouch": false,
+	# Celownik: numer koloru z CROSSHAIR_COLORS, skala dlugosci i grubosci kresek.
+	"crosshair_color": 0,
+	"crosshair_size": 1.0,
+	"crosshair_thickness": 1.0,
+	"crosshair_dot": true,
+	"crosshair_outline": true,
+	# Wylaczone daje celownik o stalym rozmiarze, ktory nie pokazuje rozrzutu.
+	"crosshair_spread": true,
 }
 
 ## Ekrany Retina maja wiecej pikseli, niz wyciagnie zintegrowana karta M1.
@@ -146,8 +169,13 @@ func apply(key := "") -> void:
 		AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.001)))
 	if DisplayServer.get_name() == "headless":
 		return
-	if key.is_empty() or key == "fullscreen":
+	if key.is_empty() or key == "window_mode":
 		_apply_window()
+	# Przy starcie nie ruszamy okna, ktore gracz ustawil sam, ani limitu z linii polecen.
+	if key == "window_size" or (key.is_empty() and int(value("window_size")) > 0):
+		_apply_window_size()
+	if key == "fps_limit" or (key.is_empty() and fps_limit() > 0):
+		Engine.max_fps = fps_limit()
 	if key.is_empty() or key == "vsync":
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if value("vsync") else DisplayServer.VSYNC_DISABLED)
 	if key.is_empty() or key == "graphics":
@@ -166,6 +194,10 @@ func _migrate_old_quality() -> void:
 		var high: bool = _config.get_value(SECTION, "high_quality")
 		_config.set_value(SECTION, "graphics", Graphics.HIGH if high else Graphics.LOW)
 		_config.erase_section_key(SECTION, "high_quality")
+	if _config.has_section_key(SECTION, "fullscreen"):
+		if _config.get_value(SECTION, "fullscreen"):
+			_config.set_value(SECTION, "window_mode", WindowMode.BORDERLESS)
+		_config.erase_section_key(SECTION, "fullscreen")
 	if _config.has_section_key(SECTION, "ui_scale"):
 		var index := clampi(int(_config.get_value(SECTION, "ui_scale")), 0, OLD_UI_SCALES.size() - 1)
 		_config.set_value(SECTION, "ui_size", minf(OLD_UI_SCALES[index], UI_SIZE_MAX))
@@ -194,8 +226,36 @@ func _apply_graphics() -> void:
 ## Wychodzac z pelnego ekranu wracamy do okna, a okna zmaksymalizowanego nie ruszamy.
 func _apply_window() -> void:
 	var current := DisplayServer.window_get_mode()
+	var wanted := int(value("window_mode"))
+	var target := DisplayServer.WINDOW_MODE_WINDOWED
+	if wanted == WindowMode.BORDERLESS:
+		target = DisplayServer.WINDOW_MODE_FULLSCREEN
+	elif wanted == WindowMode.EXCLUSIVE:
+		target = DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
 	var is_fullscreen := current == DisplayServer.WINDOW_MODE_FULLSCREEN or current == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
-	if value("fullscreen") and not is_fullscreen:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	elif not value("fullscreen") and is_fullscreen:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	if wanted == WindowMode.WINDOWED and not is_fullscreen:
+		return
+	if current != target:
+		DisplayServer.window_set_mode(target)
+		if target == DisplayServer.WINDOW_MODE_WINDOWED:
+			_apply_window_size()
+
+
+func fps_limit() -> int:
+	return FPS_LIMITS[clampi(int(value("fps_limit")), 0, FPS_LIMITS.size() - 1)]
+
+
+func crosshair_color() -> Color:
+	return CROSSHAIR_COLORS[clampi(int(value("crosshair_color")), 0, CROSSHAIR_COLORS.size() - 1)]
+
+
+## Rozmiar okna dziala tylko w trybie okna. Okno wieksze niz ekran jest przycinane i staje na srodku.
+func _apply_window_size() -> void:
+	var wanted := WINDOW_SIZES[clampi(int(value("window_size")), 0, WINDOW_SIZES.size() - 1)]
+	if wanted == Vector2i.ZERO or DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED:
+		return
+	var screen := DisplayServer.window_get_current_screen()
+	var area := DisplayServer.screen_get_usable_rect(screen)
+	var fitted := Vector2i(mini(wanted.x, area.size.x), mini(wanted.y, area.size.y))
+	DisplayServer.window_set_size(fitted)
+	DisplayServer.window_set_position(area.position + (area.size - fitted) / 2)

@@ -187,6 +187,8 @@ pause={
 
 [netfox]
 
+time/tickrate=60
+rollback/history_limit=128
 rollback/input_redundancy=5
 
 [physics]

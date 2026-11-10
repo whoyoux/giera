@@ -3,6 +3,10 @@ extends Control
 ## Celownik rozszerzajacy sie przy strzale i znacznik trafienia.
 
 const OUTLINE := Color(0.18, 0.15, 0.25, 0.75)
+const LINE_WIDTH := 2.5
+const DOT_RADIUS := 1.5
+## O tyle obwodka wystaje poza kreske z kazdej strony.
+const OUTLINE_PAD := 1.2
 
 var _hit := 0.0
 var _hit_color := Color.WHITE
@@ -66,17 +70,26 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var center := (size * 0.5).round()
 	if not hidden_for_sprint:
-		var gap := maxf(lerpf(7.0, 3.5, _aim), _shown_radius) + _spread * lerpf(7.0, 3.0, _aim)
-		var length := lerpf(8.0, 5.0, _aim)
+		var length_scale: float = Settings.value("crosshair_size")
+		var width_scale: float = Settings.value("crosshair_thickness")
+		var outlined: bool = Settings.value("crosshair_outline")
+		# Bez pokazywania rozrzutu celownik ma staly rozmiar i nie rozszerza sie przy strzale.
+		var dynamic: bool = Settings.value("crosshair_spread")
+		var gap := lerpf(7.0, 3.5, _aim)
+		if dynamic:
+			gap = maxf(gap, _shown_radius) + _spread * lerpf(7.0, 3.0, _aim)
+		var length := lerpf(8.0, 5.0, _aim) * length_scale
 		# Na sojuszniku celownik bierze kolor jego druzyny, a srodek znika, zeby nie kusil do strzalu.
 		var ally := ally_color.a > 0.0
-		var color := ally_color if ally else Color.WHITE
+		var color := ally_color if ally else Settings.crosshair_color()
 		for dir: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-			draw_line(center + dir * gap, center + dir * (gap + length), OUTLINE, 5.0, true)
-			draw_line(center + dir * gap, center + dir * (gap + length), color, 2.5, true)
-		if not ally:
-			draw_circle(center, 2.6, OUTLINE, true, -1.0, true)
-			draw_circle(center, 1.5, Color.WHITE, true, -1.0, true)
+			if outlined:
+				draw_line(center + dir * (gap - OUTLINE_PAD), center + dir * (gap + length + OUTLINE_PAD), OUTLINE, LINE_WIDTH * width_scale + OUTLINE_PAD * 2.0, true)
+			draw_line(center + dir * gap, center + dir * (gap + length), color, LINE_WIDTH * width_scale, true)
+		if not ally and Settings.value("crosshair_dot"):
+			if outlined:
+				draw_circle(center, DOT_RADIUS * width_scale + OUTLINE_PAD, OUTLINE, true, -1.0, true)
+			draw_circle(center, DOT_RADIUS * width_scale, color, true, -1.0, true)
 	if _hit <= 0.0:
 		return
 	var grow := 1.35 if _headshot else 1.0

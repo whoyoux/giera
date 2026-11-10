@@ -73,6 +73,9 @@ var wheel_open := false
 # Biezace polozenie kamery aktualizowane co klatke. Rollback nadpisuje yaw i pitch
 # wartosciami z historii, wiec akumulator musi byc osobno.
 var look_yaw := 0.0
+## Przelaczane celowanie i kucanie: czy wlaczone i czy klawisz byl wcisniety w poprzednim ticku.
+var _toggled: Array[bool] = [false, false]
+var _toggle_held: Array[bool] = [false, false]
 var look_pitch := 0.0
 
 var _bot_time := 0.0
@@ -210,6 +213,20 @@ func on_respawn() -> void:
 		select_slot(maxi(Inventory.first_occupied(slots), 0))
 
 
+## Stan klawisza albo przelacznika, gdy gracz wybral w ustawieniach przelaczanie zamiast trzymania.
+## Przelacznik gasnie po smierci i gdy ustawienie zostanie wylaczone.
+func _held_or_toggled(action: String, setting: String, index: int) -> bool:
+	var held := Input.is_action_pressed(action)
+	if not Settings.value(setting) or not (get_parent() as Player).info.alive:
+		_toggled[index] = false
+		_toggle_held[index] = held
+		return held
+	if held and not _toggle_held[index]:
+		_toggled[index] = not _toggled[index]
+	_toggle_held[index] = held
+	return _toggled[index]
+
+
 func _gather() -> void:
 	if not is_multiplayer_authority():
 		return
@@ -223,9 +240,9 @@ func _gather() -> void:
 		# Po uzyciu przedmiotu trzymany przycisk nie strzela kolejna bronia, dopoki go nie pusci.
 		_fire_blocked = _fire_blocked and Input.is_action_pressed("fire")
 		use_primary = Input.is_action_pressed("fire") and not _fire_blocked and not wheel_open
-		aim = Input.is_action_pressed("aim") and not wheel_open
+		aim = _held_or_toggled("aim", "toggle_aim", 0) and not wheel_open
 		sprint = Input.is_action_pressed("sprint")
-		crouch = Input.is_action_pressed("crouch")
+		crouch = _held_or_toggled("crouch", "toggle_crouch", 1)
 		reload = Input.is_action_pressed("reload")
 	else:
 		move = Vector2.ZERO

@@ -12,7 +12,7 @@ func _ready() -> void:
 	var common := blaster.stats(Rarity.Tier.COMMON)
 	var epic := blaster.stats(Rarity.Tier.EPIC)
 	var legendary := blaster.stats(Rarity.Tier.LEGENDARY)
-	_check("zwykly ma dzisiejsze wartosci", common.damage == 20 and common.headshot_damage == 40 and common.magazine == 12 and common.fire_interval_ticks == 6)
+	_check("zwykly ma dzisiejsze wartosci", common.damage == 20 and common.headshot_damage == 40 and common.magazine == 12 and common.fire_interval_ticks == 12)
 	_check("klasy rosna w sile", common.damage < epic.damage and epic.damage < legendary.damage)
 	_check("wyzsza klasa szybciej laduje", common.reload_seconds > epic.reload_seconds and epic.reload_seconds > legendary.reload_seconds)
 	_check("kazda klasa ma inny model", common.visual.model_path != epic.visual.model_path and epic.visual.model_path != legendary.visual.model_path)

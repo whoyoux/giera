@@ -3,31 +3,32 @@ extends RefCounted
 ## Bufor ruchu innego gracza u klienta. Stany przychodza nierowno, bo gracz wysyla ruch co
 ## klatke, a przycinka albo Wi-Fi zatrzymuje je na chwile. Pokazujemy wiec gracza troche
 ## w przeszlosci i plynnie przechodzimy miedzy stanami, ktore juz dotarly.
+## Stale w tickach sa dobrane do 60 tickow na sekunde.
 
 ## Zapas ponad najkrotsza droge stanu do klienta. Najnowszy stan starzeje sie, zanim dojdzie nastepny,
 ## wiec zapas pokrywa najwiekszy odstep miedzy stanami z okna (1 tick, po zgubionym pakiecie wiecej),
 ## rozrzut wieku stanow (95. centyl minus minimum) i margines na klatki, w tych granicach.
 const MIN_BUFFER_TICKS := 1.5
-const MAX_BUFFER_TICKS := 3.0
+const MAX_BUFFER_TICKS := 6.0
 const JITTER_PERCENTILE := 0.95
 ## Zegar gracza idzie klatkami, wiec bywa o ulamek ticku przed wspolnym zegarem.
-const CLOCK_MARGIN_TICKS := 0.75
+const CLOCK_MARGIN_TICKS := 1.0
 ## Do pomiarow: tak daleko zegar gracza musi wyprzedzic dane, zeby liczyc to jako zaciecie.
-const STARVE_TICKS := 0.25
+const STARVE_TICKS := 0.5
 ## Najwolniejszy gracz opoznia wspolny zegar najwyzej o tyle tickow ponad mediane graczy.
 ## Wolniejszy od zegara stoi na swoim najnowszym stanie i porusza sie skokami tylko on.
-const LAG_SPREAD_TICKS := 1.0
+const LAG_SPREAD_TICKS := 2.0
 ## Z tylu ostatnich stanow, czyli okolo 2 s, liczymy najkrotsza droge.
-const AGE_WINDOW := 60
+const AGE_WINDOW := 120
 ## Tak szybko wspolny zegar zmienia opoznienie, w tickach na sekunde.
-const LAG_ADAPT_SPEED := 2.0
+const LAG_ADAPT_SPEED := 4.0
 ## Przy wiekszej roznicy dalsze doganianie nie ma sensu i przeskakujemy od razu.
-const SNAP_TICKS := 15.0
-const CATCH_UP_GAIN := 0.25
+const SNAP_TICKS := 30.0
+const CATCH_UP_GAIN := 0.125
 const MIN_RATE := 0.8
 const MAX_RATE := 1.6
 ## Taki ruch na tick nie jest bieganiem, tylko odrodzeniem, wiec go nie wygladzamy.
-const TELEPORT_METERS_PER_TICK := 1.5
+const TELEPORT_METERS_PER_TICK := 0.75
 
 ## Tick, ktory klient pokazuje na ekranie. Wspolny dla wszystkich graczy, bo strzal
 ## podaje serwerowi jeden tick. Ujemny, gdy nie ma kogo pokazywac.

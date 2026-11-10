@@ -22,7 +22,7 @@ const STAMINA_REGEN_DELAY := 1.0
 const STAMINA_UNLOCK := 20.0
 ## O tyle kamera poszerza widok w sprincie.
 const SPRINT_FOV_BONUS := 10.0
-const POSITION_HISTORY_TICKS := 30
+const POSITION_HISTORY_TICKS := 60
 const AIM_ZOOM_SPEED := 12.0
 ## Odrzut w rekach i szarpniecie kamery sa mniejsze przy celowaniu.
 const AIM_RECOIL_SCALE := 0.55

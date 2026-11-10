@@ -41,13 +41,13 @@ func _check_definitions() -> void:
 	_check("definicje sa w spisie", deagle != null and awp != null)
 	var stats := deagle.stats(Rarity.Tier.COMMON)
 	_check("Deagle: 55 obrazen, 7 naboi", stats.damage == 55 and stats.magazine == 7)
-	_check("Deagle: 0,65 s miedzy strzalami", absf(stats.fire_interval_ticks / 30.0 - 0.65) < 0.03)
+	_check("Deagle: 0,65 s miedzy strzalami", absf(stats.fire_interval_ticks / float(NetworkTime.tickrate) - 0.65) < 0.03)
 	for tier: int in [Rarity.Tier.COMMON, Rarity.Tier.EPIC, Rarity.Tier.LEGENDARY]:
 		var deagle_tier := deagle.stats(tier)
 		_check("Deagle %d: dwa trafienia zabijaja" % tier, deagle_tier.damage < GameState.MAX_HEALTH and deagle_tier.damage * 2 >= GameState.MAX_HEALTH)
 		_check("AWP %d: jedno trafienie zabija" % tier, awp.stats(tier).damage >= GameState.MAX_HEALTH and awp.stats(tier).headshot_damage >= GameState.MAX_HEALTH)
 	var awp_stats := awp.stats(Rarity.Tier.COMMON)
-	_check("AWP: 5 naboi i 1,6 s", awp_stats.magazine == 5 and absf(awp_stats.fire_interval_ticks / 30.0 - 1.6) < 0.03)
+	_check("AWP: 5 naboi i 1,6 s", awp_stats.magazine == 5 and absf(awp_stats.fire_interval_ticks / float(NetworkTime.tickrate) - 1.6) < 0.03)
 	_check("AWP: dlugie przeladowanie", awp_stats.reload_seconds >= 3.0)
 	_check("AWP: luneta", awp_stats.scope and not stats.scope)
 	_check("zasieg na cala duza mape", Hitscan.RANGE >= 450.0)
@@ -80,9 +80,9 @@ func _test_deagle(slot: int) -> void:
 	equipment.set_active_charges(3)
 	equipment.input.use_primary = true
 	ItemStack.behavior_of(stack).rollback_tick(equipment, stack, tick)
-	ItemStack.behavior_of(stack).rollback_tick(equipment, stack, tick + 10)
-	var after_fast := equipment.active_charges()
 	ItemStack.behavior_of(stack).rollback_tick(equipment, stack, tick + 20)
+	var after_fast := equipment.active_charges()
+	ItemStack.behavior_of(stack).rollback_tick(equipment, stack, tick + 40)
 	equipment.input.use_primary = false
 	_check("Deagle: rzadkie strzaly", after_fast == 2 and equipment.active_charges() == 1)
 	_check("Deagle: mocny rozrzut po strzale", equipment.spread_bloom >= 3.0)

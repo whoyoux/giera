@@ -82,7 +82,7 @@ func _test_spread() -> void:
 	Input.action_release("fire")
 	await _wait(0.05)
 	_check("celownik pokazuje serie", _hud._crosshair.spread_radius > 7.0)
-	await _wait(stats.max_bloom_degrees / stats.bloom_recovery + float(stats.fire_interval_ticks + Equipment.SPREAD_HOLD_TICKS) / 30.0 + 0.2)
+	await _wait(stats.max_bloom_degrees / stats.bloom_recovery + float(stats.fire_interval_ticks + Equipment.SPREAD_HOLD_TICKS) / float(NetworkTime.tickrate) + 0.2)
 	_check("po przerwie rozrzut wraca", equipment.spread_bloom == 0.0)
 	Input.action_press("reload")
 	await _wait(0.2)
@@ -132,7 +132,7 @@ func _test_shotgun() -> void:
 	_check("celownik pokazuje rozrzut", _hud._crosshair._shown_radius > 20.0)
 
 	# Prawdziwy klawisz: jeden naboj na strzal i odstep miedzy strzalami.
-	var interval := stats.fire_interval_ticks / 30.0
+	var interval := stats.fire_interval_ticks / float(NetworkTime.tickrate)
 	Input.action_press("fire")
 	await _wait(interval - 0.15)
 	Input.action_release("fire")
@@ -192,7 +192,7 @@ func _test_knife() -> void:
 	Input.action_release("aim")
 
 	# Prawdziwy klawisz: trzymanie tnie, ale nie czesciej niz pozwala odstep.
-	var interval := definition.swing_interval_ticks / 30.0
+	var interval := definition.swing_interval_ticks / float(NetworkTime.tickrate)
 	var swings := 0
 	var last := _player.equipment.last_fire
 	Input.action_press("fire")
