@@ -85,5 +85,10 @@ func _wait(seconds: float) -> void:
 
 func _shot(file_name: String) -> void:
 	await RenderingServer.frame_post_draw
+	var hud := get_node_or_null("/root/Main/Hud") as Hud
+	if hud != null and hud._match_panel._results_card.is_visible_in_tree():
+		var card := hud._match_panel._results_card.get_global_rect()
+		var screen := get_viewport().get_visible_rect().size
+		print("[karta] %s: wysokosc %d px (%.1f%% ekranu), dol %d z %d" % [file_name, card.size.y, card.size.y * 100.0 / screen.y, card.end.y, screen.y])
 	var path := _dir.path_join(file_name)
 	print("[zrzut] %s %s" % [path, error_string(get_viewport().get_texture().get_image().save_png(path))])

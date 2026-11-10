@@ -12,7 +12,16 @@ const FEED_AVATAR_SIDE := 20.0
 const FEED_WEAPON_ICON_SIDE := 22.0
 const FEED_FONT := 15
 const FEED_ROW_MARGIN := 5
-const SCORE_AVATAR_SIDE := 34.0
+## Tabela pod Tab miesci 32 graczy na 1280x720: mniejsze wiersze, a powyzej SCORE_SPLIT_FROM
+## dwie kolumny po SCORE_COLUMN_ROWS.
+const SCORE_AVATAR_SIDE := 26.0
+const SCORE_FONT := 17
+const SCORE_ROW_GAP := 4
+const SCORE_SPLIT_FROM := 12
+const SCORE_COLUMN_ROWS := 16
+const SCORE_CARD_WIDTH := 700.0
+const SCORE_SPLIT_CARD_WIDTH := 1100.0
+const TEAM_SCORE_CARD_WIDTH := 860.0
 const LOW_HEALTH := 35
 const KILL_SHAKE := 0.28
 const ITEM_NAME_SECONDS := 1.4
@@ -89,6 +98,8 @@ var _score_card: PanelContainer
 var _pause_card: PanelContainer
 var _resume_button: Button
 var _score_rows: VBoxContainer
+## Sekcja "Twoja runda" z karty wynikow, widoczna pod Tab tylko po rundzie.
+var _round_holder: VBoxContainer
 var _pause: CenterContainer
 var _audio: AudioStreamPlayer
 var _hurt_audio: AudioStreamPlayer
@@ -200,6 +211,7 @@ func _process(delta: float) -> void:
 	_crosshair.spread_radius = _spread_on_screen(_player)
 	_update_death_panel(info)
 	var show_scores := Input.is_action_pressed("scoreboard") and not _chat.is_open
+	_round_holder.visible = Match.phase == Match.Phase.RESULTS and _match_panel.has_round_stats()
 	if show_scores != _score_center.visible:
 		_score_center.visible = show_scores
 		if show_scores:
@@ -224,8 +236,13 @@ func _update_clutter() -> void:
 		control.modulate.a = combat
 	if scoped:
 		return
+	# Na ekranie wynikow zostaje karta, licznik FPS i czat. Zegar i "Najlepsi" chowa RoundPanel,
+	# a mapke MatchPanel.
 	_top_left.modulate.a = _side_alpha
-	_feed.modulate.a = _side_alpha
+	_feed.modulate.a = 0.0 if results else _side_alpha
+	var tutorial := get_tree().get_first_node_in_group(TutorialPanel.GROUP) as CanvasItem
+	if tutorial != null:
+		tutorial.modulate.a = 0.0 if results else 1.0
 	_chat.modulate.a = 1.0 if _chat.is_open else _side_alpha
 
 
@@ -754,8 +771,8 @@ func _refresh_scoreboard() -> void:
 		return
 	for child in _score_rows.get_children():
 		child.free()
-	_score_card.custom_minimum_size.x = 860.0 if Teams.is_active() else 700.0
 	if Teams.is_active():
+		_score_card.custom_minimum_size.x = TEAM_SCORE_CARD_WIDTH
 		_refresh_team_scoreboard()
 		return
 	var ids := GameState.players.keys()
@@ -769,17 +786,32 @@ func _refresh_scoreboard() -> void:
 		if elimination and first.alive != second.alive:
 			return first.alive
 		return first.kills > second.kills)
-	_score_rows.add_child(_score_row("Gracz", "Zabójstwa", "Status" if elimination else "Śmierci", "Ping", UiStyle.CORAL, UiStyle.CORAL))
-	for id: int in ids:
-		var info: Dictionary = GameState.players[id]
-		var ping: int = GameState.pings.get(id, -1)
-		var ping_text := "%d ms" % ping if ping >= 0 else "–"
-		var middle := _match_status(info) if elimination else str(info.deaths)
-		var shown_name: String = info.name if elimination else "%d. %s" % [places.get(id, 0), info.name]
-		var row := _score_row(shown_name, str(info.kills), middle, ping_text, UiStyle.INK, _ping_color(ping))
-		row.add_child(_avatar_of(id, SCORE_AVATAR_SIDE))
-		row.move_child(row.get_child(-1), 0)
-		_score_rows.add_child(row)
+	# Powyzej SCORE_SPLIT_FROM graczy dwie kolumny obok siebie: miejsca 1-16 i 17-32.
+	var split := ids.size() > SCORE_SPLIT_FROM
+	_score_card.custom_minimum_size.x = SCORE_SPLIT_CARD_WIDTH if split else SCORE_CARD_WIDTH
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 24)
+	_score_rows.add_child(columns)
+	var chunks: Array = [ids.slice(0, SCORE_COLUMN_ROWS), ids.slice(SCORE_COLUMN_ROWS)] if split else [ids]
+	for chunk: Array in chunks:
+		var column := VBoxContainer.new()
+		column.add_theme_constant_override("separation", SCORE_ROW_GAP)
+		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		columns.add_child(column)
+		column.add_child(_score_row("Gracz", "Zabójstwa", "Status" if elimination else "Śmierci", "Ping", UiStyle.CORAL, UiStyle.CORAL, false, split))
+		for id: int in chunk:
+			var info: Dictionary = GameState.players[id]
+			var ping: int = GameState.pings.get(id, -1)
+			var ping_text := "%d ms" % ping if ping >= 0 else "–"
+			var middle := _match_status(info) if elimination else str(info.deaths)
+			var shown_name: String = info.name if elimination else "%d. %s" % [places.get(id, 0), info.name]
+			# Wlasny wiersz zawsze wyrozniony.
+			var mine := id == multiplayer.get_unique_id()
+			var row := _score_row(shown_name, str(info.kills), middle, ping_text, UiStyle.BLUE if mine else UiStyle.INK, _ping_color(ping), mine, split)
+			row.add_child(_avatar_of(id, SCORE_AVATAR_SIDE))
+			row.move_child(row.get_child(-1), 0)
+			column.add_child(row)
 
 
 ## Tabela Team Deathmatchu: dwie kolumny druzyn obok siebie, kazda z wynikiem w naglowku.
@@ -790,7 +822,7 @@ func _refresh_team_scoreboard() -> void:
 	_score_rows.add_child(columns)
 	for team in Teams.COUNT:
 		var column := VBoxContainer.new()
-		column.add_theme_constant_override("separation", 6)
+		column.add_theme_constant_override("separation", SCORE_ROW_GAP)
 		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		columns.add_child(column)
 		var header := HBoxContainer.new()
@@ -809,7 +841,7 @@ func _refresh_team_scoreboard() -> void:
 			var ping: int = GameState.pings.get(id, -1)
 			var mine := id == multiplayer.get_unique_id()
 			var row := _team_score_row(info.name, str(info.kills), str(info.deaths), "%d ms" % ping if ping >= 0 else "–", UiStyle.BLUE if mine else UiStyle.INK, _ping_color(ping), mine)
-			row.add_child(_avatar_of(id, 28.0))
+			row.add_child(_avatar_of(id, SCORE_AVATAR_SIDE))
 			row.move_child(row.get_child(-1), 0)
 			column.add_child(row)
 		if members.is_empty():
@@ -823,7 +855,7 @@ func _refresh_team_scoreboard() -> void:
 func _team_score_row(player_name: String, kills: String, deaths: String, ping: String, color: Color, ping_color: Color, bold: bool) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
-	var name_label := UiStyle.label(player_name, 17, color, bold)
+	var name_label := UiStyle.label(player_name, SCORE_FONT, color, bold)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -861,21 +893,22 @@ func _ping_color(ping: int) -> Color:
 	return UiStyle.CORAL.darkened(0.1)
 
 
-func _score_row(player_name: String, kills: String, middle: String, ping: String, color: Color, ping_color: Color) -> HBoxContainer:
+## W dwoch kolumnach komorki sa wezsze, zeby obie zmiescily sie obok siebie.
+func _score_row(player_name: String, kills: String, middle: String, ping: String, color: Color, ping_color: Color, bold := true, compact := false) -> HBoxContainer:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	var name_label := UiStyle.label(player_name, 21, color)
+	row.add_theme_constant_override("separation", 8)
+	var name_label := UiStyle.label(player_name, SCORE_FONT, color, bold or not compact)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(name_label)
 	for value in [kills, middle]:
-		var cell := UiStyle.label(value, 21, color)
-		cell.custom_minimum_size = Vector2(120, 0)
+		var cell := UiStyle.label(value, SCORE_FONT, color)
+		cell.custom_minimum_size = Vector2(84 if compact else 110, 0)
 		cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		row.add_child(cell)
-	var ping_cell := UiStyle.label(ping, 21, ping_color)
-	ping_cell.custom_minimum_size = Vector2(90, 0)
+	var ping_cell := UiStyle.label(ping, SCORE_FONT - 2, ping_color, false)
+	ping_cell.custom_minimum_size = Vector2(64 if compact else 80, 0)
 	ping_cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(ping_cell)
 	return row
@@ -1050,9 +1083,17 @@ func _build() -> void:
 	_score_card.custom_minimum_size = Vector2(700, 0)
 	_score_card.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 26, 7))
 	_score_center.add_child(_score_card)
+	var score_stack := VBoxContainer.new()
+	score_stack.add_theme_constant_override("separation", 12)
+	_score_card.add_child(score_stack)
 	_score_rows = VBoxContainer.new()
 	_score_rows.add_theme_constant_override("separation", 8)
-	_score_card.add_child(_score_rows)
+	score_stack.add_child(_score_rows)
+	_round_holder = VBoxContainer.new()
+	_round_holder.add_theme_constant_override("separation", 12)
+	_round_holder.visible = false
+	score_stack.add_child(_round_holder)
+	_match_panel.move_round_stats(_round_holder)
 	_add_shade_behind(_score_center)
 
 	_team_panel = TeamPanel.new()

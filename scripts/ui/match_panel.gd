@@ -14,19 +14,26 @@ const MAP_MARGIN_BOTTOM := 136.0
 const BIG_MAP_SIDE := 600.0
 ## Prawa kolumna zaczyna sie pod lista zabojstw, ktora ma najwyzej piec wierszy.
 const SIDE_COLUMN_TOP := 290.0
-## Na podium Deathmatchu jeden niski panel stoi przy dolnej krawedzi, zeby nie zaslaniac postaci:
-## po lewej wynik rundy, po prawej glosowanie na nastepna mape.
+## Karta wynikow w kazdym trybie to jeden niski panel przy dolnej krawedzi, najwyzej 33% wysokosci
+## ekranu, zeby nie zaslaniac postaci na podium ani ogladanego zwyciezcy Battle Royale:
+## po lewej wynik, po prawej glosowanie na nastepna mape (tylko Deathmatch).
 const PODIUM_SUMMARY_WIDTH := 260.0
 ## Team Deathmatch pokazuje obie druzyny obok siebie, wiec jego czesc z wynikiem jest szersza.
 const TEAM_SUMMARY_WIDTH := 400.0
+## Battle Royale nie ma glosowania, wiec cala karta to wynik.
+const ELIMINATION_SUMMARY_WIDTH := 380.0
 ## Tylu najlepszych z kazdej druzyny miesci sie w karcie. Reszta jest pod Tab.
-const TEAM_ROWS := 4
+const TEAM_ROWS := 3
+## W Battle Royale karta pokazuje tylu najlepszych i wlasne miejsce. Reszta jest pod Tab.
+const ELIMINATION_ROWS := 3
+## Nagrody pod wlasnym wynikiem na podium Deathmatchu. Reszta jest pod Tab.
+const AWARD_ROWS := 2
 const PODIUM_CARD_BOTTOM := 24.0
-const RESULTS_CARD_WIDTH := 520.0
+const RESULTS_TITLE_SIZE := 28
 ## Odliczanie stoi pod zegarem rundy Deathmatchu, ktory zajmuje gore ekranu. To samo miejsce dziela
 ## baner rundy i napis o serii, a odliczanie ma pierwszenstwo.
 const BIG_LABEL_TOP := 110.0
-const VOTE_THUMB_SIZE := Vector2(160.0, 90.0)
+const VOTE_THUMB_SIZE := Vector2(144.0, 72.0)
 const VOTE_CARD_FILL := Color("f3ecdd")
 const VOTE_POP_SCALE := 1.06
 ## Margines w StyleBoxFlat liczy sie od zewnetrznej krawedzi, wiec obejmuje obwodke. Wnetrze karty
@@ -72,6 +79,9 @@ var _hovered_vote := -1
 var _round_divider: Control
 ## Sekcja "Twoja runda": wlasne liczby z tej rundy i strzalki wzgledem poprzedniej.
 var _round_section: VBoxContainer
+## Jedna linia z liczbami rundy w karcie wynikow. Pelne liczby ze strzalkami sa pod Tab.
+var _round_line: Label
+var _mini_map: ZoneMap
 var _watch_panel: PanelContainer
 var _watch_label: Label
 
@@ -107,8 +117,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	_update_watch_hint()
 	_update_match_info()
+	# Na ekranie wynikow mapka nie jest potrzebna, a stalaby obok karty.
+	_mini_map.modulate.a = 0.0 if Match.phase == Match.Phase.RESULTS else 1.0
 	if _results_center.visible:
 		_results_timer.text = ("Powrót do lobby za %d" if Match.is_elimination() else "Nowa runda za %d") % ceili(Match.seconds_left())
+		# W Battle Royale licznik i podpowiedz o tabeli stoja w jednej linii, zeby karta byla niska.
+		if Match.is_elimination():
+			_results_timer.text += " · " + _results_tab_hint.text
 		var voting := Match.can_vote()
 		_vote_panel.visible = voting
 		_vote_divider.visible = voting
@@ -225,7 +240,8 @@ func _zone_text(state: Dictionary) -> String:
 func _update_watch_hint() -> void:
 	var camera := get_tree().get_first_node_in_group(SpectatorCamera.GROUP) as SpectatorCamera
 	var watched := camera.target_name() if camera != null else ""
-	_watch_panel.visible = not watched.is_empty()
+	# Karta wynikow stoi w tym samym miejscu przy dolnej krawedzi.
+	_watch_panel.visible = not watched.is_empty() and Match.phase != Match.Phase.RESULTS
 	if _watch_panel.visible:
 		_watch_label.text = "Oglądasz: %s" % watched
 
@@ -280,26 +296,34 @@ func _refresh_results() -> void:
 		_fill_results()
 		# Statystyki zamrazaja runde w tym samym sygnale, wiec czytamy je chwile pozniej.
 		_fill_round_stats.call_deferred()
-		_place_results(not Match.is_elimination())
+		_place_results()
 		UiStyle.pop_in(_results_card)
 		_hovered_vote = -1
 	_results_center.visible = showing
 
 
-## Battle Royale pokazuje karte na srodku, a Deathmatch mala karte na dole pod podium.
-func _place_results(podium: bool) -> void:
-	_results_center.alignment = BoxContainer.ALIGNMENT_END if podium else BoxContainer.ALIGNMENT_CENTER
-	_results_center.offset_bottom = -PODIUM_CARD_BOTTOM if podium else 0.0
-	_results_card.custom_minimum_size.x = 0.0 if podium else RESULTS_CARD_WIDTH
-	_results_summary.custom_minimum_size.x = (TEAM_SUMMARY_WIDTH if Match.is_team_mode() else PODIUM_SUMMARY_WIDTH) if podium else 0.0
-	_results_title.add_theme_font_size_override("font_size", 28 if podium else 38)
-	# Na podium obie czesci panelu czyta sie od lewej gornej krawedzi, jak jeden uklad.
-	_results_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if podium else HORIZONTAL_ALIGNMENT_CENTER
-	_results_summary.size_flags_vertical = Control.SIZE_FILL if podium else Control.SIZE_SHRINK_CENTER
-	_results_eyebrow.visible = podium
-	_results_tab_hint.visible = podium
+## Karta stoi przy dolnej krawedzi w kazdym trybie. Czyta sie ja od lewej gornej krawedzi.
+func _place_results() -> void:
+	_results_center.alignment = BoxContainer.ALIGNMENT_END
+	_results_center.offset_bottom = -PODIUM_CARD_BOTTOM
+	_results_card.custom_minimum_size.x = 0.0
+	var width := PODIUM_SUMMARY_WIDTH
+	if Match.is_elimination():
+		width = ELIMINATION_SUMMARY_WIDTH
+	elif Match.is_team_mode():
+		width = TEAM_SUMMARY_WIDTH
+	_results_summary.custom_minimum_size.x = width
+	_results_title.add_theme_font_size_override("font_size", RESULTS_TITLE_SIZE)
+	_results_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_results_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_results_summary.size_flags_vertical = Control.SIZE_FILL
 	_results_tab_hint.text = "%s: pełna tabela" % Keybinds.label_of("scoreboard")
-	_results_eyebrow.text = "Koniec rundy · Team Deathmatch" if Match.is_team_mode() else "Koniec rundy"
+	_results_tab_hint.visible = not Match.is_elimination()
+	_results_rows.add_theme_constant_override("separation", 2 if Match.is_elimination() else 4)
+	if Match.is_elimination():
+		_results_eyebrow.text = "Koniec meczu · Battle Royale"
+	else:
+		_results_eyebrow.text = "Koniec rundy · Team Deathmatch" if Match.is_team_mode() else "Koniec rundy"
 
 
 func _fill_results() -> void:
@@ -320,19 +344,29 @@ func _fill_results() -> void:
 	if not Match.is_elimination():
 		_fill_podium_rows(my_id)
 		return
+	# Najlepsi i wlasne miejsce, jesli gracz jest dalej. Pelna lista jest pod Tab.
+	var shown := 0
 	for entry: Dictionary in Match.results:
-		var row := HBoxContainer.new()
-		var color := UiStyle.BLUE if entry.id == my_id else UiStyle.INK
-		var place := UiStyle.label("%d." % entry.place, 21, color)
-		place.custom_minimum_size.x = 42.0
-		row.add_child(place)
-		var name_label := UiStyle.label(entry.name, 21, color)
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.clip_text = true
-		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		row.add_child(name_label)
-		row.add_child(UiStyle.label("zabójstwa: %d" % entry.kills, 19, color, false))
-		_results_rows.add_child(row)
+		if shown < ELIMINATION_ROWS or entry.id == my_id:
+			_results_rows.add_child(_place_row(entry, my_id))
+			shown += 1
+
+
+func _place_row(entry: Dictionary, my_id: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var color := UiStyle.BLUE if entry.id == my_id else UiStyle.INK
+	var place := UiStyle.label("%d." % entry.place, 15, color)
+	place.custom_minimum_size.x = 28.0
+	row.add_child(place)
+	var name_label := UiStyle.label(entry.name, 15, color, entry.id == my_id)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	row.add_child(name_label)
+	row.add_child(UiStyle.label(plural(entry.kills, "zabójstwo", "zabójstwa", "zabójstw"), 15, color, false))
+	return row
 
 
 ## Trojke widac na podium, a pelna tabela jest pod Tab. Karta podaje wlasny wynik i nagrody
@@ -342,7 +376,7 @@ func _fill_podium_rows(my_id: int) -> void:
 		if entry.id == my_id:
 			var mine := UiStyle.label("Twoje miejsce: %d z %d  ·  zabójstwa: %d" % [entry.place, Match.results.size(), entry.kills], 15, UiStyle.BLUE)
 			_results_rows.add_child(mine)
-	for line in PodiumView.awards(Match.results).slice(1):
+	for line in PodiumView.awards(Match.results).slice(1, 1 + AWARD_ROWS):
 		var award := UiStyle.label("★ " + line, 14, Color("b07d00"), false)
 		award.clip_text = true
 		award.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -360,17 +394,13 @@ func _fill_team_results(my_id: int) -> void:
 	else:
 		_results_title.text = ("Wygrywacie, %s!" if winner == mine else "Wygrywają %s") % Teams.name_of(winner)
 		_results_title.add_theme_color_override("font_color", Teams.color_of(winner).darkened(0.15))
-	var score := UiStyle.label("%s %d : %d %s" % [Teams.name_of(0), Match.team_scores[0], Match.team_scores[1], Teams.name_of(1)], 17, UiStyle.INK)
-	_results_rows.add_child(score)
+	# Wynik druzyn stoi w naglowkach kolumn, wiec nie ma osobnej linii.
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 16)
 	columns.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_results_rows.add_child(columns)
 	for team in Teams.COUNT:
 		columns.add_child(_team_column(team, my_id))
-	for entry: Dictionary in Match.results:
-		if entry.id == my_id:
-			_results_rows.add_child(UiStyle.label("Twój wynik: %s · %s" % [plural(entry.kills, "zabójstwo", "zabójstwa", "zabójstw"), plural(entry.get("deaths", 0), "śmierć", "śmierci", "śmierci")], 15, UiStyle.BLUE))
 
 
 func _team_column(team: int, my_id: int) -> VBoxContainer:
@@ -397,13 +427,23 @@ func _team_column(team: int, my_id: int) -> VBoxContainer:
 		column.add_child(line)
 	if rows.is_empty():
 		column.add_child(UiStyle.label("pusto", 14, Color(UiStyle.INK, 0.65), false))
-	elif rows.size() > TEAM_ROWS:
-		column.add_child(UiStyle.label("i %d więcej" % (rows.size() - TEAM_ROWS), 13, Color(UiStyle.INK, 0.65), false))
 	return column
+
+
+## Czy jest sekcja "Twoja runda" do pokazania pod Tab.
+func has_round_stats() -> bool:
+	return _round_section.visible
+
+
+## Sekcja "Twoja runda" stoi na dole tabeli pod Tab, a nie w karcie wynikow, ktora musi byc niska.
+func move_round_stats(holder: Container) -> void:
+	_round_divider.reparent(holder, false)
+	_round_section.reparent(holder, false)
 
 
 ## Liczby gracza z tej rundy, liczone u niego na komputerze przez PlayerStats. Strzalka mowi,
 ## czy jest lepiej niz w poprzedniej rundzie. Bez statystyk (np. bez okna) sekcji nie ma.
+## W karcie wynikow zostaje z nich jedna linia.
 func _fill_round_stats() -> void:
 	for child in _round_section.get_children():
 		child.free()
@@ -411,10 +451,12 @@ func _fill_round_stats() -> void:
 	var shown: bool = stats != null and not stats.last_round.is_empty() and GameState.players.get(multiplayer.get_unique_id(), {}).get("in_match", true)
 	_round_section.visible = shown
 	_round_divider.visible = shown
+	_round_line.visible = shown
 	if not shown:
 		return
 	var now: Dictionary = stats.last_round
 	var before: Dictionary = stats.previous_round
+	_round_line.text = round_line(now)
 	var header := HBoxContainer.new()
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_round_section.add_child(header)
@@ -439,6 +481,16 @@ func _fill_round_stats() -> void:
 		row.add_child(_stat_cell(cell[0], cell[1], cell[2]))
 	var favorite := PlayerStats.round_favorite(now)
 	row.add_child(_stat_cell("Ulubiona broń", favorite if not favorite.is_empty() else "–", 0, 150.0))
+
+
+## "2 zabójstwa · 1 śmierć · 29% celności · 223 obrażeń".
+static func round_line(now: Dictionary) -> String:
+	var accuracy := PlayerStats.round_accuracy(now)
+	var parts: Array[String] = [plural(now.kills, "zabójstwo", "zabójstwa", "zabójstw"), plural(now.deaths, "śmierć", "śmierci", "śmierci")]
+	if accuracy >= 0:
+		parts.append("%d%% celności" % accuracy)
+	parts.append("%d obrażeń" % now.damage)
+	return " · ".join(parts)
 
 
 ## -1 brak porownania, 0 bez zmian, a dalej: 1 wzroslo i dobrze, 2 wzroslo i zle,
@@ -566,6 +618,7 @@ func _build_zone_feedback() -> void:
 
 func _build_map() -> void:
 	var map := ZoneMap.new()
+	_mini_map = map
 	map.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	map.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	map.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -598,7 +651,7 @@ func _build_results() -> void:
 	_results_center.visible = false
 	add_child(_results_center)
 	_results_card = PanelContainer.new()
-	_results_card.custom_minimum_size = Vector2(RESULTS_CARD_WIDTH, 0)
+	_results_card.custom_minimum_size = Vector2.ZERO
 	_results_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var style := UiStyle.sticker(UiStyle.PAPER, 24, RESULTS_BORDER)
 	style.set_content_margin_all(RESULTS_BORDER + 14)
@@ -615,21 +668,24 @@ func _build_results() -> void:
 	body.add_theme_constant_override("separation", SECTION_GAP)
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(body)
+	# Sekcja "Twoja runda" powstaje tu, ale stoi na dole tabeli pod Tab (move_round_stats).
 	_round_divider = ColorRect.new()
 	(_round_divider as ColorRect).color = DIVIDER_COLOR
 	_round_divider.custom_minimum_size.y = 2
 	_round_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_round_divider.visible = false
 	stack.add_child(_round_divider)
 	_round_section = VBoxContainer.new()
 	_round_section.add_theme_constant_override("separation", 6)
 	_round_section.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_round_section.visible = false
 	stack.add_child(_round_section)
 
 	# Wynik rundy: zwyciezca jest najwazniejszy, pod nim wlasne miejsce i nagrody.
 	_results_summary = VBoxContainer.new()
 	_results_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_results_summary.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_results_summary.add_theme_constant_override("separation", 4)
+	_results_summary.add_theme_constant_override("separation", 2)
 	_results_summary.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(_results_summary)
 	_results_eyebrow = UiStyle.label("Koniec rundy", 14, Color(UiStyle.INK, 0.65), false)
@@ -642,7 +698,12 @@ func _build_results() -> void:
 	_results_rows = VBoxContainer.new()
 	_results_rows.add_theme_constant_override("separation", 4)
 	_results_summary.add_child(_results_rows)
-	_results_timer = UiStyle.label("", 16, Color(UiStyle.INK, 0.65), false)
+	# W waskiej czesci karty Deathmatchu linia zawija sie na dwie.
+	_round_line = UiStyle.label("", 14, UiStyle.BLUE)
+	_round_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_round_line.visible = false
+	_results_summary.add_child(_round_line)
+	_results_timer = UiStyle.label("", 14, Color(UiStyle.INK, 0.65), false)
 	_results_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_results_summary.add_child(_results_timer)
 	var push_down := Control.new()
@@ -677,7 +738,7 @@ func _build_vote_panel() -> VBoxContainer:
 	header.add_child(_vote_timer)
 	_vote_panel.add_child(UiStyle.label("Kliknij kartę albo naciśnij jej klawisz", 14, Color(UiStyle.INK, 0.65), false))
 	var gap := Control.new()
-	gap.custom_minimum_size.y = 8
+	gap.custom_minimum_size.y = 4
 	_vote_panel.add_child(gap)
 	var cards := HBoxContainer.new()
 	cards.add_theme_constant_override("separation", 12)
@@ -695,7 +756,7 @@ func _build_vote_card(index: int) -> PanelContainer:
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 6)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(column)
 
@@ -742,12 +803,12 @@ func _build_vote_card(index: int) -> PanelContainer:
 	var footer := HBoxContainer.new()
 	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(footer)
-	var name_label := UiStyle.label(info.title, 16, UiStyle.INK)
+	var name_label := UiStyle.label(info.title, 15, UiStyle.INK)
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(name_label)
-	var count := UiStyle.label("", 14, Color(UiStyle.INK, 0.65), false)
+	var count := UiStyle.label("", 13, Color(UiStyle.INK, 0.65), false)
 	footer.add_child(count)
 
 	card.gui_input.connect(func(event: InputEvent) -> void:
