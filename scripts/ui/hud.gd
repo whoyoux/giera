@@ -122,6 +122,7 @@ var _use_center: Control
 var _streak_center: Control
 var _death_center: Control
 var _round_panel: RoundPanel
+var _net_graph: NetGraph
 ## Przezroczystosc elementow pobocznych: 1 normalnie, AIM_DIM_ALPHA przy celowaniu.
 var _side_alpha := 1.0
 
@@ -170,6 +171,8 @@ func _process(delta: float) -> void:
 	_update_vote_cursor()
 	_update_team_panel()
 	_fps_panel.visible = Settings.value("show_fps")
+	# Samouczek stoi w tej samej kolumnie i na swoje 14 s zastepuje wykres sieci, zeby nie zjechac na czat.
+	_net_graph.visible = Settings.value("show_net_graph") and get_tree().get_first_node_in_group(TutorialPanel.GROUP) == null
 	if _fps_panel.visible:
 		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 	_health_bar.value = lerpf(_health_bar.value, info.health, 0.25)
@@ -975,9 +978,9 @@ func _build() -> void:
 	_fps_label = UiStyle.label("0 FPS", 17, UiStyle.INK)
 	_fps_panel.add_child(_fps_label)
 
-	var net_graph := NetGraph.new()
-	net_graph.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_top_left.add_child(net_graph)
+	_net_graph = NetGraph.new()
+	_net_graph.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_top_left.add_child(_net_graph)
 
 	_build_status_sticker()
 	_build_ammo_sticker()

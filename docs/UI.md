@@ -56,10 +56,17 @@ Odstępy biorą wartości ze skali **4, 8, 12, 16, 20, 24**.
 ## 6. Układ na ekranie
 
 - Okna w trakcie gry nie zasłaniają środka ekranu ani tego, na co gracz ma patrzeć (np. postaci na podium).
-- **Strefa walki** to prostokąt na środku ekranu: 40% szerokości i 50% wysokości (przy 1280×720: x 384–896, y 180–540). Wolno w niej być tylko celownikowi, lunecie, wskaźnikowi kierunku obrażeń, liczbom obrażeń, kołu tańców i oknom modalnym (pauza, tabela, wybór drużyny). Wyjątki to napisy, gdy gracz nie walczy: o śmierci i odliczanie na starcie rundy, gdy postać stoi w miejscu. Sprawdza to `tools/hud_sizes_probe.gd` (linia `STREFA WALKI`).
+- **Strefa walki** to prostokąt na środku ekranu: 40% szerokości i 50% wysokości (przy 1280×720: x 384–896, y 180–540). Wolno w niej być tylko celownikowi, lunecie, wskaźnikowi kierunku obrażeń, liczbom obrażeń, kołu tańców i oknom modalnym (pauza, tabela, wybór drużyny). Wyjątki to napisy, gdy gracz nie walczy: o śmierci i odliczanie na starcie rundy, gdy postać stoi w miejscu. Sprawdza to `hud_layout_test`, a `tools/hud_sizes_probe.gd` wypisuje linie `STREFA WALKI`.
+- **Stałe elementy walki** (zegar, „Najlepsi”, liczniki drużyn, zdrowie, amunicja, pasek przedmiotów, podpowiedź o wyrzucaniu, mapka, pasek strefy) zajmują razem najwyżej **20% ekranu**.
+- **Lista zabójstw**: najwyżej 4 wiersze, cała najwyżej **300 × 150 px**, co najmniej **16 px** od sąsiednich elementów przy najdłuższych nickach.
+- **Napis pod zegarem** (baner, seria): naklejka najwyżej **340 px**.
+- **Samouczek** stoi w lewej kolumnie i nie nachodzi na mapkę ani czat. Na swój czas zastępuje kartę „Najlepsi” i wykres sieci.
+- **Karta wyników** w każdym trybie stoi przy dolnej krawędzi i ma najwyżej **33% wysokości ekranu**, żeby było widać postacie na podium i oglądanego zwycięzcę.
+- **Tabela pod Tab** mieści się na 1280×720 przy **32 graczach** z marginesem co najmniej 16 px (powyżej 12 graczy dwie kolumny).
 - Pod zegarem jest jedno miejsce na krótki napis: baner rundy, seria albo odliczanie. Nowy zastępuje poprzedni, a odliczanie i ostrzeżenie o strefie mają pierwszeństwo. Nad paskiem przedmiotów też jest jedno miejsce: podpowiedź, nazwa przedmiotu albo napis o śmierci.
 - Przy celowaniu bez lunety elementy poboczne (lewa kolumna, lista zabójstw, zamknięty czat) bledną do 35%.
-- Lewy dół to zdrowie i czat, prawy dół to amunicja i mapka, góra to zegar i strefa. Nowe elementy wchodzą tam, gdzie jest wolno, a test `hud_layout_test` pilnuje, żeby nic się nie nakładało przy każdej skali interfejsu.
+- Lewy dół to zdrowie i czat, prawy dół to amunicja i mapka, góra to zegar i strefa. Nowe elementy wchodzą tam, gdzie jest wolno.
+- `hud_layout_test` sprawdza wszystkie te liczby w Deathmatchu, Team Deathmatchu i Battle Royale, przy oknach 1280×720, 1280×800 i 1720×720 i skali interfejsu 0,6 i 1,0. **Nowy element HUD-u trzeba dopisać do tego testu** (`_show_everything`), a jeśli dzieli miejsce z innym, do par `EXCLUSIVE`.
 - Okna pojawiają się z `UiStyle.pop_in`, a okna modalne przyciemniają grę.
 
 ## 7. Przed oddaniem
