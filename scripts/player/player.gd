@@ -463,16 +463,33 @@ func _update_sprint(tick: int, delta: float, dead: bool) -> void:
 		stamina = minf(STAMINA_MAX, stamina + STAMINA_REGEN * delta)
 
 
-## Zwraca pozycje z danego ticku albo najblizsza wczesniejsza, jesli jej nie ma.
-func position_at(tick: int) -> Vector3:
+## Pozycja z chwili miedzy tickami: liniowo miedzy sasiednimi tickami z historii.
+## Gdy brakuje ktoregos z nich, pozycja z ticku albo najblizsza wczesniejsza.
+func position_at(tick: float) -> Vector3:
+	var whole := floori(tick)
+	var weight := tick - whole
+	if weight > 0.0 and _position_history.has(whole) and _position_history.has(whole + 1):
+		return (_position_history[whole] as Vector3).lerp(_position_history[whole + 1], weight)
+	return _position_at_tick(roundi(tick))
+
+
+## Kucanie z danej chwili. Hitbox przy cofaniu czasu musi miec te sama wysokosc co wtedy.
+func crouch_at(tick: float) -> float:
+	var whole := floori(tick)
+	var weight := tick - whole
+	if weight > 0.0 and _crouch_history.has(whole) and _crouch_history.has(whole + 1):
+		return lerpf(_crouch_history[whole], _crouch_history[whole + 1], weight)
+	return _crouch_at_tick(roundi(tick))
+
+
+func _position_at_tick(tick: int) -> Vector3:
 	for past in range(tick, tick - POSITION_HISTORY_TICKS, -1):
 		if _position_history.has(past):
 			return _position_history[past]
 	return position
 
 
-## Kucanie z danego ticku. Hitbox przy cofaniu czasu musi miec te sama wysokosc co wtedy.
-func crouch_at(tick: int) -> float:
+func _crouch_at_tick(tick: int) -> float:
 	for past in range(tick, tick - POSITION_HISTORY_TICKS, -1):
 		if _crouch_history.has(past):
 			return _crouch_history[past]

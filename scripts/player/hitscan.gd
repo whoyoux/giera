@@ -28,8 +28,8 @@ static func direction(yaw: float, pitch: float) -> Vector3:
 
 
 ## Zwraca { position, player, headshot, hit_world }. "player" jest null przy pudle.
-## Z view_tick >= 0 cele sa ustawiane tam, gdzie strzelec widzial je w tym ticku.
-static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, tree: SceneTree, view_tick := -1) -> Dictionary:
+## Z view_tick >= 0 cele sa ustawiane tam, gdzie strzelec widzial je w tej chwili (tick z ulamkiem).
+static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, tree: SceneTree, view_tick := -1.0) -> Dictionary:
 	var to := from + dir * RANGE
 	var result := { "position": to, "player": null, "headshot": false, "hit_world": false, "normal": Vector3.UP }
 	var nearest := RANGE
@@ -46,8 +46,8 @@ static func trace(world: World3D, from: Vector3, dir: Vector3, shooter_id: int, 
 		var player := node as Player
 		if player.peer_id == shooter_id or not player.is_alive():
 			continue
-		var feet := player.shown_position() if view_tick < 0 else player.position_at(view_tick)
-		var drop := Player.CROUCH_DROP * (player.shown_crouch() if view_tick < 0 else player.crouch_at(view_tick))
+		var feet := player.shown_position() if view_tick < 0.0 else player.position_at(view_tick)
+		var drop := Player.CROUCH_DROP * (player.shown_crouch() if view_tick < 0.0 else player.crouch_at(view_tick))
 		var head := Geometry3D.segment_intersects_sphere(from, to, feet + Vector3.UP * (HEAD_CENTER - drop), HEAD_RADIUS)
 		if not head.is_empty() and from.distance_to(head[0]) < nearest:
 			nearest = from.distance_to(head[0])
@@ -82,7 +82,7 @@ static func pellet_directions(dir: Vector3, count: int, spread_degrees: float, p
 
 ## Cios z bliska: wystarczy, ze cel jest w zasiegu i w stozku przed graczem. Liczy sie ten
 ## najblizej srodka celownika. Zwraca { position, player, hit_world }.
-static func melee(world: World3D, from: Vector3, dir: Vector3, reach: float, cone_degrees: float, attacker_id: int, tree: SceneTree, view_tick := -1) -> Dictionary:
+static func melee(world: World3D, from: Vector3, dir: Vector3, reach: float, cone_degrees: float, attacker_id: int, tree: SceneTree, view_tick := -1.0) -> Dictionary:
 	var end := from + dir * reach
 	var result := { "position": end, "player": null, "hit_world": false }
 	var space := world.direct_space_state
@@ -95,8 +95,8 @@ static func melee(world: World3D, from: Vector3, dir: Vector3, reach: float, con
 		var player := node as Player
 		if player.peer_id == attacker_id or not player.is_alive():
 			continue
-		var feet := player.shown_position() if view_tick < 0 else player.position_at(view_tick)
-		var drop := Player.CROUCH_DROP * (player.shown_crouch() if view_tick < 0 else player.crouch_at(view_tick))
+		var feet := player.shown_position() if view_tick < 0.0 else player.position_at(view_tick)
+		var drop := Player.CROUCH_DROP * (player.shown_crouch() if view_tick < 0.0 else player.crouch_at(view_tick))
 		var points := Geometry3D.get_closest_points_between_segments(from, end, feet + Vector3.UP * BODY_BOTTOM, feet + Vector3.UP * (HEAD_CENTER - drop))
 		var target: Vector3 = points[1]
 		var distance := from.distance_to(target)

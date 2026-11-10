@@ -48,6 +48,9 @@ var _regen_timer := 0.0
 var _regen_carry := {}
 ## Czy w tej rundzie padlo juz pierwsze zabojstwo.
 var _first_blood := false
+## Serwer: glebokie kopie stanu graczy z ostatniego rozeslania. Kolejne rozeslanie
+## wysyla tylko pola, ktore sie od nich roznia.
+var _sent := {}
 
 
 func _ready() -> void:
@@ -124,6 +127,7 @@ static func clean_text(raw: String, limit: int) -> String:
 ## Czysci stan lokalny przy wyjsciu z sesji.
 func reset() -> void:
 	pings.clear()
+	_sent.clear()
 	for id: int in players.keys():
 		players.erase(id)
 		player_removed.emit(id)
@@ -564,9 +568,30 @@ func _scatter_loot(id: int, keep_starter: bool) -> bool:
 	return kept
 
 
+## Rozsyla zmiany stanu gracza. Pierwsze rozeslanie jest pelne, kolejne maja tylko zmienione pola.
+## Wysyla tylko do graczy w grze: kto dopiero dolacza, dostaje pelna liste w _sync_roster.
 func _broadcast(id: int) -> void:
 	player_changed.emit(id)
-	_sync_player.rpc(id, players[id])
+	var info: Dictionary = players[id]
+	var changed := _changed_fields(info, _sent.get(id, {}))
+	if changed.is_empty():
+		return
+	_sent[id] = info.duplicate(true)
+	for peer: int in multiplayer.get_peers():
+		if players.has(peer):
+			_sync_player.rpc_id(peer, id, changed)
+
+
+## Pola, ktore roznia sie od ostatnio rozeslanych. Bez wczesniejszej kopii wszystkie.
+static func _changed_fields(info: Dictionary, sent: Dictionary) -> Dictionary:
+	if sent.is_empty():
+		return info.duplicate(true)
+	var changed := {}
+	for key: Variant in info:
+		var value: Variant = info[key]
+		if not sent.has(key) or typeof(sent[key]) != typeof(value) or sent[key] != value:
+			changed[key] = value.duplicate(true) if value is Dictionary or value is Array else value
+	return changed
 
 
 func _notify_damage(victim_id: int, amount: int, attacker_id: int, source: Vector3) -> void:
@@ -592,6 +617,7 @@ func _on_peer_disconnected(id: int) -> void:
 	if players[id].alive and players[id].in_match:
 		Match.server_on_player_out(id)
 	players.erase(id)
+	_sent.erase(id)
 	player_removed.emit(id)
 	_remove_player.rpc(id)
 

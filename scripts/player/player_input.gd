@@ -18,24 +18,55 @@ const OVERHEAD_AIM_HEIGHT := 1.5
 const SCOPE_SWAY := 0.0035
 const SCOPE_SWAY_SPEED := 1.3
 
-# Wysylane do serwera (input_properties w RollbackSynchronizer).
+## Bity w "buttons". Slot zajmuje 2 bity, a taniec 4.
+const BIT_JUMP := 1
+const BIT_USE_PRIMARY := 2
+const BIT_AIM := 4
+const BIT_SPRINT := 8
+const BIT_RELOAD := 16
+const BIT_CROUCH := 32
+const SLOT_SHIFT := 6
+const SLOT_MASK := 0b11
+const DANCE_SHIFT := 8
+const DANCE_MASK := 0b1111
+
+# Wysylane do serwera (input_properties w RollbackSynchronizer): move, buttons, yaw, pitch i view_tick.
 var move := Vector2.ZERO
-var jump := false
-var use_primary := false
-var aim := false
+## Wszystkie przyciski, slot i taniec w jednej liczbie, zeby wejscie bylo male.
+## Ponizsze wlasciwosci tylko czytaja i zapisuja jej bity.
+var buttons := 0
+var jump: bool:
+	get: return _bit(BIT_JUMP)
+	set(value): _set_bit(BIT_JUMP, value)
+var use_primary: bool:
+	get: return _bit(BIT_USE_PRIMARY)
+	set(value): _set_bit(BIT_USE_PRIMARY, value)
+var aim: bool:
+	get: return _bit(BIT_AIM)
+	set(value): _set_bit(BIT_AIM, value)
 ## Slot, ktory gracz chce miec w reku.
-var slot := 0
-var sprint := false
-var crouch := false
-var reload := false
+var slot: int:
+	get: return (buttons >> SLOT_SHIFT) & SLOT_MASK
+	set(value): buttons = (buttons & ~(SLOT_MASK << SLOT_SHIFT)) | ((value & SLOT_MASK) << SLOT_SHIFT)
+var sprint: bool:
+	get: return _bit(BIT_SPRINT)
+	set(value): _set_bit(BIT_SPRINT, value)
+var crouch: bool:
+	get: return _bit(BIT_CROUCH)
+	set(value): _set_bit(BIT_CROUCH, value)
+var reload: bool:
+	get: return _bit(BIT_RELOAD)
+	set(value): _set_bit(BIT_RELOAD, value)
+## Taniec, o ktory prosi gracz. Zero oznacza brak.
+var dance: int:
+	get: return (buttons >> DANCE_SHIFT) & DANCE_MASK
+	set(value): buttons = (buttons & ~(DANCE_MASK << DANCE_SHIFT)) | ((value & DANCE_MASK) << DANCE_SHIFT)
 var yaw := 0.0
 var pitch := 0.0
 ## Bot trzyma klawisz otwierania. Gracz ma go w Input.
 var bot_interact := false
-## Tick innych graczy widoczny teraz na ekranie. -1 oznacza stan biezacy.
-var view_tick := -1
-## Taniec, o ktory prosi gracz. Zero oznacza brak.
-var dance := DanceCatalog.NONE
+## Tick innych graczy widoczny teraz na ekranie, z ulamkiem. Ujemny oznacza stan biezacy.
+var view_tick := -1.0
 ## Otwarte kolo tancow przejmuje mysz, wiec nie wolno strzelac ani celowac.
 var wheel_open := false
 
@@ -60,6 +91,28 @@ var _sway := Vector2.ZERO
 
 func _ready() -> void:
 	NetworkTime.before_tick_loop.connect(_gather)
+
+
+## Netfox 1.35.3 nie czyta ustawienia netfox/rollback/input_redundancy i koder wejscia ma na
+## sztywno 4 kopie. Ustawiamy go sami wartoscia z project.godot. Koder powstaje od nowa przy
+## kazdym process_settings, wiec sprawdzamy to co tick.
+func _apply_input_redundancy() -> void:
+	var transmitter: Object = (get_parent() as Player).sync.get("_history_transmitter")
+	var encoder: Object = transmitter.get("_input_encoder") if transmitter != null else null
+	if encoder != null and encoder.get("redundancy") != NetworkRollback.input_redundancy:
+		encoder.set("redundancy", NetworkRollback.input_redundancy)
+
+
+static func _to_float32(value: float) -> float:
+	return PackedFloat32Array([value])[0]
+
+
+func _bit(mask: int) -> bool:
+	return (buttons & mask) != 0
+
+
+func _set_bit(mask: int, value: bool) -> void:
+	buttons = (buttons | mask) if value else (buttons & ~mask)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -160,6 +213,7 @@ func on_respawn() -> void:
 func _gather() -> void:
 	if not is_multiplayer_authority():
 		return
+	_apply_input_redundancy()
 	_keep_selection_valid()
 	if not Net.bot_mode.is_empty():
 		_gather_bot()
@@ -185,9 +239,11 @@ func _gather() -> void:
 	_keep_dance_valid()
 	dance = _wanted_dance
 	slot = _wanted_slot
-	yaw = look_yaw
-	pitch = look_pitch
-	view_tick = -1 if multiplayer.is_server() else RemoteMotion.view_tick()
+	# Wartosci zaokraglone do float32 RPC zapisuje w 4 bajtach zamiast 8. Zaokraglamy przed
+	# symulacja, wiec klient i serwer licza na tych samych liczbach.
+	yaw = _to_float32(look_yaw)
+	pitch = _to_float32(look_pitch)
+	view_tick = -1.0 if multiplayer.is_server() else _to_float32(RemoteMotion.view_tick())
 
 
 ## Luneta lekko plywa. Ruch trafia do wejscia, wiec serwer liczy strzal tam, gdzie gracz widzi celownik.

@@ -35,9 +35,10 @@ var _ages: Array[float] = []
 var _tick := -1.0
 
 
-## Tick przekazywany serwerowi przy strzale albo -1, gdy nie ma innych graczy.
-static func view_tick() -> int:
-	return roundi(shown_tick) if shown_tick >= 0.0 else -1
+## Tick z ulamkiem przekazywany serwerowi przy strzale albo -1, gdy nie ma innych graczy.
+## Ulamek pozwala serwerowi ustawic cel miedzy tickami, tak jak widzial go strzelec.
+static func view_tick() -> float:
+	return shown_tick if shown_tick >= 0.0 else -1.0
 
 
 ## Przesuwa wspolny zegar. Opoznienie dobiera najwolniejszy gracz, zeby nikt nie stal bez danych.

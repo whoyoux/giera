@@ -125,10 +125,10 @@ func register_shot(stats: WeaponStats) -> void:
 
 
 ## Do ktorego ticku serwer cofa cele przy rozliczaniu ataku. -1 oznacza stan biezacy.
-func rewind_tick(tick: int) -> int:
-	if input.view_tick < 0:
-		return -1
-	return clampi(input.view_tick, tick - NetworkTime.seconds_to_ticks(MAX_REWIND_SECONDS), tick)
+func rewind_tick(tick: int) -> float:
+	if input.view_tick < 0.0:
+		return -1.0
+	return clampf(input.view_tick, tick - NetworkTime.seconds_to_ticks(MAX_REWIND_SECONDS), tick)
 
 
 ## Celowac mozna tylko bronia i nie w trakcie przeladowania. Luneta wraca dopiero po przeladowaniu zamka.
