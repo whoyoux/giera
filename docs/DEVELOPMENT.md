@@ -61,6 +61,7 @@ Obciążenie sieci mierzy `bash tools/net_load_test.sh [boty] [sekundy] [opóźn
 - Muzyka tańców: `python tools/generate_dance_music.py`, a potem `godot --headless --path . --import`.
 - Podgląd tańców na siatce: `tools/dance_preview.gd` z `--shot=<plik.png>` i opcjonalnie `--character=Skeleton_Minion`.
 - Zrzuty Team Deathmatchu: `tools/tdm_shots.gd` z `--dir=<folder>` (z `--dm` panel końca rundy Deathmatchu). Postacie drużyn: `tools/team_preview.gd`, broń z boku: `tools/weapon_preview.gd`, broń w ręku i odrzut: `tools/hand_shot.gd --item=deagle`.
+- Tabela pod Tab ze sztucznymi graczami (8, 16 i 32, też po rundzie) i karta wyników Battle Royale: `tools/scoreboard_shots.gd` z `--mode=deathmatch|team_deathmatch|battle_royale` i `--dir=<folder>`. Wypisuje wysokość tabeli i karty oraz odstęp od krawędzi ekranu.
 - Plakietka z nickiem z kilku odległości: `tools/name_tag_shots.gd` z `--dir=<folder>`. Układ HUD-u, strefę walki i pokrycie ekranu mierzy `tools/hud_sizes_probe.gd` (użycie w pliku).
 - Zrzuty do README: `tools/readme_shots.gd` z `--dir=<ścieżka do docs/screenshots>` i `--fake-steam=Kapitan:76561197960265729`. Odśwież je po każdej zmianie wyglądu.
 
