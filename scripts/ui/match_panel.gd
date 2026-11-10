@@ -23,8 +23,9 @@ const TEAM_SUMMARY_WIDTH := 400.0
 const TEAM_ROWS := 4
 const PODIUM_CARD_BOTTOM := 24.0
 const RESULTS_CARD_WIDTH := 520.0
-## Odliczanie stoi pod zegarem rundy Deathmatchu, ktory zajmuje gore ekranu.
-const BIG_LABEL_TOP := 132.0
+## Odliczanie stoi pod zegarem rundy Deathmatchu, ktory zajmuje gore ekranu. To samo miejsce dziela
+## baner rundy i napis o serii, a odliczanie ma pierwszenstwo.
+const BIG_LABEL_TOP := 110.0
 const VOTE_THUMB_SIZE := Vector2(160.0, 90.0)
 const VOTE_CARD_FILL := Color("f3ecdd")
 const VOTE_POP_SCALE := 1.06
@@ -128,6 +129,16 @@ func _process(_delta: float) -> void:
 	_shown_second = second
 	_big_label.text = ("Start za %d" if Match.phase == Match.Phase.COUNTDOWN else "Ruszasz za %d") % second
 	UiSound.play(Sfx.UiCue.NOTE)
+
+
+## Odliczanie startu albo poczatku rundy. Wtedy nie ma miejsca na inne napisy pod zegarem.
+func is_counting() -> bool:
+	return _big_panel.visible
+
+
+## Ostrzezenie o wyjsciu poza strefe stoi w tym samym pasie co napis o serii.
+func is_warning_outside() -> bool:
+	return _outside_panel.visible
 
 
 ## Glos na mape z karty albo klawisza. Drugi glos na te sama mape niczego nie zmienia.
@@ -790,7 +801,11 @@ func _build_big_label() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	_big_panel = PanelContainer.new()
-	_big_panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.SUN, 24, 6))
+	var big_style := UiStyle.sticker(UiStyle.SUN, 20, 5)
+	big_style.set_content_margin_all(5 + 4)
+	big_style.content_margin_left = 5 + 20
+	big_style.content_margin_right = 5 + 20
+	_big_panel.add_theme_stylebox_override("panel", big_style)
 	_big_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_big_panel.visible = false
 	center.add_child(_big_panel)

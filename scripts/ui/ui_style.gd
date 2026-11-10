@@ -66,6 +66,19 @@ static func label(text: String, size := 20, color := INK, bold := true) -> Label
 	return node
 
 
+## Napis ma szerokosc swojego tekstu, ale nie wieksza niz limit. Dluzszy konczy sie wielokropkiem.
+## Kazda linia jest mierzona osobno.
+static func fit_width(node: Label, max_width: float) -> void:
+	node.clip_text = true
+	node.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	var font := node.get_theme_font("font")
+	var size := node.get_theme_font_size("font_size")
+	var widest := 0.0
+	for line in node.text.split("\n"):
+		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x)
+	node.custom_minimum_size.x = minf(ceilf(widest) + 2.0, max_width)
+
+
 ## Tekst w kilku kolorach, zawijany do szerokosci. Tresc dodaje sie przez add_text.
 static func rich_label(size := 20) -> RichTextLabel:
 	var node := RichTextLabel.new()

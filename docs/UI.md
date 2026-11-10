@@ -56,6 +56,9 @@ Odstępy biorą wartości ze skali **4, 8, 12, 16, 20, 24**.
 ## 6. Układ na ekranie
 
 - Okna w trakcie gry nie zasłaniają środka ekranu ani tego, na co gracz ma patrzeć (np. postaci na podium).
+- **Strefa walki** to prostokąt na środku ekranu: 40% szerokości i 50% wysokości (przy 1280×720: x 384–896, y 180–540). Wolno w niej być tylko celownikowi, lunecie, wskaźnikowi kierunku obrażeń, liczbom obrażeń, kołu tańców i oknom modalnym (pauza, tabela, wybór drużyny). Wyjątki to napisy, gdy gracz nie walczy: o śmierci i odliczanie na starcie rundy, gdy postać stoi w miejscu. Sprawdza to `tools/hud_sizes_probe.gd` (linia `STREFA WALKI`).
+- Pod zegarem jest jedno miejsce na krótki napis: baner rundy, seria albo odliczanie. Nowy zastępuje poprzedni, a odliczanie i ostrzeżenie o strefie mają pierwszeństwo. Nad paskiem przedmiotów też jest jedno miejsce: podpowiedź, nazwa przedmiotu albo napis o śmierci.
+- Przy celowaniu bez lunety elementy poboczne (lewa kolumna, lista zabójstw, zamknięty czat) bledną do 35%.
 - Lewy dół to zdrowie i czat, prawy dół to amunicja i mapka, góra to zegar i strefa. Nowe elementy wchodzą tam, gdzie jest wolno, a test `hud_layout_test` pilnuje, żeby nic się nie nakładało przy każdej skali interfejsu.
 - Okna pojawiają się z `UiStyle.pop_in`, a okna modalne przyciemniają grę.
 

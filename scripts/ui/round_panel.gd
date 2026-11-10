@@ -1,12 +1,19 @@
 class_name RoundPanel
 extends Control
-## Runda Deathmatchu w HUD: zegar, lider, wlasne miejsce i trzech najlepszych. Pelna lista jest pod Tab.
+## Runda Deathmatchu w HUD: zegar z wlasnym miejscem i trzech najlepszych. Pelna lista jest pod Tab.
 ## Ostatnie 30 s ma wyrazny sygnal: czerwony zegar, napis i tykanie w ostatnich sekundach.
+## Lidera nie ma w zegarze, bo pokazuje go karta "Najlepsi". W Team Deathmatchu wynik daja liczniki druzyn.
+
+signal banner_shown
 
 const TOP_COUNT := 3
 const NAME_LENGTH := 14
-const BANNER_SECONDS := 2.5
+const BANNER_SECONDS := 2.0
 const TICKING_FROM := 10
+## Baner, seria i odliczanie dziela jedno miejsce pod zegarem (MatchPanel.BIG_LABEL_TOP).
+const BANNER_FONT := 19
+## Szerokosc tekstu, a cala naklejka z marginesami (2 x 21) ma najwyzej 340 px.
+const BANNER_MAX_WIDTH := 298.0
 
 var _clock_panel: PanelContainer
 var _clock_style: StyleBoxFlat
@@ -45,7 +52,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var shown := Net.in_session and not Match.is_elimination() and Match.phase == Match.Phase.LIVE
 	_clock_panel.visible = shown
-	_top_card.visible = shown and GameState.players.size() > 1
+	# Samouczek stoi w tym samym miejscu, a na poczatku walki nikt i tak nie ma punktow.
+	var tutorial := get_tree().get_first_node_in_group(TutorialPanel.GROUP) != null
+	_top_card.visible = shown and GameState.players.size() > 1 and not Match.is_team_mode() and not tutorial
 	for chip in _team_chips:
 		chip.visible = shown and Match.is_team_mode()
 	if not shown:
@@ -112,10 +121,18 @@ func _update_clock(delta: float) -> void:
 
 func _show_banner(text: String, color: Color) -> void:
 	_banner_label.text = text
+	UiStyle.fit_width(_banner_label, BANNER_MAX_WIDTH)
 	_banner_style.bg_color = color
 	_banner_timer = BANNER_SECONDS
 	_banner.visible = true
 	UiStyle.pop_in(_banner)
+	banner_shown.emit()
+
+
+## Nowy napis w tym samym miejscu (seria albo odliczanie) zastepuje baner.
+func hide_banner() -> void:
+	_banner_timer = 0.0
+	_banner.visible = false
 
 
 ## Krotki napis, gdy prowadzenie przechodzi na druga strone. Remis niczego nie oglasza.
@@ -146,7 +163,7 @@ func _refresh_team_status() -> void:
 		_team_scores[team].text = str(Match.team_scores[team])
 	var mine := Teams.team_of(multiplayer.get_unique_id())
 	_leader.text = "Gramy do %d zabójstw" % Match.kill_limit
-	_place.text = "Wybierz drużynę" if mine == Teams.NONE else "Grasz w drużynie %s" % Teams.name_of(mine)
+	_place.text = "Wybierz drużynę" if mine == Teams.NONE else "Do %d · drużyna %s" % [Match.kill_limit, Teams.name_of(mine)]
 
 
 func _refresh_standings() -> void:
@@ -217,8 +234,10 @@ func _build() -> void:
 	_clock = UiStyle.label("5:00", 32, UiStyle.INK)
 	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_clock)
+	# Lider jest liczony dla testow i tabeli, ale nie stoi w zegarze: pokazuje go karta "Najlepsi".
 	_leader = UiStyle.label("", 16, Color(UiStyle.INK, 0.8), false)
 	_leader.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_leader.visible = false
 	column.add_child(_leader)
 	_place = UiStyle.label("", 15, Color(UiStyle.INK, 0.65), false)
 	_place.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -243,16 +262,19 @@ func _build() -> void:
 	var banner_center := CenterContainer.new()
 	banner_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	banner_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	banner_center.position.y = 132.0
+	banner_center.position.y = MatchPanel.BIG_LABEL_TOP
 	banner_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(banner_center)
 	_banner = PanelContainer.new()
-	_banner_style = UiStyle.sticker(UiStyle.CORAL, 22, 6)
+	_banner_style = UiStyle.sticker(UiStyle.CORAL, 18, 5)
+	_banner_style.set_content_margin_all(5 + 8)
+	_banner_style.content_margin_left = 5 + 16
+	_banner_style.content_margin_right = 5 + 16
 	_banner.add_theme_stylebox_override("panel", _banner_style)
 	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_banner.visible = false
 	banner_center.add_child(_banner)
-	_banner_label = UiStyle.label("Ostatnie 30 sekund!", 26, Color.WHITE)
+	_banner_label = UiStyle.label("Ostatnie 30 sekund!", BANNER_FONT, Color.WHITE)
 	_banner.add_child(_banner_label)
 
 	_audio = AudioStreamPlayer.new()
