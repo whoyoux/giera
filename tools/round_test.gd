@@ -33,7 +33,8 @@ func _ready() -> void:
 	_check("trzech najlepszych", _panel.top_names() == ["Cel", "Basia", "Gracz"])
 	_check("pelna lista pod Tab ma miejsca", _has_label(hud, "1. Cel"))
 	_check("bez sygnalu konca na poczatku", not _panel.is_final_warning())
-	while Match.seconds_left() > 28.0:
+	# Baner trwa RoundPanel.BANNER_SECONDS, wiec sprawdzamy go zaraz po progu 30 s.
+	while Match.seconds_left() > 29.0:
 		await _wait(0.2)
 	await _wait(0.3)
 	_check("ostatnie 30 s: sygnal", _panel.is_final_warning() and _panel._banner.visible)

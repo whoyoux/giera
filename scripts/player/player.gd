@@ -59,6 +59,10 @@ const STAND_CHECK_HEIGHT := 0.9
 const STAND_CHECK_CENTER := 1.36
 ## Tak dlugo cialo wyeliminowanego gracza lezy na mapie.
 const CORPSE_SECONDS := 5.0
+## Blizej niz tyle metrow plakietka z nickiem nie rosnie na ekranie, a miedzy FADE_FAR i FADE_NEAR znika.
+const TAG_FULL_SIZE_METERS := 10.0
+const TAG_FADE_FAR := 3.0
+const TAG_FADE_NEAR := 1.5
 
 var peer_id := 0
 ## Bufor ruchu tego gracza, gdy klient oglada go z zewnatrz. Serwer ma stan od razu.
@@ -129,6 +133,7 @@ var _seen_present := true
 var _seen_crouching := false
 var _seen_sliding := false
 var _seen_team := -2
+var _avatar_tag: AvatarTag
 ## Klient o cudzej postaci: tick ostatniej migawki i slizg z niej.
 var _remote_tick := -1
 var _remote_sliding := false
@@ -180,6 +185,7 @@ func _ready() -> void:
 		_tag_root = Node3D.new()
 		add_child(_tag_root)
 		_tag_root.add_child(tag)
+		_avatar_tag = tag
 		_place_avatar_tag.call_deferred(tag)
 	if not Net.is_headless:
 		_switch_audio = AudioStreamPlayer.new()
@@ -663,6 +669,25 @@ func _update_crouch_view() -> void:
 	name_label.position.y = NAME_LABEL_HEIGHT + drop.y
 	if _tag_root != null:
 		_tag_root.position = drop
+	_update_tag_size()
+
+
+## Label3D ma staly rozmiar w metrach, wiec z bliska nick bylby wiekszy niz glowa. Ponizej
+## TAG_FULL_SIZE_METERS plakietka maleje razem z odlegloscia, a tuz przy kamerze znika.
+## Kamera z viewportu, wiec dziala tez u widza.
+func _update_tag_size() -> void:
+	var view := get_viewport().get_camera_3d()
+	if view == null:
+		return
+	var distance := view.global_position.distance_to(name_label.global_position)
+	var shrink := clampf(distance / TAG_FULL_SIZE_METERS, 0.0, 1.0)
+	var alpha := clampf((distance - TAG_FADE_NEAR) / (TAG_FADE_FAR - TAG_FADE_NEAR), 0.0, 1.0)
+	name_label.scale = Vector3.ONE * maxf(shrink, 0.01)
+	name_label.modulate.a = alpha
+	name_label.outline_modulate.a = alpha
+	if _avatar_tag != null:
+		_avatar_tag.scale = Vector3.ONE * maxf(shrink, 0.01)
+		_avatar_tag.transparency = 1.0 - alpha
 
 
 func _show_remote_motion(delta: float) -> void:

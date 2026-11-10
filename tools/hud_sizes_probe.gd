@@ -12,7 +12,17 @@ const EXCLUSIVE: Array[Array] = [
 	["smierc", "podpowiedz"], ["smierc", "seria"], ["smierc", "uzycie"], ["smierc", "nazwa przedmiotu"],
 	["strefa info", "zegar"], ["strefa info", "druzyna 0"], ["strefa info", "druzyna 1"], ["poza strefa", "zegar"], ["poza strefa", "koniec rundy"], ["poza strefa", "odliczanie"],
 	["lobby BR", "samouczek"], ["lobby BR", "mapka"], ["strefa info", "koniec rundy"], ["poza strefa", "druzyna 0"], ["poza strefa", "druzyna 1"],
+	# Baner, seria i odliczanie dziela jedno miejsce pod zegarem: nowy napis zastepuje poprzedni.
+	["koniec rundy", "seria"], ["odliczanie", "seria"], ["poza strefa", "seria"],
+	# Podpowiedz, nazwa przedmiotu i napis o smierci tez maja jedno miejsce nad paskiem przedmiotow.
+	["nazwa przedmiotu", "podpowiedz"], ["nazwa przedmiotu", "uzycie"],
 ]
+## Te elementy moga stac w strefie walki, bo pojawiaja sie, gdy gracz nie walczy: martwy albo
+## unieruchomiony na starcie rundy.
+const ZONE_ALLOWED: Array[String] = ["smierc", "odliczanie"]
+## Strefa walki: srodek ekranu, 40% szerokosci i 50% wysokosci. Wolno w niej byc tylko celownikowi,
+## lunecie, wskaznikowi obrazen, liczbom obrazen, kolu tancow i oknom modalnym (docs/UI.md, punkt 6).
+const COMBAT_ZONE := Vector2(0.4, 0.5)
 
 var _hud: Hud
 
@@ -58,21 +68,27 @@ func _show_everything() -> Dictionary:
 	_hud._item_name_panel.modulate.a = 1.0
 	_hud._item_name.text = "Legendarny Desert Eagle"
 	_hud._prompt_panel.visible = true
-	_hud._prompt_action.text = "Przytrzymaj, aby otworzyć"
+	_hud._prompt_action.text = "Otwórz"
 	_hud._prompt_name.text = "skrzynkę"
+	_hud._fit_prompt()
 	_hud._prompt_bar.visible = true
 	_hud._regen_label.visible = true
 	_hud._regen_label.text = "Leczenie przerwane!"
 	_hud._death_panel.visible = true
 	_hud._death_label.text = _hud._death_cause({ "killer_id": 2, "death_weapon": { "item": &"deagle", "tier": 4 }, "death_headshot": true, "killer_health": 45 }, 1) + "\nWracasz za 3"
-	_hud._protection_label.visible = true
+	UiStyle.fit_width(_hud._death_label, Hud.DEATH_MAX_WIDTH)
+	# Ochrona i leczenie to ta sama linia naklejki zdrowia i nie wystepuja naraz: tuz po odrodzeniu
+	# zdrowie jest pelne. Sonda pokazuje leczenie.
+	_hud._protection_label.visible = false
+	var tutorials := _hud.find_children("*", "TutorialPanel", true, false)
 	_hud._streak_panel.visible = true
 	_hud._streak_panel.modulate.a = 1.0
 	var round_panel := _hud.find_children("*", "RoundPanel", true, false)[0] as RoundPanel
 	round_panel._banner.visible = true
 	round_panel._banner_label.text = "Twoja drużyna przegrywa"
 	round_panel._clock_panel.visible = true
-	round_panel._top_card.visible = true
+	# "Najlepsi" znika w Team Deathmatchu i na czas samouczka, ktory stoi w tym samym miejscu.
+	round_panel._top_card.visible = not Match.is_team_mode() and tutorials.is_empty()
 	var match_panel := _hud._match_panel
 	match_panel._big_panel.visible = true
 	match_panel._big_label.text = "Ruszasz za 3"
@@ -81,7 +97,6 @@ func _show_everything() -> Dictionary:
 	match_panel._outside_panel.visible = true
 	var maps := match_panel.find_children("*", "ZoneMap", true, false)
 	await _wait(0.1)
-	var tutorials := _hud.find_children("*", "TutorialPanel", true, false)
 	var result := {
 		"fps": _hud._fps_panel,
 		"najlepsi": round_panel._top_card,
@@ -99,7 +114,6 @@ func _show_everything() -> Dictionary:
 		"nazwa przedmiotu": _hud._item_name_panel,
 		"podpowiedz": _hud._prompt_panel,
 		"smierc": _hud._death_panel,
-		"ochrona": _hud._protection_label,
 		"czat": chat._column,
 		"mapka": maps[0],
 		"lobby BR": match_panel._roster_card,
@@ -126,12 +140,17 @@ func _measure(window: Vector2i) -> void:
 		rects[key] = rect
 		var off := "" if screen.grow(1.0).encloses(rect) else "  POZA EKRANEM"
 		print("[hud]   %-17s x %4d..%4d  y %4d..%4d%s%s" % [key, rect.position.x, rect.end.x, rect.position.y, rect.end.y, off, "" if control.is_visible_in_tree() else "  (ukryte)"])
+	var zone := Rect2(screen.size * (Vector2.ONE - COMBAT_ZONE) * 0.5, screen.size * COMBAT_ZONE)
+	for key: String in rects:
+		var inside := (rects[key] as Rect2).intersection(zone)
+		if inside.get_area() >= 4.0 and controls[key].is_visible_in_tree() and not key in ZONE_ALLOWED:
+			print("[hud]   STREFA WALKI: %s (%d x %d px)" % [key, inside.size.x, inside.size.y])
 	var keys := rects.keys()
 	for first in keys.size():
 		for second in range(first + 1, keys.size()):
 			var a: String = keys[first]
 			var b: String = keys[second]
-			if _exclusive(a, b):
+			if _exclusive(a, b) or not controls[a].is_visible_in_tree() or not controls[b].is_visible_in_tree():
 				continue
 			var common := (rects[a] as Rect2).intersection(rects[b])
 			if common.get_area() >= 4.0:
@@ -148,6 +167,9 @@ func _measure(window: Vector2i) -> void:
 			var hit := false
 			for key: String in rects:
 				if key in ["smierc", "lobby BR", "samouczek", "odliczanie", "poza strefa", "strefa info"]:
+					continue
+				# Ukrytego elementu nie ma na ekranie. "Najlepsi" w Deathmatchu znika tylko na czas samouczka.
+				if not controls[key].is_visible_in_tree() and (key != "najlepsi" or Match.is_team_mode()):
 					continue
 				if (rects[key] as Rect2).has_point(point):
 					hit = true

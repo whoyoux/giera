@@ -4,11 +4,14 @@ extends CanvasLayer
 
 signal settings_requested
 
-const FEED_SECONDS := 5.0
-const FEED_NAME_LENGTH := 14
-const FEED_MAX_ROWS := 5
-const FEED_AVATAR_SIDE := 26.0
-const FEED_WEAPON_ICON_SIDE := 30.0
+## Lista zabojstw: najwyzej 300 x 150 px w prawym gornym rogu.
+const FEED_SECONDS := 4.0
+const FEED_NAME_LENGTH := 12
+const FEED_MAX_ROWS := 4
+const FEED_AVATAR_SIDE := 20.0
+const FEED_WEAPON_ICON_SIDE := 22.0
+const FEED_FONT := 15
+const FEED_ROW_MARGIN := 5
 const SCORE_AVATAR_SIDE := 34.0
 const LOW_HEALTH := 35
 const KILL_SHAKE := 0.28
@@ -20,8 +23,21 @@ const GOOD_PING := 60
 const BAD_PING := 120
 ## Jak mocno gra ciemnieje za pauza i tabela wynikow.
 const MODAL_SHADE_ALPHA := 0.55
-## Napis o serii stoi pod zegarem rundy i pod odliczaniem.
-const STREAK_TOP := 210.0
+## Napisy w dolnej czesci ekranu: podpowiedz stoi tuz nad paskiem przedmiotow, w miejscu nazwy
+## przedmiotu, a martwy gracz ma tam napis o smierci. Strefa walki zostaje wolna (docs/UI.md, punkt 6).
+const ITEM_LINE_BOTTOM := 126.0
+const PROMPT_MAX_WIDTH := 320.0
+const PROMPT_FONT := 17
+const DEATH_FONT := 19
+## Szerszy napis o smierci dotknalby czatu przy lewej krawedzi.
+const DEATH_MAX_WIDTH := 500.0
+## Napis o smierci jest szerszy niz podpowiedz, wiec stoi troche wyzej, nad numerami slotow.
+const DEATH_LIFT := 8.0
+## Seria ma ten sam rozmiar co baner rundy, bo stoi w jego miejscu.
+const STREAK_SECONDS := 2.0
+## Przy celowaniu elementy poboczne bledna, zeby nie odciagaly wzroku.
+const AIM_DIM_ALPHA := 0.35
+const AIM_DIM_SECONDS := 0.15
 const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
 
 var _player: Player
@@ -94,7 +110,9 @@ var _prompt_center: Control
 var _use_center: Control
 var _streak_center: Control
 var _death_center: Control
-var _protection_center: Control
+var _round_panel: RoundPanel
+## Przezroczystosc elementow pobocznych: 1 normalnie, AIM_DIM_ALPHA przy celowaniu.
+var _side_alpha := 1.0
 
 
 func _ready() -> void:
@@ -122,9 +140,9 @@ func bind(player: Player) -> void:
 	_refresh_scoreboard()
 
 
-## Samouczek stoi w prawej kolumnie pod lista zabojstw, razem z lista gotowych w lobby Battle Royale.
+## Samouczek stoi w lewej kolumnie, w miejscu karty "Najlepsi", ktora na poczatku walki i tak jest pusta.
 func show_tutorial() -> void:
-	_match_panel.side_column.add_child(TutorialPanel.new())
+	_top_left.add_child(TutorialPanel.new())
 
 
 func unbind() -> void:
@@ -156,6 +174,13 @@ func _process(delta: float) -> void:
 	_update_prompt()
 	_drop_hint.visible = not ItemStack.is_empty(_player.equipment.active_stack())
 	_update_use_panel(_player.equipment)
+	# Martwy gracz niczego nie podnosi, a podpowiedz stalaby pod napisem o smierci.
+	if not info.alive:
+		_prompt_panel.visible = false
+		_use_panel.visible = false
+	# Nazwa przedmiotu, podpowiedz i napis o smierci stoja w tym samym miejscu.
+	_item_name_panel.visible = info.alive and not _prompt_panel.visible and not _use_panel.visible
+	_update_top_message()
 	_update_heal_feedback(info)
 	_update_regen(info)
 
@@ -167,6 +192,8 @@ func _process(delta: float) -> void:
 		_player.input.set_wheel_open(_dance_wheel.is_open)
 	_crosshair.aiming = _player.aiming
 	_crosshair.ally_color = _ally_in_sight()
+	var dim := _player.aiming and not _player.is_scoped()
+	_side_alpha = move_toward(_side_alpha, AIM_DIM_ALPHA if dim else 1.0, delta * (1.0 - AIM_DIM_ALPHA) / AIM_DIM_SECONDS)
 	_update_clutter()
 	_scope.amount = move_toward(_scope.amount, 1.0 if _player.is_scoped() else 0.0, get_process_delta_time() * (5.0 if _player.is_scoped() else 12.0))
 	_crosshair.visible = _crosshair.visible and _scope.amount < 0.5
@@ -182,7 +209,9 @@ func _process(delta: float) -> void:
 
 ## W lunecie znika caly interfejs poza nia. Na ekranie wynikow znika wszystko, co dotyczy walki:
 ## pasek przedmiotow, zdrowie, amunicja, celownik, podpowiedzi i napis o smierci, zeby nie nachodzily
-## na karte wynikow i podium.
+## na karte wynikow i podium. Przy celowaniu bledna elementy poboczne: lewa kolumna (FPS, wykres
+## sieci, "Najlepsi", samouczek), lista zabojstw i zamkniety czat. Wszystko w jednym miejscu, zeby
+## jedno ustawienie nie nadpisywalo drugiego.
 func _update_clutter() -> void:
 	var scoped := _scope.amount > 0.5
 	var results := Match.phase == Match.Phase.RESULTS
@@ -191,8 +220,22 @@ func _update_clutter() -> void:
 			(child as CanvasItem).modulate.a = 0.0 if scoped else 1.0
 	var combat := 0.0 if results or scoped else 1.0
 	for control: CanvasItem in [_hotbar, _status_panel, _ammo_panel, _drop_hint, _crosshair, _indicator,
-			_name_center, _prompt_center, _use_center, _streak_center, _death_center, _protection_center]:
+			_name_center, _prompt_center, _use_center, _streak_center, _death_center]:
 		control.modulate.a = combat
+	if scoped:
+		return
+	_top_left.modulate.a = _side_alpha
+	_feed.modulate.a = _side_alpha
+	_chat.modulate.a = 1.0 if _chat.is_open else _side_alpha
+
+
+## Baner rundy, seria i odliczanie stoja w jednym miejscu pod zegarem. Odliczanie i ostrzezenie
+## o strefie maja pierwszenstwo.
+func _update_top_message() -> void:
+	if not _match_panel.is_counting() and not _match_panel.is_warning_outside():
+		return
+	_round_panel.hide_banner()
+	_streak_panel.visible = false
 
 
 ## Kolor druzyny sojusznika na linii strzalu albo przezroczysty. Sciana przed nim go zaslania.
@@ -296,11 +339,15 @@ func _update_prompt() -> void:
 	var stack: Dictionary = WorldItems.items[id].stack
 	var slots := _player.equipment.slots()
 	var swaps := Inventory.first_free(slots) < 0
-	_prompt_action.text = "Zamień na" if swaps else "Podnieś"
+	var action := "Zamień na" if swaps else "Podnieś"
+	if action != _prompt_action.text:
+		_prompt_action.text = action
+		_fit_prompt()
 	if id == _shown_prompt_id:
 		return
 	_shown_prompt_id = id
 	_prompt_name.text = ItemStack.display_name_of(stack)
+	_fit_prompt()
 	var color := Rarity.color(ItemStack.tier_of(stack))
 	_prompt_style.border_color = color
 	_prompt_name.add_theme_color_override("font_color", color.darkened(0.25))
@@ -317,11 +364,25 @@ func _show_chest_prompt() -> void:
 	if id == _shown_prompt_id:
 		return
 	_shown_prompt_id = id
-	_prompt_action.text = "Przytrzymaj, aby otworzyć"
+	_prompt_action.text = "Otwórz"
 	_prompt_name.text = "skrzynkę"
+	_fit_prompt()
 	_prompt_style.border_color = ChestView.TRIM_COLOR
 	_prompt_name.add_theme_color_override("font_color", ChestView.BODY_COLOR)
 	_bump(_prompt_panel)
+
+
+## Cala podpowiedz miesci sie w PROMPT_MAX_WIDTH. Skraca sie nazwa przedmiotu, a nie czynnosc.
+func _fit_prompt() -> void:
+	var fixed := _prompt_action.get_minimum_size().x + _prompt_row_extra()
+	UiStyle.fit_width(_prompt_name, maxf(PROMPT_MAX_WIDTH - fixed, 40.0))
+
+
+## Klawisz, odstepy i marginesy podpowiedzi, czyli wszystko poza dwoma napisami.
+func _prompt_row_extra() -> float:
+	var row := _prompt_action.get_parent() as HBoxContainer
+	var chip := row.get_child(0) as Control
+	return chip.get_combined_minimum_size().x + row.get_theme_constant("separation") * 2 + _prompt_style.content_margin_left + _prompt_style.content_margin_right
 
 
 ## Po zmianie przedmiotu pokazuje na chwile jego nazwe w kolorze klasy.
@@ -511,16 +572,21 @@ func _on_streak(kind: String, killer_id: int, victim_id: int, count: int) -> voi
 		_streak_audio.stream = Sfx.streak()
 		_streak_audio.play()
 	if not mine:
-		var label := UiStyle.label(text, 17, UiStyle.INK)
+		var label := UiStyle.label(text, FEED_FONT, UiStyle.INK)
 		_add_feed_row(label, UiStyle.SUN)
 		return
+	# Odliczanie i ostrzezenie o strefie maja pierwszenstwo przed seria, a seria zastepuje baner rundy.
+	if _match_panel.is_counting() or _match_panel.is_warning_outside():
+		return
+	_round_panel.hide_banner()
 	_streak_label.text = text
+	UiStyle.fit_width(_streak_label, RoundPanel.BANNER_MAX_WIDTH)
 	_streak_panel.visible = true
 	UiStyle.pop_in(_streak_panel)
 	if _streak_tween != null:
 		_streak_tween.kill()
 	_streak_tween = create_tween()
-	_streak_tween.tween_interval(2.4)
+	_streak_tween.tween_interval(STREAK_SECONDS)
 	_streak_tween.tween_callback(func() -> void: _streak_panel.visible = false)
 
 
@@ -574,14 +640,14 @@ func _update_vignette(delta: float, info: Dictionary) -> void:
 
 func _on_kill(killer_id: int, victim_id: int) -> void:
 	var line := HBoxContainer.new()
-	line.add_theme_constant_override("separation", 8)
+	line.add_theme_constant_override("separation", 4)
 	line.add_child(_avatar_of(killer_id, FEED_AVATAR_SIDE))
-	line.add_child(UiStyle.label(_short_name(killer_id), 17, Teams.player_color(killer_id, UiStyle.BLUE).darkened(0.1 if Teams.is_active() else 0.0)))
+	line.add_child(UiStyle.label(_short_name(killer_id), FEED_FONT, Teams.player_color(killer_id, UiStyle.BLUE).darkened(0.1 if Teams.is_active() else 0.0)))
 	line.add_child(_kill_cause(victim_id))
 	if GameState.players.get(victim_id, {}).get("death_headshot", false):
-		line.add_child(UiStyle.label("◎", 17, Color("d99a00")))
+		line.add_child(UiStyle.label("◎", FEED_FONT, Color("d99a00")))
 	line.add_child(_avatar_of(victim_id, FEED_AVATAR_SIDE))
-	line.add_child(UiStyle.label(_short_name(victim_id), 17, Teams.player_color(victim_id, UiStyle.CORAL).darkened(0.1 if Teams.is_active() else 0.0)))
+	line.add_child(UiStyle.label(_short_name(victim_id), FEED_FONT, Teams.player_color(victim_id, UiStyle.CORAL).darkened(0.1 if Teams.is_active() else 0.0)))
 	# Liczbe zywych w Battle Royale podaje pasek u gory, wiec wiersz zostaje krotki.
 	_add_feed_row(line, UiStyle.PAPER)
 
@@ -589,10 +655,10 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 ## Lista ma kilka wierszy, zeby nie zjechac na srodek ekranu. Najstarszy znika od razu.
 func _add_feed_row(content: Control, color: Color) -> void:
 	var row := PanelContainer.new()
-	var style := UiStyle.sticker(color, 14, 3)
-	style.set_content_margin_all(8)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
+	var style := UiStyle.sticker(color, 12, 3)
+	style.set_content_margin_all(FEED_ROW_MARGIN)
+	style.content_margin_left = 3 + 8
+	style.content_margin_right = 3 + 8
 	row.add_theme_stylebox_override("panel", style)
 	row.size_flags_horizontal = Control.SIZE_SHRINK_END
 	row.add_child(content)
@@ -610,7 +676,7 @@ func _kill_cause(victim_id: int) -> Control:
 	var info: Dictionary = GameState.players.get(victim_id, {})
 	var weapon: Dictionary = info.get("death_weapon", {})
 	if ItemStack.definition_of(weapon) == null:
-		return UiStyle.label("✦", 15, UiStyle.CORAL)
+		return UiStyle.label("✦", FEED_FONT, UiStyle.CORAL)
 	var cause := HBoxContainer.new()
 	cause.add_theme_constant_override("separation", 4)
 	var visual := ItemStack.visual_of(weapon)
@@ -632,7 +698,7 @@ func _kill_cause(victim_id: int) -> Control:
 		cause.add_child(stripe)
 		cause.move_child(stripe, 0)
 	else:
-		cause.add_child(UiStyle.label(ItemStack.display_name_of(weapon), 15, tint.darkened(0.25)))
+		cause.add_child(UiStyle.label(ItemStack.display_name_of(weapon), FEED_FONT, tint.darkened(0.25)))
 	return cause
 
 
@@ -654,6 +720,7 @@ func _update_death_panel(info: Dictionary) -> void:
 		if not info.alive:
 			var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
 			_death_label.text = "%s\nWracasz za %d" % [_death_cause(info, multiplayer.get_unique_id()), ceili(seconds)]
+			UiStyle.fit_width(_death_label, DEATH_MAX_WIDTH)
 		_protection_label.visible = info.alive and NetworkTime.tick < info.get("protected_until", -1)
 		return
 	var fresh: bool = NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(ELIMINATED_SECONDS)
@@ -661,6 +728,7 @@ func _update_death_panel(info: Dictionary) -> void:
 	_death_panel.visible = watching and info.in_match and fresh and Match.phase != Match.Phase.RESULTS
 	if _death_panel.visible:
 		_death_label.text = "Odpadasz!\nMiejsce %d" % info.place if info.place > 0 else "Odpadasz!"
+		UiStyle.fit_width(_death_label, DEATH_MAX_WIDTH)
 
 
 ## Kto zabil, czym i ile zdrowia mu zostalo. Smierc od strefy albo wlasnego granatu ma krotszy opis.
@@ -672,7 +740,7 @@ func _death_cause(info: Dictionary, victim_id: int) -> String:
 		return "Własny granat!"
 	var weapon := ItemStack.display_name_of(info.get("death_weapon", {}))
 	var head := " w głowę" if info.get("death_headshot", false) else ""
-	return "Zabija Cię %s%s\n%s · zostało mu %d HP" % [_short_name(killer), head, weapon, info.get("killer_health", 0)]
+	return "Zabija Cię %s%s · %s · zostało mu %d HP" % [_short_name(killer), head, weapon, info.get("killer_health", 0)]
 
 
 ## Nazwy ze Steama bywaja dlugie, a lista zabojstw musi sie zmiescic przy krawedzi ekranu.
@@ -882,9 +950,10 @@ func _build() -> void:
 	_build_ammo_sticker()
 	_match_panel = MatchPanel.new()
 	add_child(_match_panel)
-	var round_panel := RoundPanel.new()
-	add_child(round_panel)
-	round_panel.move_top_card(_top_left)
+	_round_panel = RoundPanel.new()
+	add_child(_round_panel)
+	_round_panel.move_top_card(_top_left)
+	_round_panel.banner_shown.connect(func() -> void: _streak_panel.visible = false)
 	_chat = ChatPanel.new()
 	_chat.closed.connect(_on_chat_closed)
 	add_child(_chat)
@@ -901,7 +970,7 @@ func _build() -> void:
 	name_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	name_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	name_center.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	name_center.position.y -= 150.0
+	name_center.position.y -= ITEM_LINE_BOTTOM
 	name_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(name_center)
 	_item_name_panel = PanelContainer.new()
@@ -928,17 +997,25 @@ func _build() -> void:
 	_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_feed)
 
+	# Napis o smierci stoi nad paskiem przedmiotow, a nie na srodku ekranu.
 	var death_center := CenterContainer.new()
 	_death_center = death_center
-	death_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	death_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	death_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	death_center.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	death_center.position.y -= ITEM_LINE_BOTTOM + DEATH_LIFT
 	death_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(death_center)
 	_death_panel = PanelContainer.new()
-	_death_panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.CORAL, 26, 7))
-	_death_panel.rotation_degrees = -3.0
+	var death_style := UiStyle.sticker(UiStyle.CORAL, 20, 5)
+	death_style.set_content_margin_all(5 + 8)
+	death_style.content_margin_left = 5 + 16
+	death_style.content_margin_right = 5 + 16
+	_death_panel.add_theme_stylebox_override("panel", death_style)
+	_death_panel.rotation_degrees = -2.0
 	_death_panel.visible = false
 	death_center.add_child(_death_panel)
-	_death_label = UiStyle.label("", 24, Color.WHITE)
+	_death_label = UiStyle.label("", DEATH_FONT, Color.WHITE)
 	_death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_death_panel.add_child(_death_label)
 
@@ -946,31 +1023,23 @@ func _build() -> void:
 	_streak_center = streak_center
 	streak_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	streak_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	# Pod zegarem rundy i pod odliczaniem albo napisem o ostatnich 30 s.
-	streak_center.position.y = STREAK_TOP
+	# W miejscu banera rundy i odliczania, pod zegarem.
+	streak_center.position.y = MatchPanel.BIG_LABEL_TOP
 	streak_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(streak_center)
 	_streak_panel = PanelContainer.new()
-	_streak_panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.SUN, 20, 5))
+	var streak_style := UiStyle.sticker(UiStyle.SUN, 18, 5)
+	streak_style.set_content_margin_all(5 + 8)
+	streak_style.content_margin_left = 5 + 16
+	streak_style.content_margin_right = 5 + 16
+	_streak_panel.add_theme_stylebox_override("panel", streak_style)
 	_streak_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_streak_panel.visible = false
 	streak_center.add_child(_streak_panel)
-	_streak_label = UiStyle.label("", 22, UiStyle.INK)
+	_streak_label = UiStyle.label("", RoundPanel.BANNER_FONT, UiStyle.INK)
 	_streak_panel.add_child(_streak_label)
 	_streak_audio = AudioStreamPlayer.new()
 	add_child(_streak_audio)
-	var protection_center := CenterContainer.new()
-	_protection_center = protection_center
-	protection_center.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	protection_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	protection_center.position.y += 60.0
-	protection_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(protection_center)
-	_protection_label = UiStyle.label("Ochrona po odrodzeniu", 18, UiStyle.TEAL)
-	_protection_label.add_theme_color_override("font_outline_color", Color.WHITE)
-	_protection_label.add_theme_constant_override("outline_size", 6)
-	_protection_label.visible = false
-	protection_center.add_child(_protection_label)
 
 	_score_center = CenterContainer.new()
 	_score_center.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1028,33 +1097,33 @@ func _build_prompt() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	center.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	center.position.y -= 200.0
+	center.position.y -= ITEM_LINE_BOTTOM
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	_prompt_panel = PanelContainer.new()
-	_prompt_style = UiStyle.sticker(UiStyle.PAPER, 18, 5)
-	_prompt_style.set_content_margin_all(8)
-	_prompt_style.content_margin_left = 12
-	_prompt_style.content_margin_right = 18
+	_prompt_style = UiStyle.sticker(UiStyle.PAPER, 16, 4)
+	_prompt_style.set_content_margin_all(4 + 4)
+	_prompt_style.content_margin_left = 4 + 8
+	_prompt_style.content_margin_right = 4 + 12
 	_prompt_panel.add_theme_stylebox_override("panel", _prompt_style)
 	_prompt_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_prompt_panel.visible = false
 	center.add_child(_prompt_panel)
 	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 6)
+	rows.add_theme_constant_override("separation", 3)
 	_prompt_panel.add_child(rows)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	rows.add_child(row)
-	_prompt_bar = UiStyle.bar(UiStyle.SUN, 12)
+	_prompt_bar = UiStyle.bar(UiStyle.SUN, 6)
 	_prompt_bar.max_value = 1.0
 	_prompt_bar.step = 0.0
 	_prompt_bar.visible = false
 	rows.add_child(_prompt_bar)
-	row.add_child(ActionChip.create("interact", 36, 20))
-	_prompt_action = UiStyle.label("Podnieś", 20, UiStyle.INK, false)
+	row.add_child(ActionChip.create("interact", 28, 15))
+	_prompt_action = UiStyle.label("Podnieś", PROMPT_FONT, UiStyle.INK, false)
 	row.add_child(_prompt_action)
-	_prompt_name = UiStyle.label("", 21, UiStyle.INK)
+	_prompt_name = UiStyle.label("", PROMPT_FONT, UiStyle.INK)
 	row.add_child(_prompt_name)
 
 
@@ -1064,27 +1133,29 @@ func _build_use_panel() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	center.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	center.position.y -= 200.0
+	center.position.y -= ITEM_LINE_BOTTOM
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	_use_panel = PanelContainer.new()
-	var style := UiStyle.sticker(UiStyle.PAPER, 18, 5)
-	style.set_content_margin_all(9)
-	style.content_margin_left = 18
-	style.content_margin_right = 18
+	var style := UiStyle.sticker(UiStyle.PAPER, 16, 4)
+	style.set_content_margin_all(4 + 4)
+	style.content_margin_left = 4 + 12
+	style.content_margin_right = 4 + 12
 	style.border_color = UiStyle.TEAL
 	_use_panel.add_theme_stylebox_override("panel", style)
-	_use_panel.custom_minimum_size = Vector2(300, 0)
+	_use_panel.custom_minimum_size = Vector2(PROMPT_MAX_WIDTH, 0)
 	_use_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_use_panel.visible = false
 	center.add_child(_use_panel)
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 6)
 	_use_panel.add_child(rows)
-	_use_label = UiStyle.label("", 19, UiStyle.INK)
+	_use_label = UiStyle.label("", PROMPT_FONT, UiStyle.INK)
 	_use_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_use_label.clip_text = true
+	_use_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	rows.add_child(_use_label)
-	_use_bar = UiStyle.bar(UiStyle.TEAL, 12)
+	_use_bar = UiStyle.bar(UiStyle.TEAL, 6)
 	_use_bar.max_value = 1.0
 	_use_bar.step = 0.0
 	_use_bar.visible = false
@@ -1121,7 +1192,7 @@ func _build_status_sticker() -> void:
 	var anchor := _anchored(Control.PRESET_BOTTOM_LEFT, Vector2(28, -28), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_BEGIN)
 	var panel := PanelContainer.new()
 	_status_panel = panel
-	panel.custom_minimum_size = Vector2(320, 0)
+	panel.custom_minimum_size = Vector2(280, 0)
 	panel.add_theme_stylebox_override("panel", UiStyle.sticker(UiStyle.PAPER, 22, 6))
 	panel.rotation_degrees = -1.2
 	anchor.add_child(panel)
@@ -1161,6 +1232,10 @@ func _build_status_sticker() -> void:
 	_regen_label = UiStyle.label("", 16, UiStyle.TEAL, false)
 	_regen_label.visible = false
 	rows.add_child(_regen_label)
+	# Ochrona po odrodzeniu to linia w naklejce zdrowia, tak jak leczenie, a nie napis na srodku ekranu.
+	_protection_label = UiStyle.label("Ochrona po odrodzeniu", 16, UiStyle.TEAL.darkened(0.2))
+	_protection_label.visible = false
+	rows.add_child(_protection_label)
 
 
 func _build_ammo_sticker() -> void:
