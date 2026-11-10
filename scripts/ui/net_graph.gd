@@ -15,6 +15,7 @@ var _losses := PackedFloat32Array()
 var _graph: Control
 var _ping_label: Label
 var _traffic_label: Label
+var _view_label: Label
 var _timer := 0.0
 ## Licznik ruchu w ENet zbiera sie tez, gdy wykres jest ukryty. Pierwszy odczyt tylko go zeruje.
 var _traffic_ready := false
@@ -36,6 +37,8 @@ func _ready() -> void:
 	rows.add_child(_graph)
 	_traffic_label = UiStyle.label("", 15, UiStyle.INK, false)
 	rows.add_child(_traffic_label)
+	_view_label = UiStyle.label("", 15, UiStyle.INK, false)
+	rows.add_child(_view_label)
 	Settings.changed.connect(_apply_setting)
 	_apply_setting()
 
@@ -80,6 +83,13 @@ func _process(delta: float) -> void:
 		return
 	_read_peers(connection)
 	_read_traffic(connection, elapsed)
+	_read_view_delay()
+
+
+## Jak daleko w przeszlosci klient pokazuje innych graczy. Serwer i host widza ich na biezaco.
+func _read_view_delay() -> void:
+	var delay := RemoteMotion.view_delay_ms()
+	_view_label.text = "Widok innych: %d ms" % roundi(delay) if delay >= 0.0 and not multiplayer.is_server() else ""
 
 
 func _connection() -> ENetConnection:
@@ -123,6 +133,7 @@ func _read_traffic(connection: ENetConnection, elapsed: float) -> void:
 func _show_offline() -> void:
 	_ping_label.text = "Brak połączenia"
 	_traffic_label.text = ""
+	_view_label.text = ""
 	_graph.queue_redraw()
 
 
