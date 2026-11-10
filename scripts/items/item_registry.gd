@@ -11,6 +11,7 @@ const DEFINITIONS: Array[ItemDefinition] = [
 	preload("res://data/items/knife.tres"),
 	preload("res://data/items/deagle.tres"),
 	preload("res://data/items/awp.tres"),
+	preload("res://data/items/uzi.tres"),
 ]
 
 var _by_id := {}

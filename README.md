@@ -63,6 +63,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Trzy klasy broni:** zwykła, epicka i legendarna, każda z własnym modelem, parametrami, smugą i dźwiękiem.
 - **Rozrzut:** najcelniej strzela się w miejscu i pierwszym pociskiem. Rośnie w ruchu, w skoku i w długiej serii, ale tylko do limitu, a lepsza broń ma go mniej. Celownik pokazuje go na żywo, a celowanie go zmniejsza.
 - **Strzelba:** kilka śrucin naraz, ogromne obrażenia z bliska i słabe z daleka.
+- **Uzi:** pistolet maszynowy, który sypie 12 pociskami na sekundę i dobrze strzela w biegu. Najgroźniejszy z bliska, bo z daleka rozrzut zjada większość serii.
 - **Nóż:** dwa ciosy zabijają, nie ma naboi, a z nożem w ręku biegniesz szybciej.
 - **Ekwipunek na 4 sloty:** szybka zmiana broni klawiszami lub scrollem, osobna amunicja w każdej broni.
 - **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Każda daje jeden przedmiot: blaster, strzelbę, nóż, Desert Eagle, AWP, apteczkę albo granat (apteczki tylko w Battle Royale), a po minucie wraca. Wśród broni z klasami 55% to zwykłe, 35% epickie i 10% legendarne.
@@ -76,6 +77,9 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Konto Steam:** gra na Windows sama pobiera nazwę i zdjęcie profilowe z konta Steam. Zdjęcia widać w menu, w tabeli wyników, na liście zabójstw i nad graczami. Bez Steama wystarczy wpisać nick.
 - **Wybór postaci:** 9 modeli do wyboru strzałkami w menu, w tym rycerze i szkielety. Gra zapamiętuje wybór.
 - **Kucanie i ślizg:** przytrzymanie Ctrl obniża postać, spowalnia ją i zmniejsza rozrzut, a w sprincie daje krótki ślizg. Pod niskim sufitem nie wstaniesz, a w kucki przejdziesz pod niskimi przeszkodami. Strzał nad głową kucającego pudłuje także u gracza z dużym pingiem, a inni widzą Twoją pozę.
+- **Ustawienia w zakładkach:** Obraz, Dźwięk, Sterowanie, Celownik, Gra i Klawisze. Wybierasz tryb okna (okno, bez ramki, pełny ekran), rozmiar okna i limit klatek, a celowanie i kucanie mogą działać na przełącznik zamiast trzymania.
+- **Własny celownik:** kolor, długość i grubość kresek, kropka, obwódka i pokazywanie rozrzutu, z podglądem na żywo.
+- **60 ticków na sekundę:** serwer liczy grę 60 razy na sekundę, więc ruch i strzały reagują szybciej i są dokładniejsze.
 - **Zmiana klawiszy:** w ustawieniach, w menu i w pauzie, można przypisać każdą akcję do klawisza albo przycisku myszy. Zajęty klawisz zamienia się z poprzednim, a podpowiedzi w grze pokazują aktualne przypisanie.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
 - **Leśna polana:** mapa w menu i druga mapa do głosowania w Deathmatchu, z ruinami i wieżą na środku, wzgórze, strumień i gęsty las dookoła, szum wiatru, śpiew ptaków i kroki zależne od podłoża, animowane postacie i żywy interfejs w stylu naklejek, który reaguje ruchem i dźwiękiem, z osobną głośnością.
