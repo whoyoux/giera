@@ -8,6 +8,9 @@ var _loop_usec := 0
 var _loops := 0
 var _worst := 0
 var _ready_stats := false
+## Srednie opoznienie widoku innych graczy u klienta.
+var _view_sum_ms := 0.0
+var _view_frames := 0
 
 
 func _ready() -> void:
@@ -23,6 +26,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	var view := RemoteMotion.view_delay_ms()
+	if view >= 0.0:
+		_view_sum_ms += view
+		_view_frames += 1
 	_timer += delta
 	if _timer < 5.0:
 		return
@@ -45,6 +52,11 @@ func _process(delta: float) -> void:
 		"serwer" if multiplayer.is_server() else "klient", GameState.players.size(),
 		sent / 1024.0 / elapsed, roundi(sent_packets / elapsed), received / 1024.0 / elapsed, roundi(received_packets / elapsed),
 		_loop_usec / 1000.0 / elapsed, _loop_usec / 1000.0 / maxi(_loops, 1), _worst / 1000.0, Engine.get_frames_per_second()])
+	if not multiplayer.is_server():
+		print("[widok] opoznienie=%.0f ms zaciecia=%.1f/s" % [_view_sum_ms / maxi(_view_frames, 1), RemoteMotion.starved_frames / elapsed])
+		RemoteMotion.starved_frames = 0
+	_view_sum_ms = 0.0
+	_view_frames = 0
 	_loop_usec = 0
 	_loops = 0
 	_worst = 0

@@ -4,8 +4,19 @@ extends RefCounted
 ## klatke, a przycinka albo Wi-Fi zatrzymuje je na chwile. Pokazujemy wiec gracza troche
 ## w przeszlosci i plynnie przechodzimy miedzy stanami, ktore juz dotarly.
 
-## Zapas na nierowne stany, ponad najkrotsza droge stanu do klienta.
-const BUFFER_TICKS := 3.0
+## Zapas ponad najkrotsza droge stanu do klienta. Najnowszy stan starzeje sie, zanim dojdzie nastepny,
+## wiec zapas pokrywa najwiekszy odstep miedzy stanami z okna (1 tick, po zgubionym pakiecie wiecej),
+## rozrzut wieku stanow (95. centyl minus minimum) i margines na klatki, w tych granicach.
+const MIN_BUFFER_TICKS := 1.5
+const MAX_BUFFER_TICKS := 3.0
+const JITTER_PERCENTILE := 0.95
+## Zegar gracza idzie klatkami, wiec bywa o ulamek ticku przed wspolnym zegarem.
+const CLOCK_MARGIN_TICKS := 0.75
+## Do pomiarow: tak daleko zegar gracza musi wyprzedzic dane, zeby liczyc to jako zaciecie.
+const STARVE_TICKS := 0.25
+## Najwolniejszy gracz opoznia wspolny zegar najwyzej o tyle tickow ponad mediane graczy.
+## Wolniejszy od zegara stoi na swoim najnowszym stanie i porusza sie skokami tylko on.
+const LAG_SPREAD_TICKS := 1.0
 ## Z tylu ostatnich stanow, czyli okolo 2 s, liczymy najkrotsza droge.
 const AGE_WINDOW := 60
 ## Tak szybko wspolny zegar zmienia opoznienie, w tickach na sekunde.
@@ -23,6 +34,8 @@ const TELEPORT_METERS_PER_TICK := 1.5
 static var shown_tick := -1.0
 static var _lag := -1.0
 static var _clock_frame := -1
+## Do pomiarow: ile razy gracz stal na najnowszym stanie, bo zegar wyprzedzil dane.
+static var starved_frames := 0
 
 var shown_position := Vector3.ZERO
 var shown_yaw := 0.0
@@ -33,6 +46,10 @@ var newest_tick := -1
 var _samples: Array[Dictionary] = []
 var _ages: Array[float] = []
 var _tick := -1.0
+## Odstepy w tickach miedzy kolejnymi stanami z okna AGE_WINDOW.
+var _gaps: Array[int] = []
+## Zapas potrzebny temu graczowi, liczony przy kazdym nowym stanie.
+var _buffer := MIN_BUFFER_TICKS
 
 
 ## Tick z ulamkiem przekazywany serwerowi przy strzale albo -1, gdy nie ma innych graczy.
@@ -41,24 +58,51 @@ static func view_tick() -> float:
 	return shown_tick if shown_tick >= 0.0 else -1.0
 
 
-## Przesuwa wspolny zegar. Opoznienie dobiera najwolniejszy gracz, zeby nikt nie stal bez danych.
+## Przesuwa wspolny zegar. Opoznienie dobiera najwolniejszy gracz, zeby nikt nie stal bez danych,
+## ale najwyzej LAG_SPREAD_TICKS ponad mediane, zeby jeden slaby lacznik nie opoznial obrazu wszystkim.
 static func advance_clock(delta: float, tree: SceneTree) -> void:
 	var frame := Engine.get_process_frames()
 	if frame == _clock_frame:
 		return
 	_clock_frame = frame
-	var slowest := -1.0
-	for node in tree.get_nodes_in_group(&"players"):
-		var motion: RemoteMotion = (node as Player).remote_motion
-		if motion != null and not motion._ages.is_empty():
-			slowest = maxf(slowest, motion._shortest_age())
-	if slowest < 0.0:
+	var target := target_lag(tree)
+	if target < 0.0:
 		shown_tick = -1.0
 		_lag = -1.0
 		return
-	var target := slowest + BUFFER_TICKS
 	_lag = target if _lag < 0.0 or absf(target - _lag) > SNAP_TICKS else move_toward(_lag, target, delta * LAG_ADAPT_SPEED)
 	shown_tick = _now() - _lag
+
+
+## Docelowe opoznienie wspolnego zegara w tickach albo -1, gdy nie ma kogo pokazywac.
+static func target_lag(tree: SceneTree) -> float:
+	var motions: Array[RemoteMotion] = []
+	for node in tree.get_nodes_in_group(&"players"):
+		var motion: RemoteMotion = (node as Player).remote_motion
+		if motion != null and not motion._ages.is_empty():
+			motions.append(motion)
+	return lag_for(motions)
+
+
+static func lag_for(motions: Array[RemoteMotion]) -> float:
+	if motions.is_empty():
+		return -1.0
+	# Kazdy gracz potrzebuje swojej najkrotszej drogi i swojego zapasu. Zegar spelnia najwieksza
+	# potrzebe, ale najwyzej LAG_SPREAD_TICKS ponad mediane potrzeb.
+	var needs: Array[float] = []
+	for motion in motions:
+		needs.append(motion._shortest_age() + motion._buffer)
+	needs.sort()
+	var middle := needs.size() / 2
+	var median: float = needs[middle] if needs.size() % 2 == 1 else (needs[middle - 1] + needs[middle]) / 2.0
+	return minf(needs[-1], median + LAG_SPREAD_TICKS)
+
+
+## O tyle milisekund obraz innych graczy jest opozniony wzgledem teraz. -1, gdy nie ma kogo pokazywac.
+static func view_delay_ms() -> float:
+	if shown_tick < 0.0:
+		return -1.0
+	return (_now() - shown_tick) * NetworkTime.ticktime * 1000.0
 
 
 static func _now() -> float:
@@ -81,11 +125,16 @@ func newest_crouch() -> float:
 func add_sample(tick: int, at: Vector3, yaw: float, pitch: float, crouch := 0.0) -> void:
 	if tick <= newest_tick:
 		return
+	if newest_tick >= 0:
+		_gaps.append(tick - newest_tick)
+		if _gaps.size() > AGE_WINDOW:
+			_gaps.pop_front()
 	newest_tick = tick
 	_samples.append({"tick": tick, "position": at, "yaw": yaw, "pitch": pitch, "crouch": crouch})
 	_ages.append(_now() - tick)
 	if _ages.size() > AGE_WINDOW:
 		_ages.pop_front()
+	_buffer = needed_buffer()
 
 
 ## Ten gracz idzie za zegarem wlasnym tempem. Po przerwie w danych stoi na ostatnim
@@ -98,6 +147,8 @@ func advance(delta: float, target_tick: float) -> void:
 	else:
 		var rate := clampf(1.0 + (target_tick - _tick) * CATCH_UP_GAIN, MIN_RATE, MAX_RATE)
 		_tick += delta * NetworkTime.tickrate * rate
+	if _tick > newest_tick + STARVE_TICKS:
+		starved_frames += 1
 	_tick = minf(_tick, newest_tick)
 	while _samples.size() > 2 and _samples[1].tick <= _tick:
 		_samples.pop_front()
@@ -119,3 +170,16 @@ func _show() -> void:
 
 func _shortest_age() -> float:
 	return _ages.min()
+
+
+## Zapas potrzebny temu graczowi, w granicach MIN_BUFFER_TICKS..MAX_BUFFER_TICKS.
+func needed_buffer() -> float:
+	var largest_gap: int = _gaps.max() if not _gaps.is_empty() else 1
+	return clampf(largest_gap + _age_spread() + CLOCK_MARGIN_TICKS, MIN_BUFFER_TICKS, MAX_BUFFER_TICKS)
+
+
+## Roznica miedzy 95. centylem a minimum wieku stanow, czyli jak nierowno przychodza.
+func _age_spread() -> float:
+	var sorted := _ages.duplicate()
+	sorted.sort()
+	return sorted[mini(int(sorted.size() * JITTER_PERCENTILE), sorted.size() - 1)] - sorted[0]
