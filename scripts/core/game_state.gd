@@ -159,6 +159,8 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		clean = "Gracz %d" % (players.size() + 1)
 	players[id] = {
 		"name": clean,
+		# Krotki numer gracza w migawkach PlayerSnapshots zamiast 4-bajtowego peer_id.
+		"net_id": _free_net_id(),
 		# Podaje je klient i nikt tego nie sprawdza, wiec sluzy tylko do pokazania awatara.
 		"steam_id": steam_id if SteamAccount.is_valid_id(steam_id) else 0,
 		"character": CharacterAssets.resolve(character, id),
@@ -210,6 +212,17 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		Match.server_send_state(id)
 		_sync_roster.rpc_id(id, players)
 	_broadcast(id)
+
+
+## Najmniejszy wolny numer od 1 do 255.
+func _free_net_id() -> int:
+	var used := {}
+	for id: int in players:
+		used[players[id].get("net_id", 0)] = true
+	for net_id in range(1, 256):
+		if not used.has(net_id):
+			return net_id
+	return 0
 
 
 ## Zadaje obrazenia. Wywolywane tylko na serwerze, raz na kazdy rozliczony strzal.

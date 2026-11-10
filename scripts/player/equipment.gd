@@ -13,6 +13,8 @@ signal action_cancelled
 signal active_item_changed
 
 const ACTION_CORRECTION_TICKS := 8
+## Wartosc last_fire i last_throw, gdy nic sie jeszcze nie stalo.
+const NO_FIRE_TICK := -1000
 ## Granica cofania czasu, zeby gracz z bardzo slabym laczem nie trafial "przez sciany".
 const MAX_REWIND_SECONDS := 0.4
 ## Rozrzut z serii zaczyna opadac chwile po tym, jak mogl pasc kolejny strzal.
@@ -24,8 +26,8 @@ const AIR_MOVE_RATIO := 1.5
 
 # Stan rollbacku. Osobne liczby zamiast tablicy, bo netfox wysyla tylko zmienione wartosci.
 var active_slot := 0
-var last_fire := -1000
-var last_throw := -1000
+var last_fire := NO_FIRE_TICK
+var last_throw := NO_FIRE_TICK
 var prime_tick := -1
 var action_end := -1
 var draw_end := -1
@@ -43,8 +45,8 @@ var spread_bloom := 0.0
 var shot_spread := 0.0
 
 var _resolved_up_to := -1
-var _shown_fire := -1000
-var _shown_throw := -1000
+var _shown_fire := NO_FIRE_TICK
+var _shown_throw := NO_FIRE_TICK
 var _shown_primed := false
 var _shown_slot := -1
 var _shown_uid := -1
@@ -71,9 +73,27 @@ func slots() -> Array:
 
 ## Przedmiot w aktywnym slocie albo pusty slownik. Sprawdzamy zgodnosc z uid ze stanu,
 ## bo przy symulacji przeszlosci sloty mogly juz sie zmienic.
+## Cudza postac u klienta nie ma stanu rollbacku, wiec bierze przedmiot wprost ze slotu.
 func active_stack() -> Dictionary:
 	var stack: Dictionary = slots()[active_slot]
+	if _is_remote():
+		return stack
 	return stack if ItemStack.uid_of(stack) == _slot_uid(active_slot) else {}
+
+
+## Cudza postac u klienta: stan przychodzi w migawce PlayerSnapshots, a nie z rollbacku.
+func _is_remote() -> bool:
+	return player.remote_motion != null
+
+
+## Klient: pola cudzej postaci z migawki. Zmiany wykrywa potem _after_tick_loop jak dotad.
+func apply_remote(record: Dictionary) -> void:
+	active_slot = record.active_slot
+	last_fire = record.last_fire
+	last_throw = record.last_throw
+	prime_tick = record.prime_tick
+	action_end = record.action_end
+	shot_spread = record.shot_spread
 
 
 func active_stats() -> WeaponStats:
@@ -184,6 +204,12 @@ func on_respawn() -> void:
 
 
 func _rollback_tick(delta: float, tick: int, _is_fresh: bool) -> void:
+	_simulate(delta, tick)
+	if multiplayer.is_server():
+		player.capture_snapshot(tick + 1)
+
+
+func _simulate(delta: float, tick: int) -> void:
 	if tick >= player.info.inventory_tick:
 		_sync_slots(tick)
 	_recover_spread(tick, delta)
@@ -264,7 +290,7 @@ func _after_tick_loop() -> void:
 		if action_end < 0 or _shown_action_end < 0 or absi(action_end - _shown_action_end) > ACTION_CORRECTION_TICKS:
 			_report_action_change()
 		_shown_action_end = action_end
-	var uid := _slot_uid(active_slot)
+	var uid := ItemStack.uid_of(active_stack()) if _is_remote() else _slot_uid(active_slot)
 	if active_slot != _shown_slot or uid != _shown_uid:
 		_shown_slot = active_slot
 		_shown_uid = uid
@@ -275,7 +301,9 @@ func _after_tick_loop() -> void:
 func _report_action_change() -> void:
 	if _shown_action_end >= 0:
 		var behavior := ItemStack.behavior_of(_action_stack)
-		if action_end >= 0 or behavior == null or not behavior.was_action_completed(self, _action_stack, _action_slot, _shown_action_end):
+		# Cudza postac nie ma nabojow w migawce, wiec jej dzialanie udalo sie, gdy doszlo do konca.
+		var completed := behavior != null and (behavior.was_action_completed(self, _action_stack, _action_slot, _shown_action_end) or (_is_remote() and player.remote_snapshot_tick() >= _shown_action_end))
+		if action_end >= 0 or not completed:
 			action_cancelled.emit()
 	if action_end >= 0:
 		_action_stack = active_stack()

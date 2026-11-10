@@ -65,6 +65,9 @@ var peer_id := 0
 var remote_motion: RemoteMotion
 ## Referencja do wpisu w GameState (zdrowie, punkty, respawn).
 var info: Dictionary
+## Serwer: stan po ostatnim zasymulowanym ticku, do migawki PlayerSnapshots. -1, gdy jeszcze nie ma.
+var snapshot_tick := -1
+var snapshot := {}
 
 # Stan rollbacku (state_properties w RollbackSynchronizer).
 var yaw := 0.0
@@ -126,6 +129,9 @@ var _seen_present := true
 var _seen_crouching := false
 var _seen_sliding := false
 var _seen_team := -2
+## Klient o cudzej postaci: tick ostatniej migawki i slizg z niej.
+var _remote_tick := -1
+var _remote_sliding := false
 
 @onready var input := $Input as PlayerInput
 @onready var sync := $RollbackSynchronizer as RollbackSynchronizer
@@ -401,6 +407,8 @@ func _on_ladder() -> bool:
 
 
 func is_sliding(tick := NetworkTime.tick) -> bool:
+	if remote_motion != null:
+		return _remote_sliding
 	return slide_end >= 0 and tick < slide_end
 
 
@@ -533,6 +541,7 @@ func _process(delta: float) -> void:
 	if not multiplayer.is_server():
 		RemoteMotion.advance_clock(delta, get_tree())
 	if remote_motion != null:
+		_detach_rollback()
 		_show_remote_motion(delta)
 	if is_local():
 		rotation.y = yaw if dance_id != DanceCatalog.NONE else input.look_yaw
@@ -551,7 +560,10 @@ func _process(delta: float) -> void:
 	_last_position = position
 	_velocity_smoothed = _velocity_smoothed.lerp(moved, minf(delta * 14.0, 1.0))
 	# Inni gracze nie sa symulowani u klienta, wiec is_on_floor by dla nich klamalo.
-	var grounded := absf(velocity.y) < 0.6
+	# Predkosc cudzej postaci u klienta liczymy z ruchu, a kontakt z ziemia przychodzi w migawce.
+	if remote_motion != null:
+		velocity = _velocity_smoothed
+	var grounded := on_ground if remote_motion != null else absf(velocity.y) < 0.6
 	var health: int = info.health
 	if health < _seen_health and health > 0 and not is_local():
 		model.play_hit()
@@ -654,11 +666,6 @@ func _update_crouch_view() -> void:
 
 
 func _show_remote_motion(delta: float) -> void:
-	var tick := sync.get_last_known_state()
-	if tick > remote_motion.newest_tick and sync._states.has(tick):
-		var state := sync._states.get_snapshot(tick)
-		# Stan bywa niepelny, gdy serwer wyslal tylko to, co sie zmienilo. Reszta zostaje z poprzedniego.
-		remote_motion.add_sample(tick, _snapshot_value(state, ":position", remote_motion.newest_position(position)), _snapshot_value(state, ":yaw", yaw), _snapshot_value(state, ":pitch", pitch), _snapshot_value(state, ":crouch_amount", remote_motion.newest_crouch()))
 	if not remote_motion.has_samples():
 		return
 	remote_motion.advance(delta, RemoteMotion.shown_tick)
@@ -667,9 +674,48 @@ func _show_remote_motion(delta: float) -> void:
 	pitch = remote_motion.shown_pitch
 
 
-func _snapshot_value(state: Variant, property: String, fallback: Variant) -> Variant:
-	var value: Variant = state.get_value(property)
-	return fallback if value == null else value
+## Klient nie symuluje cudzych postaci i nie dostaje ich stanu przez netfox, wiec ich
+## RollbackSynchronizer nie ma nic do roboty w petli rollbacku. Odlaczamy go, gdy netfox go podlaczy.
+func _detach_rollback() -> void:
+	if NetworkRollback.on_process_tick.is_connected(sync._process_tick):
+		sync._disconnect_signals()
+
+
+## Serwer: zapamietuje stan po ticku do migawki. Wolane przez Equipment po jego czesci ticku.
+## Petla idzie od najstarszego ticku, wiec ostatni zapis to najnowszy stan.
+func capture_snapshot(tick: int) -> void:
+	if tick < snapshot_tick:
+		return
+	snapshot_tick = tick
+	snapshot = {
+		"position": position, "yaw": yaw, "pitch": pitch, "crouch": crouch_amount,
+		"sprinting": sprinting, "aiming": aiming, "on_ground": on_ground, "sliding": is_sliding(tick),
+		"active_slot": equipment.active_slot, "dance_id": dance_id,
+		"last_fire": equipment.last_fire, "last_throw": equipment.last_throw,
+		"prime_tick": equipment.prime_tick, "action_end": equipment.action_end,
+		"shot_spread": equipment.shot_spread,
+	}
+
+
+## Klient: stan cudzej postaci z migawki PlayerSnapshots.
+func apply_remote_snapshot(record: Dictionary) -> void:
+	if remote_motion == null:
+		return
+	remote_motion.add_sample(record.tick, record.position, record.yaw, record.pitch, record.crouch)
+	if record.tick < _remote_tick:
+		return
+	_remote_tick = record.tick
+	sprinting = record.sprinting
+	aiming = record.aiming
+	on_ground = record.on_ground
+	_remote_sliding = record.sliding
+	dance_id = record.dance_id
+	crouch_amount = record.crouch
+	equipment.apply_remote(record)
+
+
+func remote_snapshot_tick() -> int:
+	return _remote_tick
 
 
 ## Kazdy klient sam wlacza animacje i muzyke, gdy zobaczy zmiane stanu tanca.

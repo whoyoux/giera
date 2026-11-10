@@ -34,6 +34,7 @@ Chests="*res://scripts/core/chests.gd"
 Grenades="*res://scripts/core/grenades.gd"
 Chat="*res://scripts/core/chat.gd"
 SupplyDrops="*res://scripts/core/supply_drops.gd"
+PlayerSnapshots="*res://scripts/core/player_snapshots.gd"
 
 [display]
 
