@@ -30,9 +30,14 @@ run_case() {
 	printf '%-22s %-24s %4ds\n' "$name" "$verdict" "$((SECONDS - started))" | tee -a "$OUT"
 }
 
+## Test z flaga --mode=X dostaje w tabeli nazwe nazwa_X, zeby kilka trybow mialo osobne wiersze i logi.
 headless() {
 	local name="$1"; shift
-	run_case "$name" timeout 150 "$GODOT" --headless --path . -- --settings-path="user://all_$name.cfg" --map="${MAP:-forest}" --tool="res://tools/$name.gd" "$@"
+	local label="$name"
+	for arg in "$@"; do
+		case "$arg" in --mode=*) label="${name}_${arg#--mode=}" ;; esac
+	done
+	run_case "$label" timeout 150 "$GODOT" --headless --path . -- --settings-path="user://all_$label.cfg" --map="${MAP:-forest}" --tool="res://tools/$name.gd" "$@"
 }
 
 ## Starsze testy znaja wspolrzedne lesnej polany, wiec domyslnie graja na niej. Test innej mapy
@@ -44,8 +49,8 @@ windowed() {
 	run_case "$name" timeout 240 "$GODOT" --path . --resolution 1280x720 "${hide[@]}" -- --settings-path="user://all_$name.cfg" --map="${MAP:-forest}" --tool="res://tools/$name.gd" "$@"
 }
 
-while read -r name; do
-	[ -n "$name" ] && headless "$name"
+while read -r line; do
+	[ -n "$line" ] && headless $line
 done < <(sed -n '/^# HEADLESS/,/^# KONIEC/p' "$0" | sed -n 's/^#- //p')
 
 while read -r line; do
@@ -65,7 +70,9 @@ exit 0
 #- hitscan_test
 #- remote_motion_test
 #- zone_test
-#- hud_layout_test
+#- hud_layout_test --mode=deathmatch --map=desert
+#- hud_layout_test --mode=team_deathmatch --map=desert
+#- hud_layout_test --mode=battle_royale --map=valley
 # KONIEC
 # OKNO
 #- aim_test

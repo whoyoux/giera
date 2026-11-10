@@ -104,6 +104,7 @@ func _update_clock(delta: float) -> void:
 	var final := is_final_warning()
 	_clock_style.bg_color = UiStyle.CORAL if final else UiStyle.PAPER
 	_clock.add_theme_color_override("font_color", Color.WHITE if final else UiStyle.INK)
+	_place.add_theme_color_override("font_color", Color(Color.WHITE, 0.9) if final else Color(UiStyle.INK, 0.65))
 	if final and _warned_round != Match.round_number:
 		_warned_round = Match.round_number
 		_show_banner("Ostatnie 30 sekund!", UiStyle.CORAL)
