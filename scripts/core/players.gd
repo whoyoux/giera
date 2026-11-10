@@ -37,8 +37,10 @@ func _spawn(id: int) -> void:
 	player.set_multiplayer_authority(1)
 	player.get_node("Input").set_multiplayer_authority(id)
 	if multiplayer.is_server():
+		# Stan postaci przez netfox dostaje tylko jej wlasciciel, bo tylko on ja przewiduje.
+		# Pozostali widza ja z migawki PlayerSnapshots.
 		var sync := player.get_node("RollbackSynchronizer") as RollbackSynchronizer
-		sync.visibility_filter.add_visibility_filter(GameState.is_player)
+		sync.visibility_filter.add_visibility_filter(func(peer: int) -> bool: return peer == id and GameState.is_player(peer))
 	add_child(player)
 	_update_visibility()
 	if id == multiplayer.get_unique_id():
