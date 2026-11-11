@@ -77,6 +77,7 @@ exit 0
 # OKNO
 #- aim_test
 #- ambience_test
+#- ambience_sounds_test
 #- character_test
 #- chat_test
 #- chest_test --debug-chests

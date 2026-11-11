@@ -1,16 +1,20 @@
 class_name CityAmbience
-extends Node
-## Odglosy miasteczka: staly szum ruchu w tle, a co chwile golebie, klakson albo dzwonek roweru
+extends Node3D
+## Odglosy miasteczka: miekki szum dalekiej ulicy, plusk fontanny na placu, a co chwile golebie, klakson albo dzwonek roweru
 ## gdzies dookola gracza. Glosnosc idzie za suwakiem dzwiekow otoczenia.
 
-const HUM_DB := -19.0
+const HUM_DB := -18.0
+## Fontanna stoi na srodku placu (CityBuilder._build_plaza).
+const FOUNTAIN := Vector3(16.0, 1.5, -20.0)
+const FOUNTAIN_DB := -11.0
+const FOUNTAIN_RANGE := 26.0
 const EVENT_DB := -16.0
 const SILENT_DB := -60.0
 const MIN_GAP := 2.0
 const MAX_GAP := 6.0
 const EVENT_DISTANCE := Vector2(10.0, 28.0)
 
-var _hum: AudioStreamPlayer
+var sounds: MapSounds
 var _event: AudioStreamPlayer3D
 var _next := 2.0
 var _rng := RandomNumberGenerator.new()
@@ -18,11 +22,11 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
-	_hum = AudioStreamPlayer.new()
-	_hum.stream = Sfx.city_hum_loop()
-	_hum.volume_db = SILENT_DB
-	add_child(_hum)
-	_hum.play()
+	sounds = MapSounds.new()
+	add_child(sounds)
+	sounds.bed(AmbienceSfx.city_bed, HUM_DB)
+	sounds.spot(AmbienceSfx.fountain, FOUNTAIN, FOUNTAIN_DB, FOUNTAIN_RANGE)
+	sounds.start()
 	_event = AudioStreamPlayer3D.new()
 	_event.max_distance = 60.0
 	_event.unit_size = 12.0
@@ -32,7 +36,6 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var volume: float = Settings.value("ambience")
 	var offset := linear_to_db(maxf(volume, 0.001))
-	_hum.volume_db = HUM_DB + offset if volume > 0.001 else SILENT_DB
 	_event.volume_db = EVENT_DB + offset if volume > 0.001 else SILENT_DB
 	_next -= delta
 	var camera := get_viewport().get_camera_3d()

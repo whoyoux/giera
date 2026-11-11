@@ -1,6 +1,7 @@
 class_name ForestAmbienceValley
-extends Node
-## Dzwieki doliny: wiatr, ktory wieje mocniej wysoko, szelest lisci, ptaki i szum jeziora z jego brzegu.
+extends Node3D
+## Dzwieki doliny: jasny wiatr, ktory wieje mocniej wysoko, szelest lisci, ptaki, fale jeziora
+## przy jego brzegu oraz skrzypienie drewna i stukanie w Wiosce i Gospodarstwie.
 
 const WIND_DB := -21.0
 const WIND_HIGH_BONUS_DB := 6.0
@@ -9,7 +10,12 @@ const LAKE_DB := -14.0
 const BIRD_DB := -17.0
 const SILENT_DB := -60.0
 const LAKE_RANGE := 40.0
+const YARD_DB := -11.0
+const YARD_RANGE := 36.0
+const YARD_RADIUS := 20.0
+const YARD_GAP := Vector2(4.0, 11.0)
 
+var sounds: MapSounds
 var _wind: AudioStreamPlayer
 var _leaves: AudioStreamPlayer
 var _lake: AudioStreamPlayer3D
@@ -20,14 +26,16 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
-	_wind = _loop(Sfx.wind_loop())
-	_leaves = _loop(Sfx.leaves_loop())
-	_lake = AudioStreamPlayer3D.new()
-	_lake.stream = Sfx.creek_loop()
-	_lake.max_distance = LAKE_RANGE
-	_lake.unit_size = 8.0
-	add_child(_lake)
-	_lake.play()
+	sounds = MapSounds.new()
+	add_child(sounds)
+	_wind = sounds.bed(AmbienceSfx.valley_wind, WIND_DB)
+	_leaves = sounds.bed(MapSounds.ready_made(Sfx.leaves_loop()), LEAVES_DB)
+	_lake = sounds.spot(AmbienceSfx.lake_lap, Vector3.ZERO, LAKE_DB, LAKE_RANGE, 8.0)
+	for key: String in ["village", "farm"]:
+		var place := ValleyTerrain.place(key)
+		var at := Vector3(place.at.x, ValleyTerrain.surface(place.at.x, place.at.y) + 2.0, place.at.y)
+		sounds.events([AmbienceSfx.wood_creak, AmbienceSfx.wood_knock] as Array[Callable], at, YARD_RADIUS, YARD_GAP, YARD_DB, YARD_RANGE, 0.0)
+	sounds.start()
 	_bird = AudioStreamPlayer3D.new()
 	_bird.max_distance = 70.0
 	_bird.unit_size = 14.0
@@ -42,11 +50,9 @@ func _process(delta: float) -> void:
 	var offset := linear_to_db(maxf(volume, 0.001))
 	var at := camera.global_position
 	var high := smoothstep(2.0, 10.0, at.y - ValleyTerrain.surface(at.x, at.z))
-	_wind.volume_db = WIND_DB + high * WIND_HIGH_BONUS_DB + offset if volume > 0.001 else SILENT_DB
-	_leaves.volume_db = LEAVES_DB + offset if volume > 0.001 else SILENT_DB
-	_lake.volume_db = LAKE_DB + offset if volume > 0.001 else SILENT_DB
+	sounds.set_level(_wind, WIND_DB + high * WIND_HIGH_BONUS_DB)
 	_bird.volume_db = BIRD_DB + offset if volume > 0.001 else SILENT_DB
-	# Szum jeziora gra z punktu brzegu najblizszego graczowi.
+	# Fale jeziora graja z punktu brzegu najblizszego graczowi.
 	var lake := ValleyTerrain.place("lake")
 	var center: Vector2 = lake.at
 	var toward := (Vector2(at.x, at.z) - center).limit_length(lake.radius)
@@ -58,12 +64,3 @@ func _process(delta: float) -> void:
 		_bird.stream = Sfx.bird(_rng.randi() % Sfx.BIRD_VARIANTS)
 		_bird.global_position = at + Vector3(sin(angle) * 20.0, 9.0, cos(angle) * 20.0)
 		_bird.play()
-
-
-func _loop(stream: AudioStreamWAV) -> AudioStreamPlayer:
-	var player := AudioStreamPlayer.new()
-	player.stream = stream
-	player.volume_db = SILENT_DB
-	add_child(player)
-	player.play()
-	return player
