@@ -22,6 +22,15 @@ var _shown_radius := 0.0
 var _headshot := false
 ## Kolor druzyny, gdy celownik stoi na sojuszniku. Przezroczysty, gdy nie stoi.
 var ally_color := Color.TRANSPARENT
+## Ustawienia celownika czytamy raz i po kazdej zmianie, a nie przy kazdym rysowaniu.
+var _length_scale := 1.0
+var _width_scale := 1.0
+var _outlined := true
+var _dynamic := true
+var _dot := true
+var _color := Color.WHITE
+## Stan z ostatniego rysowania. Celownik rysujemy od nowa tylko, gdy cos sie zmienilo.
+var _drawn := []
 
 
 ## Kolory znacznika odpowiadaja dzwiekom: zwykle trafienie, w glowe, zabojstwo, zabojstwo w glowe
@@ -33,6 +42,22 @@ const HIT_COLORS := {
 	"kill_headshot": Color("ff4fa3"),
 	"sniper": Color("7fd3ff"),
 }
+
+
+func _ready() -> void:
+	Settings.changed.connect(_read_settings)
+	_read_settings()
+
+
+func _read_settings() -> void:
+	_length_scale = Settings.value("crosshair_size")
+	_width_scale = Settings.value("crosshair_thickness")
+	_outlined = Settings.value("crosshair_outline")
+	# Bez pokazywania rozrzutu celownik ma staly rozmiar i nie rozszerza sie przy strzale.
+	_dynamic = Settings.value("crosshair_spread")
+	_dot = Settings.value("crosshair_dot")
+	_color = Settings.crosshair_color()
+	queue_redraw()
 
 
 func flash_hit(killed: bool, headshot := false) -> void:
@@ -64,29 +89,31 @@ func _process(delta: float) -> void:
 	_spread = maxf(0.0, _spread - delta * 6.0)
 	_aim = move_toward(_aim, 1.0 if aiming else 0.0, delta * 8.0)
 	_shown_radius = lerpf(_shown_radius, spread_radius, minf(delta * 14.0, 1.0))
-	queue_redraw()
+	var state := [hidden_for_sprint, snappedf(_aim, 0.01), snappedf(_shown_radius, 0.1), snappedf(_spread, 0.01), snappedf(_hit, 0.01), ally_color, size]
+	if state != _drawn:
+		_drawn = state
+		queue_redraw()
 
 
 func _draw() -> void:
 	var center := (size * 0.5).round()
 	if not hidden_for_sprint:
-		var length_scale: float = Settings.value("crosshair_size")
-		var width_scale: float = Settings.value("crosshair_thickness")
-		var outlined: bool = Settings.value("crosshair_outline")
-		# Bez pokazywania rozrzutu celownik ma staly rozmiar i nie rozszerza sie przy strzale.
-		var dynamic: bool = Settings.value("crosshair_spread")
+		var length_scale := _length_scale
+		var width_scale := _width_scale
+		var outlined := _outlined
+		var dynamic := _dynamic
 		var gap := lerpf(7.0, 3.5, _aim)
 		if dynamic:
 			gap = maxf(gap, _shown_radius) + _spread * lerpf(7.0, 3.0, _aim)
 		var length := lerpf(8.0, 5.0, _aim) * length_scale
 		# Na sojuszniku celownik bierze kolor jego druzyny, a srodek znika, zeby nie kusil do strzalu.
 		var ally := ally_color.a > 0.0
-		var color := ally_color if ally else Settings.crosshair_color()
+		var color := ally_color if ally else _color
 		for dir: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 			if outlined:
 				draw_line(center + dir * (gap - OUTLINE_PAD), center + dir * (gap + length + OUTLINE_PAD), OUTLINE, LINE_WIDTH * width_scale + OUTLINE_PAD * 2.0, true)
 			draw_line(center + dir * gap, center + dir * (gap + length), color, LINE_WIDTH * width_scale, true)
-		if not ally and Settings.value("crosshair_dot"):
+		if not ally and _dot:
 			if outlined:
 				draw_circle(center, DOT_RADIUS * width_scale + OUTLINE_PAD, OUTLINE, true, -1.0, true)
 			draw_circle(center, DOT_RADIUS * width_scale, color, true, -1.0, true)

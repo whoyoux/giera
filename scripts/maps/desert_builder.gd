@@ -628,7 +628,7 @@ func _scatter(transforms: Array[Transform3D], parts: Array, visible_range: float
 			instance.multimesh = multimesh
 			instance.material_override = LowPoly.material(part[1], 0.8)
 			instance.position = center
-			instance.visibility_range_end = visible_range
+			instance.visibility_range_end = visible_range * Settings.view_range()
 			instance.visibility_range_end_margin = 8.0
 			instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

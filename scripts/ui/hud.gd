@@ -47,6 +47,7 @@ const STREAK_SECONDS := 2.0
 ## Przy celowaniu elementy poboczne bledna, zeby nie odciagaly wzroku.
 const AIM_DIM_ALPHA := 0.35
 const AIM_DIM_SECONDS := 0.15
+const ALLY_CHECK_SECONDS := 0.06
 const VIGNETTE_SHADER := preload("res://shaders/damage_vignette.gdshader")
 
 var _player: Player
@@ -84,6 +85,10 @@ var _ammo_hint: Label
 var _ammo_panel: PanelContainer
 var _fps_panel: PanelContainer
 var _fps_label: Label
+var _perf: PerfOverlay
+var _ally_timer := 0.0
+var _last_fps := -1
+var _last_health := -1
 var _feed: VBoxContainer
 var _death_panel: PanelContainer
 var _death_label: Label
@@ -170,13 +175,18 @@ func _process(delta: float) -> void:
 	_update_vignette(delta, info)
 	_update_vote_cursor()
 	_update_team_panel()
-	_fps_panel.visible = Settings.value("show_fps")
+	# Licznik wydajnosci pokazuje FPS sam, wiec zwykly licznik wtedy znika.
+	_fps_panel.visible = Settings.value("show_fps") and not _perf.visible
 	# Samouczek stoi w tej samej kolumnie i na swoje 14 s zastepuje wykres sieci, zeby nie zjechac na czat.
 	_net_graph.visible = Settings.value("show_net_graph") and get_tree().get_first_node_in_group(TutorialPanel.GROUP) == null
-	if _fps_panel.visible:
-		_fps_label.text = "%d FPS" % Engine.get_frames_per_second()
+	# Tekst ustawiamy tylko przy zmianie, bo kazda zmiana przelicza uklad etykiety.
+	if _fps_panel.visible and roundi(Engine.get_frames_per_second()) != _last_fps:
+		_last_fps = roundi(Engine.get_frames_per_second())
+		_fps_label.text = "%d FPS" % _last_fps
 	_health_bar.value = lerpf(_health_bar.value, info.health, 0.25)
-	_health_label.text = str(info.health)
+	if info.health != _last_health:
+		_last_health = info.health
+		_health_label.text = str(info.health)
 	var fill := _health_bar.get_theme_stylebox("fill") as StyleBoxFlat
 	fill.bg_color = UiStyle.TEAL if info.health > LOW_HEALTH else UiStyle.CORAL
 
@@ -205,7 +215,11 @@ func _process(delta: float) -> void:
 	if _player.input.wheel_open != _dance_wheel.is_open:
 		_player.input.set_wheel_open(_dance_wheel.is_open)
 	_crosshair.aiming = _player.aiming
-	_crosshair.ally_color = _ally_in_sight()
+	# Promien i petla po graczach wystarcza kilkanascie razy na sekunde.
+	_ally_timer -= delta
+	if _ally_timer <= 0.0:
+		_ally_timer = ALLY_CHECK_SECONDS
+		_crosshair.ally_color = _ally_in_sight()
 	var dim := _player.aiming and not _player.is_scoped()
 	_side_alpha = move_toward(_side_alpha, AIM_DIM_ALPHA if dim else 1.0, delta * (1.0 - AIM_DIM_ALPHA) / AIM_DIM_SECONDS)
 	_update_clutter()
@@ -444,6 +458,17 @@ func _update_ammo(equipment: Equipment) -> void:
 		_crosshair.kick()
 		_bump(_ammo_panel)
 	_last_ammo = ammo
+
+
+func _input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo or key.keycode != KEY_F3 or not Net.bot_mode.is_empty():
+		return
+	if key.shift_pressed:
+		_perf.copy_to_clipboard()
+	else:
+		_perf.toggle()
+	get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -977,6 +1002,10 @@ func _build() -> void:
 	_top_left.add_child(_fps_panel)
 	_fps_label = UiStyle.label("0 FPS", 17, UiStyle.INK)
 	_fps_panel.add_child(_fps_label)
+
+	_perf = PerfOverlay.new()
+	_perf.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_top_left.add_child(_perf)
 
 	_net_graph = NetGraph.new()
 	_net_graph.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
