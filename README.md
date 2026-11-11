@@ -80,6 +80,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Ustawienia w zakładkach:** Obraz, Dźwięk, Sterowanie, Celownik, Gra i Klawisze. Wybierasz tryb okna (okno, bez ramki, pełny ekran), rozmiar okna i limit klatek, a celowanie i kucanie mogą działać na przełącznik zamiast trzymania.
 - **Własny celownik:** kolor, długość i grubość kresek, kropka, obwódka i pokazywanie rozrzutu, z podglądem na żywo.
 - **60 ticków na sekundę:** serwer liczy grę 60 razy na sekundę, więc ruch i strzały reagują szybciej i są dokładniejsze.
+- **Mapy brzmią po swojemu:** na Pustyni faluje wiatr, w Oazie pluszcze woda i szeleszczą palmy, na Targu łopocze płótno, na Stacji skrzypi wieża i stuka blacha wagonów, w Kanionie wyje wiatr i trzeszczą liny mostu, a na Wydmach syczy piasek i grają cykady. W Miasteczku słychać fontannę na placu, a w Dolinie fale jeziora i odgłosy Wioski.
 - **Zmiana klawiszy:** w ustawieniach, w menu i w pauzie, można przypisać każdą akcję do klawisza albo przycisku myszy. Zajęty klawisz zamienia się z poprzednim, a podpowiedzi w grze pokazują aktualne przypisanie.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
 - **Leśna polana:** mapa w menu i druga mapa do głosowania w Deathmatchu, z ruinami i wieżą na środku, wzgórze, strumień i gęsty las dookoła, szum wiatru, śpiew ptaków i kroki zależne od podłoża, animowane postacie i żywy interfejs w stylu naklejek, który reaguje ruchem i dźwiękiem, z osobną głośnością.

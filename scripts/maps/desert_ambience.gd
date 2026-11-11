@@ -1,20 +1,27 @@
 class_name DesertAmbience
 extends Node3D
-## Pustynia zyje: staly wiatr z porywami, piasek niesiony przy ziemi wokol gracza i krzaki-kulki
-## toczace sie z wiatrem. Wszystko jest tylko u klienta, bez kolizji, i nie idzie przez siec.
+## Pustynia zyje: falujacy wiatr, piasek niesiony przy ziemi wokol gracza i krzaki-kulki toczace sie
+## z wiatrem. Kazde miejsce brzmi inaczej: woda i palmy w Oazie, plotno i szyld na Targu, blacha
+## i wieza na Stacji, wycie wiatru i liny mostu w Kanionie, syk piasku i cykady na Wydmach.
+## Wszystko jest tylko u klienta, bez kolizji, i nie idzie przez siec.
 
-const WIND_DB := -18.0
-const GUST_DB := -14.0
-const SILENT_DB := -60.0
+const WIND_DB := -20.0
 ## Kierunek wiatru na plaszczyznie: wieje od zachodu na wschod, troche na poludnie.
 const WIND := Vector3(1.0, 0.0, 0.35)
 const TUMBLEWEEDS := 4
 const TUMBLE_SPEED := 4.5
 const TUMBLE_RANGE := 45.0
+## Miejsca dzwiekow, zgodne z DesertBuilder i lista miejsc w DesertMapInfo.
+const MARKET := Vector3(0.0, 3.0, 0.0)
+const WAGONS := Vector3(-20.0, 2.0, -46.0)
+const WATER_TOWER := Vector3(30.0, 8.0, -58.0)
+const CANYON := Vector3(-42.0, 4.0, 0.0)
+const DUNES := Vector3(24.0, 0.5, 30.0)
+const CICADAS := Vector3(40.0, 1.0, 44.0)
+## Pociag gwizdze daleko za stacja, poza mapa.
+const TRAIN := Vector3(0.0, 5.0, -170.0)
 
-var _wind: AudioStreamPlayer
-var _gust: AudioStreamPlayer
-var _next_gust := 4.0
+var sounds: MapSounds
 var _sand: GPUParticles3D
 var _weeds: Array[Node3D] = []
 var _rng := RandomNumberGenerator.new()
@@ -22,33 +29,37 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
-	_wind = AudioStreamPlayer.new()
-	_wind.stream = Sfx.wind_loop()
-	_wind.volume_db = SILENT_DB
-	add_child(_wind)
-	_wind.play()
-	_gust = AudioStreamPlayer.new()
-	_gust.volume_db = SILENT_DB
-	add_child(_gust)
 	_build_sand()
 	for i in TUMBLEWEEDS:
 		_weeds.append(_build_tumbleweed())
+	_build_sounds()
+
+
+func _build_sounds() -> void:
+	sounds = MapSounds.new()
+	add_child(sounds)
+	var oasis := Vector3(DesertBuilder.POND_CENTER.x, 0.3, DesertBuilder.POND_CENTER.y)
+	sounds.bed(AmbienceSfx.desert_wind, WIND_DB)
+	sounds.spot(AmbienceSfx.oasis_water, oasis, -11.0, 28.0)
+	sounds.spot(AmbienceSfx.palm_rustle, oasis + Vector3.UP * 4.0, -15.0, 32.0)
+	sounds.spot(AmbienceSfx.canyon_howl, CANYON, -10.0, 46.0, 10.0)
+	sounds.spot(AmbienceSfx.sand_hiss, DUNES, -17.0, 30.0)
+	sounds.spot(AmbienceSfx.cicadas, CICADAS, -16.0, 40.0, 8.0)
+	for weed in _weeds:
+		sounds.follow(AmbienceSfx.tumbleweed_rustle, weed, -12.0, 16.0)
+	sounds.events([AmbienceSfx.canvas_flap, AmbienceSfx.canvas_flap, AmbienceSfx.sign_creak] as Array[Callable], MARKET, 12.0, Vector2(3.0, 8.0), -9.0, 30.0)
+	sounds.events([AmbienceSfx.tin_clank] as Array[Callable], WAGONS, 14.0, Vector2(5.0, 13.0), -10.0, 32.0)
+	sounds.events([AmbienceSfx.tower_creak] as Array[Callable], WATER_TOWER, 2.0, Vector2(7.0, 16.0), -8.0, 40.0, 0.0)
+	sounds.events([AmbienceSfx.rope_creak] as Array[Callable], CANYON, 4.0, Vector2(4.0, 10.0), -10.0, 28.0, 1.0)
+	sounds.events([AmbienceSfx.hawk_cry] as Array[Callable], Vector3.INF, 45.0, Vector2(25.0, 60.0), -12.0, 120.0, 30.0)
+	sounds.events([AmbienceSfx.train_whistle] as Array[Callable], TRAIN, 10.0, Vector2(70.0, 160.0), -4.0, 420.0)
+	sounds.start()
 
 
 func _process(delta: float) -> void:
 	var camera := get_viewport().get_camera_3d()
 	if camera == null:
 		return
-	var volume: float = Settings.value("ambience")
-	var offset := linear_to_db(maxf(volume, 0.001))
-	_wind.volume_db = WIND_DB + offset if volume > 0.001 else SILENT_DB
-	_next_gust -= delta
-	if _next_gust <= 0.0:
-		_next_gust = _rng.randf_range(6.0, 14.0)
-		_gust.stream = Sfx.desert_gust()
-		_gust.pitch_scale = _rng.randf_range(0.85, 1.15)
-		_gust.volume_db = GUST_DB + offset if volume > 0.001 else SILENT_DB
-		_gust.play()
 	var at := camera.global_position
 	_sand.global_position = Vector3(at.x, 0.0, at.z) - WIND.normalized() * 8.0
 	for weed in _weeds:

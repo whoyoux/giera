@@ -1,5 +1,5 @@
 class_name ForestAmbience
-extends Node
+extends Node3D
 ## Dzwieki lasu. Wiatr i liscie sa zapetlone, a ich glosnosc zmienia sie powoli i zalezy od miejsca:
 ## w lesie slychac wiecej lisci, a wysoko mocniej wieje. Strumien gra z punktu najblizszego gracza.
 
@@ -21,6 +21,7 @@ const BIRD_DISTANCE := Vector2(12.0, 30.0)
 const BIRD_HEIGHT := 9.0
 const CREEK_RANGE := 26.0
 
+var sounds: MapSounds
 var _wind: AudioStreamPlayer
 var _leaves: AudioStreamPlayer
 var _creek: AudioStreamPlayer3D
@@ -32,7 +33,11 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
-	_wind = _looping_player(Sfx.wind_loop())
+	# Ciemny wiatr w koronach liczy sie w watku, a jego glosnosc prowadzi MapSounds.
+	sounds = MapSounds.new()
+	add_child(sounds)
+	_wind = sounds.bed(AmbienceSfx.forest_wind, WIND_DB)
+	sounds.start()
 	_leaves = _looping_player(Sfx.leaves_loop())
 	_creek = AudioStreamPlayer3D.new()
 	_creek.stream = Sfx.creek_loop()
@@ -69,7 +74,7 @@ func _update_levels(at: Vector3) -> void:
 	var height_above := at.y - ForestTerrain.surface(at.x, at.z)
 	var high := smoothstep(HIGH_START, HIGH_FULL, height_above)
 	var forest := smoothstep(ForestTerrain.CLEARING_INNER, ForestTerrain.CLEARING_OUTER, Vector2(at.x, at.z).length())
-	_set_level(_wind, WIND_DB + gust + high * WIND_HIGH_BONUS_DB + offset, volume)
+	sounds.set_level(_wind, WIND_DB + gust + high * WIND_HIGH_BONUS_DB)
 	# Liscie szeleszcza mocniej, gdy zawieje.
 	_set_level(_leaves, LEAVES_DB + gust * 1.3 + forest * LEAVES_FOREST_BONUS_DB + offset, volume)
 	_creek.volume_db = CREEK_DB + offset if volume > 0.001 else SILENT_DB
