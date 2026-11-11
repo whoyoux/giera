@@ -82,11 +82,16 @@ func _apply_quality() -> void:
 	var world := get_node_or_null("World")
 	if world == null:
 		return
-	var low: bool = Settings.graphics() == Settings.Graphics.LOW
 	var environment := (world.get_node("WorldEnvironment") as WorldEnvironment).environment
-	environment.ssao_enabled = not low
-	environment.glow_enabled = not low
-	(world.get_node("Sun") as DirectionalLight3D).directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if low else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	environment.ssao_enabled = Settings.level("ssao")
+	environment.glow_enabled = Settings.level("glow")
+	var sun := world.get_node("Sun") as DirectionalLight3D
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if Settings.level("splits") == 4 else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	# Zasieg cieni ze sceny mapy to wartosc dla wysokiej jakosci. Kazda kaskada to osobne
+	# rysowanie rzucajacych cien, wiec nizsze poziomy maja ich mniej i krocej.
+	if not sun.has_meta(&"full_shadow_range"):
+		sun.set_meta(&"full_shadow_range", sun.directional_shadow_max_distance)
+	sun.directional_shadow_max_distance = float(sun.get_meta(&"full_shadow_range")) * float(Settings.level("shadow_range"))
 
 
 func _process(delta: float) -> void:

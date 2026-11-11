@@ -21,7 +21,7 @@ func _ready() -> void:
 		return
 
 	_check("domyslna glosnosc", is_equal_approx(Settings.value("volume"), Settings.DEFAULTS.volume))
-	_test_graphics()
+	await _test_graphics()
 	await _check_window_stays()
 	await _test_panel()
 	await _test_reload_sound()
@@ -46,11 +46,17 @@ func _test_graphics() -> void:
 	Settings.set_value("graphics", float(Settings.Graphics.LOW))
 	_check("niska: bez SSAO i glow", not environment.ssao_enabled and not environment.glow_enabled)
 	_check("niska: 2 podzialy cieni", sun.directional_shadow_mode == DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS)
+	_check("niska: FXAA zamiast MSAA", root.msaa_3d == Viewport.MSAA_DISABLED and root.screen_space_aa == Viewport.SCREEN_SPACE_AA_FXAA)
+	var full_range: float = sun.get_meta(&"full_shadow_range")
+	_check("niska: krotsze cienie", is_equal_approx(sun.directional_shadow_max_distance, full_range * 0.6))
 	Settings.set_value("graphics", float(Settings.Graphics.MEDIUM))
 	_check("srednia: SSAO wraca", environment.ssao_enabled and environment.glow_enabled)
-	_check("srednia: MSAA 2x", root.msaa_3d == Viewport.MSAA_2X)
+	_check("srednia: MSAA 2x bez FXAA", root.msaa_3d == Viewport.MSAA_2X and root.screen_space_aa == Viewport.SCREEN_SPACE_AA_DISABLED)
+	_check("srednia: 2 podzialy cieni", sun.directional_shadow_mode == DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS)
 	Settings.set_value("graphics", float(Settings.Graphics.HIGH))
 	_check("wysoka: MSAA 4x", root.msaa_3d == Viewport.MSAA_4X)
+	_check("wysoka: 4 podzialy i pelny zasieg cieni", sun.directional_shadow_mode == DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS and is_equal_approx(sun.directional_shadow_max_distance, full_range))
+	await _test_auto_resolution(root)
 	Settings.set_value("render_scale", 0.75)
 	_check("skala 75% przez FSR", root.scaling_3d_mode == Viewport.SCALING_3D_MODE_FSR and is_equal_approx(root.scaling_3d_scale, 0.75))
 	Settings.set_value("render_scale", 1.0)
@@ -59,6 +65,30 @@ func _test_graphics() -> void:
 	Settings._migrate_old_quality()
 	_check("stary przelacznik przechodzi na niska", Settings.graphics() == Settings.Graphics.LOW and not Settings._config.has_section_key(Settings.SECTION, "high_quality"))
 	Settings.set_value("graphics", float(Settings.Graphics.HIGH))
+
+
+## Automat trzyma limit pikseli, a przy wolnym GPU schodzi nizej. Karta testowa jest szybka,
+## wiec progi obnizamy tak, zeby kazda klatka byla "za wolna", a potem podnosimy.
+func _test_auto_resolution(root: Window) -> void:
+	_check("automat: skala dla 4K", is_equal_approx(Settings.auto_render_scale(Vector2i(3840, 2160)), 0.4))
+	_check("automat: male okno w pelnej rozdzielczosci", is_equal_approx(Settings.auto_render_scale(Vector2i(1280, 720)), 1.0))
+	Settings.set_value("render_auto", true)
+	var cap := Settings.auto_render_scale(root.size)
+	_check("automat: zaczyna od limitu pikseli", root.scaling_3d_scale <= cap + 0.001)
+	Settings.auto_gpu_slow_ms = 0.0
+	Settings.auto_gpu_fast_ms = -1.0
+	await _wait(1.8)
+	_check("automat: wolne GPU obniza rozdzielczosc", root.scaling_3d_scale < cap - 0.01)
+	_check("automat: nie schodzi ponizej minimum", root.scaling_3d_scale >= Settings.AUTO_RENDER_MIN - 0.001)
+	var lowered := root.scaling_3d_scale
+	Settings.auto_gpu_slow_ms = 1000.0
+	Settings.auto_gpu_fast_ms = 999.0
+	await _wait(1.8)
+	_check("automat: szybkie GPU podnosi rozdzielczosc", root.scaling_3d_scale > lowered + 0.01 and root.scaling_3d_scale <= cap + 0.001)
+	Settings.auto_gpu_slow_ms = Settings.AUTO_GPU_SLOW_MS
+	Settings.auto_gpu_fast_ms = Settings.AUTO_GPU_FAST_MS
+	Settings.set_value("render_auto", false)
+	_check("bez automatu wraca skala z suwaka", is_equal_approx(root.scaling_3d_scale, float(Settings.value("render_scale"))))
 
 
 func _test_panel() -> void:

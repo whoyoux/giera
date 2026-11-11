@@ -136,7 +136,8 @@ func _build() -> void:
 	_add_slider("Limit klatek", "fps_limit", 0.0, Settings.FPS_LIMITS.size() - 1.0, 1.0, _fps_limit_text, true, CHOICE_WIDTH)
 	_add_toggle("Synchronizacja pionowa", "vsync")
 	_add_slider("Jakość grafiki", "graphics", Settings.Graphics.LOW, Settings.Graphics.HIGH, 1.0, func(v: float) -> String: return GRAPHICS_NAMES[roundi(v)], true, CHOICE_WIDTH)
-	_add_slider("Rozdzielczość 3D", "render_scale", 0.5, 1.0, 0.05, percent)
+	_add_toggle("Automatyczna rozdzielczość 3D", "render_auto")
+	_add_slider("Rozdzielczość 3D", "render_scale", Settings.AUTO_RENDER_MIN, 1.0, 0.05, percent)
 	_add_slider("Pole widzenia", "fov", 65.0, 110.0, 1.0, func(v: float) -> String: return "%d°" % roundi(v))
 	_add_toggle("Licznik FPS", "show_fps")
 
@@ -218,6 +219,9 @@ func _add_slider(text: String, key: String, min_value: float, max_value: float, 
 	row.add_child(shown)
 	var dragging := [false]
 	var commit := func() -> void:
+		# Ruszenie suwaka rozdzielczosci wylacza automat, bo gracz wybral wartosc sam.
+		if key == "render_scale" and Settings.value("render_auto") and not is_equal_approx(Settings.render_scale(), slider.value):
+			Settings.set_value("render_auto", false)
 		if not is_equal_approx(Settings.value(key), slider.value):
 			Settings.set_value(key, slider.value)
 	slider.drag_started.connect(func() -> void: dragging[0] = true)
@@ -231,7 +235,7 @@ func _add_slider(text: String, key: String, min_value: float, max_value: float, 
 		# Gra juz z nowa glosnoscia, wiec suwak od razu pokazuje, jak glosno bedzie.
 		UiSound.slider(inverse_lerp(min_value, max_value, new_value)))
 	_refreshers.append(func() -> void:
-		slider.set_value_no_signal(Settings.value(key))
+		slider.set_value_no_signal(Settings.render_scale() if key == "render_scale" else Settings.value(key))
 		shown.text = format.call(slider.value))
 
 

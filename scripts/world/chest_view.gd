@@ -20,7 +20,9 @@ const SHAKE_SPEED := 42.0
 const SHAKE_ANGLE := 0.045
 const FOCUS_SCALE := 1.06
 const BURST_PITCH := { Rarity.Tier.COMMON: 1.0, Rarity.Tier.EPIC: 1.15, Rarity.Tier.LEGENDARY: 1.35 }
-const BURST_COUNT := { Rarity.Tier.COMMON: 24, Rarity.Tier.EPIC: 40, Rarity.Tier.LEGENDARY: 70 }
+## Dalej swiatlo skrzyni gasnie, a iskry nie sa rysowane.
+const FAR_FADE := 35.0
+const BURST_COUNT :={ Rarity.Tier.COMMON: 24, Rarity.Tier.EPIC: 40, Rarity.Tier.LEGENDARY: 70 }
 
 var _root: Node3D
 var _lid: Node3D
@@ -181,6 +183,10 @@ func _build() -> void:
 	_light.light_color = GLOW_COLOR
 	_light.omni_range = 3.5
 	_light.position = Vector3(0, 1.0, 0.2)
+	# Swiatlo daleko od gracza i tak nic nie rozjasnia, a kazde kosztuje przy kazdym pikselu w zasiegu.
+	_light.distance_fade_enabled = true
+	_light.distance_fade_begin = FAR_FADE
+	_light.distance_fade_length = 8.0
 	add_child(_light)
 
 	_sparkles = _particles(10, 1.5, GLOW_COLOR, 0.045)
@@ -192,6 +198,7 @@ func _build() -> void:
 	_sparkles.gravity = Vector3.ZERO
 	_sparkles.initial_velocity_min = 0.25
 	_sparkles.initial_velocity_max = 0.6
+	_sparkles.visibility_range_end = FAR_FADE
 	add_child(_sparkles)
 
 	_burst = _particles(24, 0.7, TRIM_COLOR, 0.05)

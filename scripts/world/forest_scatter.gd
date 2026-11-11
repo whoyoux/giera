@@ -68,7 +68,7 @@ func _add_batch(model: String, transforms: Array, fade: float, shadows: bool) ->
 	instance.multimesh = multimesh
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if fade > 0.0:
-		instance.visibility_range_end = fade
+		instance.visibility_range_end = fade * (1.0 if Engine.is_editor_hint() else Settings.view_range())
 		instance.visibility_range_end_margin = 8.0
 		instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	add_child(instance)

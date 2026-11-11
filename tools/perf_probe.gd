@@ -20,12 +20,20 @@ const DESERT_VIEWS: Array[Array] = [
 	[Vector3(-14.0, 1.7, 16.0), Vector3(0.0, 2.0, 52.0)],
 	[Vector3(-21.0, 6.8, 46.0), Vector3(0.0, 1.0, -40.0)],
 ]
+## Widoki dla miasta: wzdluz glownej ulicy i z dachu na plac.
+const CITY_VIEWS: Array[Array] = [
+	[Vector3(0.0, 1.7, 30.0), Vector3(0.0, 1.5, -30.0)],
+	[Vector3(-20.0, 8.0, -20.0), Vector3(10.0, 0.0, 10.0)],
+]
+## Skala -1 oznacza automatyczna rozdzielczosc 3D, jak domyslnie na macOS.
 const PRESETS: Array[Array] = [
 	["wysoka 100", Settings.Graphics.HIGH, 1.0],
 	["srednia 100", Settings.Graphics.MEDIUM, 1.0],
 	["srednia 75", Settings.Graphics.MEDIUM, 0.75],
 	["niska 75", Settings.Graphics.LOW, 0.75],
 	["niska 50", Settings.Graphics.LOW, 0.5],
+	["srednia auto", Settings.Graphics.MEDIUM, -1.0],
+	["niska auto", Settings.Graphics.LOW, -1.0],
 ]
 
 var _overlay: SubViewport
@@ -46,7 +54,7 @@ func _ready() -> void:
 	add_child(camera)
 	camera.fov = 80.0
 	camera.current = true
-	var views: Array[Array] = VALLEY_VIEWS if Maps.current_id == "valley" else (DESERT_VIEWS if Maps.current_id == "desert" else VIEWS)
+	var views: Array[Array] = {"valley": VALLEY_VIEWS, "desert": DESERT_VIEWS, "city": CITY_VIEWS}.get(Maps.current_id, VIEWS)
 	for view_index in views.size():
 		var from: Vector3 = views[view_index][0]
 		if Maps.current_id == "valley":
@@ -55,7 +63,9 @@ func _ready() -> void:
 		camera.look_at(views[view_index][1])
 		for preset in PRESETS:
 			Settings.set_value("graphics", float(preset[1]))
-			Settings.set_value("render_scale", preset[2])
+			Settings.set_value("render_auto", preset[2] < 0.0)
+			if preset[2] > 0.0:
+				Settings.set_value("render_scale", preset[2])
 			await _measure(preset[0], view_index)
 	get_tree().quit()
 
@@ -71,6 +81,7 @@ func _measure(label: String, view_index: int) -> void:
 		world += RenderingServer.viewport_get_measured_render_time_gpu(get_viewport().get_viewport_rid())
 		overlay += RenderingServer.viewport_get_measured_render_time_gpu(_overlay.get_viewport_rid())
 	var frame_ms := float(Time.get_ticks_usec() - started) / 1000.0 / SAMPLE_FRAMES
-	print("[perf] widok %d %-12s GPU swiat %5.2f ms, bron %4.2f ms | klatka %5.2f ms" % [view_index, label, world / SAMPLE_FRAMES, overlay / SAMPLE_FRAMES, frame_ms])
+	print("[perf] widok %d %-12s GPU swiat %5.2f ms, bron %4.2f ms | klatka %5.2f ms | 3D %d%%, %d wywolan" % [view_index, label, world / SAMPLE_FRAMES, overlay / SAMPLE_FRAMES, frame_ms,
+		roundi(get_tree().root.scaling_3d_scale * 100.0), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)])
 	if Net.args.has("shots"):
 		get_viewport().get_texture().get_image().save_png("%s/v%d_%s.png" % [Net.args.shots, view_index, label.replace(" ", "_")])

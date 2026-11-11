@@ -116,12 +116,14 @@ func _build_overlay() -> void:
 	viewport.transparent_bg = true
 	viewport.msaa_3d = Settings.msaa()
 	Settings.changed.connect(_apply_msaa)
+	Settings.render_scale_changed.connect(_match_window_size)
 	viewport.handle_input_locally = false
 	viewport.gui_disable_input = true
 	viewport.positional_shadow_atlas_size = 0
 	canvas.add_child(viewport)
-	# Interfejs gry jest skalowany z 1280x720. Bron renderujemy w pikselach okna,
-	# bo inaczej powiekszony obraz bylby rozmazany.
+	# Interfejs gry jest skalowany z 1280x720. Bron renderujemy w pikselach obrazu 3D,
+	# bo inaczej powiekszony obraz bylby rozmazany, a na ekranie Retina pelne piksele okna
+	# kosztowalyby wiecej niz caly swiat w obnizonej rozdzielczosci.
 	_match_window_size()
 	get_window().size_changed.connect(_match_window_size)
 	var picture := TextureRect.new()
@@ -161,10 +163,18 @@ func _overlay_environment() -> Environment:
 
 func _apply_msaa() -> void:
 	_overlay_viewport.msaa_3d = Settings.msaa()
+	_match_window_size()
 
 
 func _match_window_size() -> void:
-	_overlay_viewport.size = get_window().size
+	var window := Vector2(get_window().size)
+	var size := Vector2i((window * Settings.render_scale()).round())
+	if _overlay_viewport.size != size:
+		_overlay_viewport.size = size
+
+
+func overlay_viewport() -> SubViewport:
+	return _overlay_viewport
 
 
 func overlay_size() -> Vector2i:

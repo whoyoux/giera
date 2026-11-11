@@ -520,7 +520,7 @@ func _merge_visuals(from_index: int) -> void:
 		merged.mesh = meshes[bucket]
 		merged.position = Vector3((cell.x + 0.5) * PROP_CELL, 0.0, (cell.y + 0.5) * PROP_CELL)
 		merged.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bucket[1] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		merged.visibility_range_end = PROP_VISIBLE if bucket[1] else PROP_VISIBLE * 0.6
+		merged.visibility_range_end = (PROP_VISIBLE if bucket[1] else PROP_VISIBLE * 0.6) * Settings.view_range()
 		merged.visibility_range_end_margin = 12.0
 		merged.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		_visuals.add_child(merged)
@@ -960,7 +960,7 @@ func _scatter_colored(transforms: Array[Transform3D], colors: Array[Color], mesh
 		instance.multimesh = multimesh
 		instance.material_override = material
 		instance.position = center
-		instance.visibility_range_end = visible_range
+		instance.visibility_range_end = visible_range * Settings.view_range()
 		instance.visibility_range_end_margin = 8.0
 		instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -1022,7 +1022,7 @@ func _scatter(transforms: Array[Transform3D], parts: Array, visible_range: float
 			instance.multimesh = multimesh
 			instance.material_override = LowPoly.material(part[1], 0.8)
 			instance.position = center
-			instance.visibility_range_end = visible_range
+			instance.visibility_range_end = visible_range * Settings.view_range()
 			instance.visibility_range_end_margin = 12.0
 			instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			if visible_range < 60.0:
