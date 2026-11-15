@@ -13,7 +13,7 @@ func _ready() -> void:
 	layer = 5
 	visible = false
 	var shade := ColorRect.new()
-	shade.color = Color(UiStyle.INK, 0.35)
+	shade.color = Color(UiStyle.DEEP, 0.35)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
 	var center := CenterContainer.new()
@@ -26,7 +26,7 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
 	_card.add_child(column)
-	var title := UiStyle.label("Twoje statystyki", 32, UiStyle.BLUE)
+	var title := UiStyle.display_label("Twoje statystyki", 34)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 	_rows = VBoxContainer.new()

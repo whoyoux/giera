@@ -68,7 +68,7 @@ func open() -> void:
 	pivot_offset = size * 0.5
 	scale = Vector2.ONE * POP_FROM
 	modulate.a = 0.0
-	var tween := create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var tween := create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "scale", Vector2.ONE, POP_SECONDS)
 	tween.tween_property(self, "modulate:a", 1.0, POP_SECONDS)
 	UiSound.play(Sfx.UiCue.OPEN)
@@ -132,6 +132,9 @@ func _set_hovered(dance_id: int) -> void:
 	if dance_id != DanceCatalog.NONE:
 		UiSound.hover()
 	_center_label.text = CENTER_HINT if dance_id == DanceCatalog.NONE else DanceCatalog.entry(dance_id).name
+	# Wybrany wycinek ma jasny kolor tanca, wiec jego napis jest ciemny.
+	for i in _names.size():
+		_names[i].add_theme_color_override("font_color", UiStyle.DEEP if i + 1 == dance_id else UiStyle.INK)
 	_layout()
 	queue_redraw()
 
@@ -157,16 +160,16 @@ func _draw() -> void:
 		var dance: Dictionary = DanceCatalog.DANCES[index]
 		var selected := index + 1 == _hovered
 		var outline := _segment_outline(center, index, OUTER_RADIUS + (HOVER_GROW if selected else 0.0))
-		draw_colored_polygon(outline, Color(dance.color, 0.95) if selected else Color(UiStyle.PAPER, 0.92))
+		draw_colored_polygon(outline, Color(dance.color, 0.9) if selected else Color(UiStyle.PAPER, 0.82))
 		var closed := outline.duplicate()
 		closed.append(outline[0])
-		draw_polyline(closed, Color.WHITE, 5.0, true)
+		draw_polyline(closed, Color(1.0, 1.0, 1.0, 0.18), 1.5, true)
 	draw_circle(center, INNER_RADIUS - 8.0, Color(UiStyle.PAPER, 0.96), true, -1.0, true)
-	draw_circle(center, INNER_RADIUS - 8.0, Color.WHITE, false, 5.0, true)
+	draw_circle(center, INNER_RADIUS - 8.0, Color(1.0, 1.0, 1.0, 0.18), false, 1.5, true)
 	# Kursor kola. Gra trzyma prawdziwy kursor ukryty.
 	var tip := center + _cursor
-	draw_circle(tip, 10.0, Color(UiStyle.INK, 0.8), true, -1.0, true)
-	draw_circle(tip, 6.5, Color.WHITE, true, -1.0, true)
+	draw_circle(tip, 8.0, Color(UiStyle.DEEP, 0.8), true, -1.0, true)
+	draw_circle(tip, 5.0, Color.WHITE, true, -1.0, true)
 
 
 func _segment_outline(center: Vector2, index: int, outer: float) -> PackedVector2Array:

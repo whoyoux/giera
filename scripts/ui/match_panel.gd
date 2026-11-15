@@ -34,7 +34,7 @@ const RESULTS_TITLE_SIZE := 28
 ## baner rundy i napis o serii, a odliczanie ma pierwszenstwo.
 const BIG_LABEL_TOP := 110.0
 const VOTE_THUMB_SIZE := Vector2(144.0, 72.0)
-const VOTE_CARD_FILL := Color("f3ecdd")
+const VOTE_CARD_FILL := UiStyle.PANEL_2
 const VOTE_POP_SCALE := 1.06
 ## Margines w StyleBoxFlat liczy sie od zewnetrznej krawedzi, wiec obejmuje obwodke. Wnetrze karty
 ## ma 12 px oddechu od obwodki, a panel 16 (docs/UI.md).
@@ -202,8 +202,8 @@ static func plural(count: int, one: String, few: String, many: String) -> String
 
 ## 0: zwykla karta, 1: pod kursorem, 2: wlasny glos.
 func _vote_card_style(state: int) -> StyleBoxFlat:
-	var fills: Array[Color] = [VOTE_CARD_FILL, Color.WHITE, UiStyle.BLUE.lightened(0.75)]
-	var borders: Array[Color] = [Color.WHITE, UiStyle.SUN, UiStyle.BLUE]
+	var fills: Array[Color] = [VOTE_CARD_FILL, Color(1.0, 1.0, 1.0, 0.12), Color(UiStyle.BLUE, 0.22)]
+	var borders: Array[Color] = [UiStyle.LINE, UiStyle.SUN, UiStyle.BLUE]
 	var style := UiStyle.sticker(fills[state], 20, VOTE_CARD_BORDER)
 	style.border_color = borders[state]
 	style.set_content_margin_all(VOTE_CARD_BORDER + VOTE_CARD_PADDING)
@@ -377,7 +377,7 @@ func _fill_podium_rows(my_id: int) -> void:
 			var mine := UiStyle.label("Twoje miejsce: %d z %d  ·  zabójstwa: %d" % [entry.place, Match.results.size(), entry.kills], 15, UiStyle.BLUE)
 			_results_rows.add_child(mine)
 	for line in PodiumView.awards(Match.results).slice(1, 1 + AWARD_ROWS):
-		var award := UiStyle.label("★ " + line, 14, Color("b07d00"), false)
+		var award := UiStyle.label("★ " + line, 14, UiStyle.SUN, false)
 		award.clip_text = true
 		award.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_results_rows.add_child(award)
@@ -418,7 +418,7 @@ func _team_column(team: int, my_id: int) -> VBoxContainer:
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var color := UiStyle.BLUE if entry.id == my_id else UiStyle.INK
 		var is_mvp: bool = not mvp.is_empty() and mvp.id == entry.id and entry.kills > 0
-		var name_label := UiStyle.label(("★ " if is_mvp else "") + entry.name, 14, Color("b07d00") if is_mvp else color, is_mvp or entry.id == my_id)
+		var name_label := UiStyle.label(("★ " if is_mvp else "") + entry.name, 14, UiStyle.SUN if is_mvp else color, is_mvp or entry.id == my_id)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_label.clip_text = true
 		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -591,7 +591,7 @@ func _build_zone_feedback() -> void:
 	info_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(info_center)
 	_info_panel = PanelContainer.new()
-	var style := UiStyle.sticker(UiStyle.PAPER, 16, 4)
+	var style := UiStyle.sticker(UiStyle.HUD_FILL, 16, 4)
 	style.set_content_margin_all(8)
 	style.content_margin_left = 16
 	style.content_margin_right = 16
@@ -690,7 +690,7 @@ func _build_results() -> void:
 	body.add_child(_results_summary)
 	_results_eyebrow = UiStyle.label("Koniec rundy", 14, Color(UiStyle.INK, 0.65), false)
 	_results_summary.add_child(_results_eyebrow)
-	_results_title = UiStyle.label("", 38, UiStyle.CORAL)
+	_results_title = UiStyle.display_label("", 40, UiStyle.INK)
 	_results_title.clip_text = true
 	_results_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_results_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -834,7 +834,7 @@ func _build_watch_hint() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	_watch_panel = PanelContainer.new()
-	var style := UiStyle.sticker(UiStyle.PAPER, 18, 5)
+	var style := UiStyle.sticker(UiStyle.HUD_FILL, 18, 5)
 	style.set_content_margin_all(9)
 	style.content_margin_left = 18
 	style.content_margin_right = 18
@@ -870,5 +870,5 @@ func _build_big_label() -> void:
 	_big_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_big_panel.visible = false
 	center.add_child(_big_panel)
-	_big_label = UiStyle.label("", 32, UiStyle.INK)
+	_big_label = UiStyle.display_label("", 36, UiStyle.INK)
 	_big_panel.add_child(_big_label)

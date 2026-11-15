@@ -39,7 +39,7 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
 	add_child(column)
-	column.add_child(UiStyle.label("Twoje klawisze", 14, UiStyle.BLUE))
+	column.add_child(UiStyle.eyebrow("Twoje klawisze"))
 	for step in STEPS:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)

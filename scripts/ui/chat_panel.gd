@@ -106,7 +106,7 @@ func _short_name(id: int) -> String:
 
 func _message_row(sender: String, text: String, name_color: Color) -> PanelContainer:
 	var row := PanelContainer.new()
-	var style := UiStyle.sticker(UiStyle.PAPER, 14, 3)
+	var style := UiStyle.sticker(UiStyle.HUD_FILL, 14, 3)
 	style.set_content_margin_all(7)
 	style.content_margin_left = 12
 	style.content_margin_right = 12
@@ -156,7 +156,7 @@ func _build() -> void:
 	bar.changed.connect(func() -> void: bar.value = bar.max_value)
 
 	_input_panel = PanelContainer.new()
-	var style := UiStyle.sticker(UiStyle.PAPER, 16, 4)
+	var style := UiStyle.sticker(UiStyle.HUD_FILL, 16, 4)
 	style.set_content_margin_all(5)
 	_input_panel.add_theme_stylebox_override("panel", style)
 	_input_panel.visible = false

@@ -133,8 +133,8 @@ func _style_card(team: int) -> void:
 	var entry: Dictionary = _team_cards[team]
 	var mine: bool = Teams.team_of(multiplayer.get_unique_id()) == team
 	var hovered: bool = _hovered == team and not entry.blocked
-	var style := UiStyle.sticker(Teams.light_of(team).lightened(0.25 if hovered else 0.0), CARD_RADIUS, CARD_BORDER)
-	style.border_color = UiStyle.BLUE if mine else (UiStyle.SUN if hovered else Color.WHITE)
+	var style := UiStyle.sticker(Color(Teams.color_of(team), 0.26 if hovered else 0.16), CARD_RADIUS, CARD_BORDER)
+	style.border_color = UiStyle.BLUE if mine else (UiStyle.SUN if hovered else UiStyle.LINE)
 	style.set_content_margin_all(CARD_BORDER + CARD_PADDING)
 	(entry.card as PanelContainer).add_theme_stylebox_override("panel", style)
 	(entry.card as Control).modulate = Color(1, 1, 1, 0.7) if entry.blocked and not mine else Color.WHITE
@@ -168,7 +168,7 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 4)
 	_card.add_child(column)
 	column.add_child(UiStyle.label("Team Deathmatch", 14, Color(UiStyle.INK, 0.65), false))
-	column.add_child(UiStyle.label("Wybierz drużynę", 24, UiStyle.INK))
+	column.add_child(UiStyle.display_label("Wybierz drużynę", 28))
 	_hint = UiStyle.label("", 14, Color(UiStyle.INK, 0.65), false)
 	column.add_child(_hint)
 	var gap := Control.new()

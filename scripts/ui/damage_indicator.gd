@@ -36,5 +36,5 @@ func _draw() -> void:
 		# Rysowanie liczy kat od osi X, a 0 ma oznaczac kierunek "przed graczem".
 		var angle := atan2(local.x, -local.z) - PI * 0.5
 		var strength := clampf(mark.life / LIFETIME * 1.6, 0.0, 1.0)
-		draw_arc(center, RADIUS, angle - HALF_WIDTH, angle + HALF_WIDTH, 24, Color(UiStyle.INK, 0.55 * strength), 15.0, true)
+		draw_arc(center, RADIUS, angle - HALF_WIDTH, angle + HALF_WIDTH, 24, Color(UiStyle.CORAL, 0.7 * strength), 15.0, true)
 		draw_arc(center, RADIUS, angle - HALF_WIDTH, angle + HALF_WIDTH, 24, Color(UiStyle.CORAL, strength), 10.0, true)

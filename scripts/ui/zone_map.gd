@@ -71,11 +71,11 @@ func _draw_places(middle: Vector2, map_scale: float) -> void:
 	var font := ThemeDB.fallback_font
 	for place: Dictionary in places:
 		var at: Vector2 = middle + (place.at as Vector2) * map_scale
-		draw_circle(at, 2.5, UiStyle.INK)
+		draw_circle(at, 2.5, UiStyle.DEEP)
 		var text: String = place.name
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size()).x
 		draw_string_outline(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), 3, Color.WHITE)
-		draw_string(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), UiStyle.INK)
+		draw_string(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), UiStyle.DEEP)
 
 
 func _draw_player(middle: Vector2, map_scale: float) -> void:
@@ -128,5 +128,5 @@ func _draw_drops(middle: Vector2, map_scale: float) -> void:
 		var half := 7.0 if big else 4.0
 		if not drop.landed and int(Time.get_ticks_msec() / 250) % 2 == 0:
 			continue
-		draw_rect(Rect2(at - Vector2.ONE * (half + 2.0), Vector2.ONE * (half + 2.0) * 2.0), UiStyle.INK)
+		draw_rect(Rect2(at - Vector2.ONE * (half + 2.0), Vector2.ONE * (half + 2.0) * 2.0), UiStyle.DEEP)
 		draw_rect(Rect2(at - Vector2.ONE * half, Vector2.ONE * half * 2.0), Color("ffcb47"))

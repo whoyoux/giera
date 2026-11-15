@@ -23,7 +23,7 @@ var _traffic_ready := false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := UiStyle.sticker(UiStyle.PAPER, 14, 3)
+	var style := UiStyle.sticker(UiStyle.HUD_FILL, 14, 3)
 	style.set_content_margin_all(10)
 	add_theme_stylebox_override("panel", style)
 	var rows := VBoxContainer.new()

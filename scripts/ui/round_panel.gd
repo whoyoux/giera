@@ -102,7 +102,7 @@ func _update_clock(delta: float) -> void:
 	var left := ceili(Match.seconds_left())
 	_clock.text = "%d:%02d" % [left / 60, left % 60]
 	var final := is_final_warning()
-	_clock_style.bg_color = UiStyle.CORAL if final else UiStyle.PAPER
+	_clock_style.bg_color = UiStyle.CORAL if final else UiStyle.HUD_FILL
 	_clock.add_theme_color_override("font_color", Color.WHITE if final else UiStyle.INK)
 	_place.add_theme_color_override("font_color", Color(Color.WHITE, 0.9) if final else Color(UiStyle.INK, 0.65))
 	if final and _warned_round != Match.round_number:
@@ -213,7 +213,7 @@ func _build() -> void:
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(top)
 	_clock_panel = PanelContainer.new()
-	_clock_style = UiStyle.sticker(UiStyle.PAPER, 18, 5)
+	_clock_style = UiStyle.sticker(UiStyle.HUD_FILL, 18, 5)
 	_clock_style.set_content_margin_all(8)
 	_clock_style.content_margin_left = 18
 	_clock_style.content_margin_right = 18
@@ -232,7 +232,7 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 0)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	_clock_panel.add_child(column)
-	_clock = UiStyle.label("5:00", 32, UiStyle.INK)
+	_clock = UiStyle.display_label("5:00", 34, UiStyle.INK)
 	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_clock)
 	# Lider jest liczony dla testow i tabeli, ale nie stoi w zegarze: pokazuje go karta "Najlepsi".
@@ -245,7 +245,7 @@ func _build() -> void:
 	column.add_child(_place)
 
 	_top_card = PanelContainer.new()
-	var top_style := UiStyle.sticker(UiStyle.PAPER, 16, 4)
+	var top_style := UiStyle.sticker(UiStyle.HUD_FILL, 16, 4)
 	top_style.set_content_margin_all(10)
 	_top_card.add_theme_stylebox_override("panel", top_style)
 	_top_card.custom_minimum_size = Vector2(210, 0)
@@ -255,7 +255,7 @@ func _build() -> void:
 	var top_column := VBoxContainer.new()
 	top_column.add_theme_constant_override("separation", 2)
 	_top_card.add_child(top_column)
-	top_column.add_child(UiStyle.label("Najlepsi", 15, UiStyle.CORAL))
+	top_column.add_child(UiStyle.eyebrow("Najlepsi", 12))
 	_top_rows = VBoxContainer.new()
 	_top_rows.add_theme_constant_override("separation", 2)
 	top_column.add_child(_top_rows)
@@ -297,7 +297,7 @@ func _build_team_chip(team: int) -> PanelContainer:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 0)
 	chip.add_child(column)
-	var score := UiStyle.label("0", 32, Color.WHITE)
+	var score := UiStyle.display_label("0", 34, Color.WHITE)
 	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(score)
 	var title := UiStyle.label(Teams.name_of(team), 14, Color.WHITE)
