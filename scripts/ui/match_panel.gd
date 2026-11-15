@@ -889,5 +889,5 @@ func _build_big_label() -> void:
 	_big_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_big_panel.visible = false
 	center.add_child(_big_panel)
-	_big_label = UiStyle.display_label("", 36, UiStyle.DEEP)
+	_big_label = UiStyle.display_label("", 36, UiStyle.INK)
 	_big_panel.add_child(_big_label)

@@ -219,7 +219,7 @@ func _build_team_card(team: int) -> PanelContainer:
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(header)
 	var swatch := PanelContainer.new()
-	var swatch_style := UiStyle.sticker(Teams.color_of(team), 8, 3)
+	var swatch_style := UiStyle.flat(Teams.color_of(team), 2)
 	swatch_style.set_content_margin_all(0)
 	swatch_style.shadow_size = 0
 	swatch.add_theme_stylebox_override("panel", swatch_style)

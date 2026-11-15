@@ -1,11 +1,10 @@
 class_name AvatarView
 extends PanelContainer
-## Awatar gracza jako naklejka. Bez zdjecia pokazuje pierwsza litere nazwy,
-## a zdjecie podmienia, gdy tylko przyjdzie ze Steama.
+## Awatar gracza: plaski kwadrat. Bez zdjecia pokazuje pierwsza litere nazwy na przygaszonym
+## kolorze, a zdjecie podmienia, gdy tylko przyjdzie ze Steama.
 
 const ROUNDED_SHADER := preload("res://shaders/rounded_avatar.gdshader")
-const BORDER_RATIO := 0.07
-const FILLS: Array[Color] = [UiStyle.CORAL, UiStyle.TEAL, UiStyle.BLUE, Color("9b7bff")]
+const FILLS: Array[Color] = [Color("8a3c3a"), Color("2f6b5a"), Color("35577e"), Color("5b4a7a")]
 
 var _steam_id := 0
 var _picture: TextureRect
@@ -21,9 +20,8 @@ func _init(steam_id: int, player_name: String, side: float) -> void:
 	size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
-	var border := maxi(2, roundi(side * BORDER_RATIO))
-	var style := UiStyle.sticker(FILLS[absi(player_name.hash()) % FILLS.size()], roundi(side * 0.22), border)
-	style.set_content_margin_all(border)
+	var style := UiStyle.flat(FILLS[absi(player_name.hash()) % FILLS.size()], maxi(2, roundi(side * 0.08)))
+	style.set_content_margin_all(0)
 	add_theme_stylebox_override("panel", style)
 
 	var letter := UiStyle.label(player_name.left(1).to_upper(), roundi(side * 0.5), Color.WHITE)

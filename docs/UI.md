@@ -62,6 +62,8 @@ Odstępy biorą wartości ze skali **4, 8, 12, 16, 20, 24**.
 - `DEEP` (prawie czerń) to tło znaczków klawiszy (`UiStyle.chip_box`), przyciemnienie gry pod oknem i obrys napisów na obrazie gry. Nie używamy do tego `INK`, bo jest jasny.
 - Na jasnym albo kolorowym tle (żółta seria, wybrany wycinek koła tańców, wybrana zakładka) tekst jest ciemny (`DEEP`).
 - Główny przycisk i akcent marki: `CORAL`. Wybór i „to ty” w tabelach: `BLUE`. Najechanie, odliczanie i seria: `SUN`. Dobrze/gotowe/leczenie: `TEAL`. Pasek zdrowia jest jasny, a przy niskim zdrowiu `CORAL`.
+- **Bez cieni i bez kolorowych pudełek.** Panele są płaskie. Kolor sygnałowy (drużyna, ostrzeżenie, seria, klasa przedmiotu) nie wypełnia panelu, tylko daje ciemny półprzezroczysty pasek z lekkim odcieniem i grubszą krawędzią w tym kolorze (`UiStyle.accent`, a dla zmian w locie `paint_accent` i `paint_plain`). `UiStyle.sticker` z nasyconym kolorem robi to samo automatycznie. Tekst na takim pasku zostaje jasny, a kolor może dostać sama liczba (wynik drużyny, zegar w ostatnich 30 s). Pełnym kolorem zostają tylko małe elementy: próbka koloru drużyny, awatar, numer slotu.
+- Mapka to ciemny, półprzezroczysty radar z cienką obwódką. Poza strefą ma czerwony odcień.
 - Tekst na obrazku dostaje własne tło (znaczek), nigdy nie leży gołym tekstem na zdjęciu.
 
 ## 6. Układ na ekranie

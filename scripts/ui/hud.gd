@@ -450,7 +450,7 @@ func _update_item_name(equipment: Equipment) -> void:
 		_item_name_panel.modulate.a = 0.0
 		return
 	_item_name.text = ItemStack.display_name_of(stack)
-	_item_name_style.bg_color = Rarity.color(ItemStack.tier_of(stack))
+	UiStyle.paint_accent(_item_name_style, Rarity.color(ItemStack.tier_of(stack)))
 	_item_name_panel.modulate.a = 1.0
 	_item_name_tween = create_tween()
 	_item_name_tween.tween_interval(ITEM_NAME_SECONDS)
@@ -655,19 +655,22 @@ func _show_top_card(title: String, victim_id: int, streak: bool) -> void:
 	_kill_avatar_slot.visible = kill
 	_streak_label.text = title
 	_streak_label.add_theme_font_size_override("font_size", KILL_TITLE_FONT if kill else RoundPanel.BANNER_FONT)
-	# Seria ma zolte tlo, wiec ciemny tekst. Zwykla karta jest ciemna, wiec jasny.
-	var title_color := UiStyle.DEEP if streak else UiStyle.INK
+	# Seria ma zolty akcent i zolty tytul, zwykla karta zabojstwa jest neutralna.
+	var title_color := UiStyle.SUN if streak else UiStyle.INK
 	_streak_label.add_theme_color_override("font_color", Color(title_color, 0.65) if kill and not streak else title_color)
 	_streak_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if kill else HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.fit_width(_streak_label, RoundPanel.BANNER_MAX_WIDTH)
 	if kill:
 		_kill_avatar_slot.add_child(_avatar_of(victim_id, KILL_AVATAR_SIDE))
-		var victim_name := UiStyle.label(_short_name(victim_id), KILL_NAME_FONT, UiStyle.DEEP if streak and not Teams.is_active() else Teams.player_color(victim_id, UiStyle.INK))
+		var victim_name := UiStyle.label(_short_name(victim_id), KILL_NAME_FONT, Teams.player_color(victim_id, UiStyle.INK))
 		_kill_row.add_child(victim_name)
 		_kill_row.add_child(_kill_cause(victim_id))
 		if GameState.players.get(victim_id, {}).get("death_headshot", false):
 			_kill_row.add_child(UiStyle.label("◎", KILL_NAME_FONT, UiStyle.SUN))
-	_streak_style.bg_color = UiStyle.SUN if streak else UiStyle.HUD_FILL
+	if streak:
+		UiStyle.paint_accent(_streak_style, UiStyle.SUN)
+	else:
+		UiStyle.paint_plain(_streak_style)
 	# Karta ma dwie linie, wiec w pionie dostaje mniej marginesu, zeby nie zjechac do strefy walki.
 	_streak_style.content_margin_top = 5 + (6 if kill else 8)
 	_streak_style.content_margin_bottom = 5 + (6 if kill else 8)
@@ -815,7 +818,7 @@ func _update_death_panel(info: Dictionary) -> void:
 		_death_panel.visible = not info.alive and info.in_match
 		# W Team Deathmatchu tlo ma kolor druzyny zabojcy.
 		var killer_team := Teams.team_of(info.get("killer_id", 0)) if Teams.is_active() else Teams.NONE
-		(_death_panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = Teams.color_of(killer_team) if killer_team != Teams.NONE else UiStyle.CORAL
+		UiStyle.paint_accent(_death_panel.get_theme_stylebox("panel") as StyleBoxFlat, Teams.color_of(killer_team) if killer_team != Teams.NONE else UiStyle.CORAL)
 		if not info.alive:
 			_show_death_avatar(info)
 			var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
@@ -829,7 +832,7 @@ func _update_death_panel(info: Dictionary) -> void:
 	if _death_panel.visible:
 		_show_death_avatar(info)
 		var killer_team := Teams.team_of(info.get("killer_id", 0)) if Teams.is_active() else Teams.NONE
-		(_death_panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = Teams.color_of(killer_team) if killer_team != Teams.NONE else UiStyle.CORAL
+		UiStyle.paint_accent(_death_panel.get_theme_stylebox("panel") as StyleBoxFlat, Teams.color_of(killer_team) if killer_team != Teams.NONE else UiStyle.CORAL)
 		if Match.is_rounds_mode():
 			# Gracz, ktory wybral druzyne w trakcie walki, nie zginal, tylko czeka.
 			var joined: bool = info.get("killer_id", 0) == GameState.ZONE_ATTACKER

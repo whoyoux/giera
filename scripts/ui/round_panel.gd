@@ -103,9 +103,13 @@ func _update_clock(delta: float) -> void:
 	var left := ceili(Match.seconds_left())
 	_clock.text = "%d:%02d" % [left / 60, left % 60]
 	var final := is_final_warning()
-	_clock_style.bg_color = UiStyle.CORAL if final else UiStyle.HUD_FILL
-	_clock.add_theme_color_override("font_color", Color.WHITE if final else UiStyle.INK)
-	_place.add_theme_color_override("font_color", Color(Color.WHITE, 0.9) if final else Color(UiStyle.INK, 0.65))
+	# Ostatnie 30 s: czerwony akcent pod zegarem i czerwone cyfry, a nie cale czerwone pole.
+	if final:
+		UiStyle.paint_accent(_clock_style, UiStyle.CORAL, SIDE_BOTTOM)
+	else:
+		UiStyle.paint_plain(_clock_style)
+	_clock.add_theme_color_override("font_color", UiStyle.CORAL if final else UiStyle.INK)
+	_place.add_theme_color_override("font_color", Color(UiStyle.INK, 0.65))
 	if final and _warned_round != _round_key():
 		_warned_round = _round_key()
 		_show_banner("Ostatnie 30 sekund!", UiStyle.CORAL)
@@ -142,7 +146,10 @@ func _on_duel_finished(winner: int) -> void:
 func _show_banner(text: String, color: Color) -> void:
 	_banner_label.text = text
 	UiStyle.fit_width(_banner_label, BANNER_MAX_WIDTH)
-	_banner_style.bg_color = color
+	if UiStyle.is_signal_color(color):
+		UiStyle.paint_accent(_banner_style, color)
+	else:
+		UiStyle.paint_plain(_banner_style)
 	_banner_timer = BANNER_SECONDS
 	_banner.visible = true
 	UiStyle.pop_in(_banner)
@@ -314,7 +321,7 @@ func _build() -> void:
 ## Naklejka w kolorze druzyny: duzy wynik i nazwa pod nim.
 func _build_team_chip(team: int) -> PanelContainer:
 	var chip := PanelContainer.new()
-	var style := UiStyle.sticker(Teams.color_of(team), 18, 5)
+	var style := UiStyle.accent(Teams.color_of(team), 18, SIDE_BOTTOM)
 	style.set_content_margin_all(5 + 4)
 	style.content_margin_left = 5 + 16
 	style.content_margin_right = 5 + 16
@@ -326,10 +333,10 @@ func _build_team_chip(team: int) -> PanelContainer:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 0)
 	chip.add_child(column)
-	var score := UiStyle.display_label("0", 34, Color.WHITE)
+	var score := UiStyle.display_label("0", 34, Teams.color_of(team).lightened(0.15))
 	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(score)
-	var title := UiStyle.label(Teams.name_of(team), 14, Color.WHITE)
+	var title := UiStyle.label(Teams.name_of(team), 14, Color(UiStyle.INK, 0.8))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 	_team_chips.append(chip)

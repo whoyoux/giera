@@ -19,6 +19,10 @@ const CORAL := Color("ff4d4d")
 const SUN := Color("ffc23d")
 const TEAL := Color("3ddc97")
 const BLUE := Color("4aa8ff")
+## Tlo paska z akcentem: prawie czarne, polprzezroczyste, z odrobina koloru akcentu.
+const ACCENT_BASE := Color(0.035, 0.04, 0.052, 0.84)
+const ACCENT_TINT := 0.16
+const ACCENT_EDGE := 4
 ## Neutralny przycisk drugiego planu.
 const NEUTRAL := Color("2a2e37")
 const SHADOW := Color(0.0, 0.0, 0.0, 0.35)
@@ -93,18 +97,54 @@ static func font(bold := true) -> Font:
 ## Panel. Nazwa zostala po dawnym stylu naklejek: promien i grubosc krawedzi od wywolujacego sa
 ## tylko wskazowka (wiekszy promien to troche wieksze zaokraglenie), bo nowy styl ma male rogi
 ## i krawedz 1 px. Dzieki temu stare wywolania nie musza znac nowych liczb.
+## Panele sa plaskie, bez cienia: cien pod polprzezroczystym panelem wyglada sztucznie.
+## Kolorowe tlo (druzyna, ostrzezenie, seria) zamienia sie w ciemny pasek z akcentem, patrz accent.
 static func sticker(fill: Color, radius := 18, _border := 5) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
+	style.set_corner_radius_all(corner(radius))
+	style.set_content_margin_all(14)
+	style.anti_aliasing = true
+	if is_signal_color(fill):
+		paint_accent(style, fill)
+	else:
+		style.bg_color = fill
+		style.border_color = LINE
+		style.set_border_width_all(BORDER)
+	return style
+
+
+## Kolor sygnalowy: nasycony i nieprzezroczysty, np. druzyna, CORAL, SUN. Takie tlo nie wypelnia
+## calego panelu, tylko daje akcent.
+static func is_signal_color(color: Color) -> bool:
+	return color.a > 0.9 and color.s > 0.35 and color.v > 0.35
+
+
+## Ciemny polprzezroczysty pasek z lekkim odcieniem koloru i grubsza krawedzia w tym kolorze
+## (domyslnie z lewej). Tak wygladaja banery, liczniki druzyn i ostrzezenia we wspolczesnych
+## strzelankach: kolor jest sygnalem, a tekst zostaje jasny i czytelny.
+static func accent(color: Color, radius := 18, side := SIDE_LEFT) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.set_corner_radius_all(corner(radius))
+	style.set_content_margin_all(14)
+	style.anti_aliasing = true
+	paint_accent(style, color, side)
+	return style
+
+
+## Zmienia kolor akcentu istniejacego panelu, np. baneru albo karty smierci.
+static func paint_accent(style: StyleBoxFlat, color: Color, side := SIDE_LEFT) -> void:
+	style.bg_color = Color(ACCENT_BASE.lerp(color, ACCENT_TINT), ACCENT_BASE.a)
+	style.border_color = color
+	style.set_border_width_all(0)
+	style.set_border_width(side, ACCENT_EDGE)
+	style.shadow_size = 0
+
+
+## Zwykly ciemny panel HUD, np. gdy baner wraca z koloru do neutralnego.
+static func paint_plain(style: StyleBoxFlat, fill := HUD_FILL) -> void:
 	style.bg_color = fill
 	style.border_color = LINE
 	style.set_border_width_all(BORDER)
-	style.set_corner_radius_all(corner(radius))
-	style.set_content_margin_all(14)
-	style.shadow_color = SHADOW
-	style.shadow_size = 6
-	style.shadow_offset = Vector2(0, 2)
-	style.anti_aliasing = true
-	return style
 
 
 ## Promien rogu w nowym stylu dla promienia z dawnego stylu.
