@@ -22,7 +22,6 @@ func _ready() -> void:
 	await _test_hover_and_click()
 	await _test_guards()
 	await _test_errors()
-	await _test_letters()
 	await _test_settings()
 	await _test_pause()
 	DirAccess.remove_absolute(Settings.path)
@@ -52,7 +51,7 @@ func _test_hover_and_click() -> void:
 	_check("najechanie tyka", _playing(Sfx.UiCue.HOVER))
 	await _wait(0.2)
 	_check("przycisk rosnie pod kursorem", button.scale.x > 1.01)
-	_check("przycisk sie przechyla", button.rotation_degrees < -0.5)
+	_check("przycisk sie nie przechyla", is_zero_approx(button.rotation_degrees))
 	_silence()
 	await _mouse_button(button, true)
 	_check("wcisniecie gra od razu, przed puszczeniem", _playing(Sfx.UiCue.PRESS))
@@ -131,19 +130,6 @@ func _test_errors() -> void:
 	_silence()
 	_menu.show_with_message("")
 	_check("wlasne rozlaczenie nie gra bledu", not _playing(Sfx.UiCue.ERROR))
-
-
-func _test_letters() -> void:
-	_silence()
-	await _away()
-	await _wait(0.1)
-	var tile := _menu._letters[2]
-	await _move_to(tile)
-	_check("literka gra nute", _playing(Sfx.UiCue.NOTE))
-	_check("literka gra swoja wysokosc", is_equal_approx(UiSound._players[Sfx.UiCue.NOTE].pitch_scale, Menu.TITLE_NOTES[2]))
-	await _wait(0.6)
-	_check("literka wraca do rozmiaru", tile.scale.is_equal_approx(Vector2.ONE))
-	await _away()
 
 
 func _test_settings() -> void:

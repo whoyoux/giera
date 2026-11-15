@@ -1,15 +1,20 @@
 class_name Hotbar
 extends HBoxContainer
-## Pasek przedmiotow na dole ekranu: cztery naklejki z ikona i kolorem klasy. Numer klawisza
-## to znaczek na rogu, a naboje to pigulka na dolnej krawedzi, wiec nie zaslaniaja ikony.
+## Pasek przedmiotow na dole ekranu: cztery ciemne pola z ikona i krawedzia w kolorze klasy.
+## Numer klawisza to znaczek na rogu, a naboje to znaczek na dolnej krawedzi, wiec nie zaslaniaja ikony.
 
-const SLOT_SIZE := Vector2(92, 92)
-const ACTIVE_SCALE := 1.14
-const ACTIVE_LIFT := -10.0
-const EMPTY_FILL := Color(1.0, 0.98, 0.94, 0.72)
-const BADGE_SIZE := Vector2(30, 30)
-const CHARGES_SIZE := Vector2(58, 26)
-const ACTIVE_BADGE := UiStyle.TEAL
+const SLOT_SIZE := Vector2(88, 88)
+const ACTIVE_SCALE := 1.06
+const ACTIVE_LIFT := -6.0
+const EMPTY_FILL := Color(0.04, 0.045, 0.06, 0.4)
+const ITEM_FILL := Color(0.04, 0.045, 0.06, 0.66)
+const EMPTY_EDGE := Color(1.0, 1.0, 1.0, 0.08)
+## Krawedz pola z przedmiotem; aktywne pole ma grubsza.
+const EDGE := 1
+const ACTIVE_EDGE := 2
+const BADGE_SIZE := Vector2(24, 24)
+const CHARGES_SIZE := Vector2(54, 22)
+const ACTIVE_BADGE := UiStyle.CORAL
 
 var _cells: Array[Dictionary] = []
 var _equipment: Equipment
@@ -59,11 +64,12 @@ func _show_stack(cell: Dictionary, stack: Dictionary) -> void:
 	icon.texture = null
 	if ItemStack.is_empty(stack):
 		style.bg_color = EMPTY_FILL
-		style.border_color = Color.WHITE
+		style.border_color = EMPTY_EDGE
 		return
 	var tier := ItemStack.tier_of(stack)
 	var color := Rarity.color(tier)
-	style.bg_color = color.lerp(Color.WHITE, 0.62)
+	# Kolor klasy zostaje na krawedzi i jako delikatna poswiata od dolu, a tlo jest ciemne.
+	style.bg_color = ITEM_FILL.lerp(Color(color, ITEM_FILL.a), 0.18)
 	style.border_color = color
 	var visual := ItemStack.visual_of(stack)
 	if visual != null and ResourceLoader.exists(visual.icon_path):
@@ -79,23 +85,25 @@ func _update_charges(cell: Dictionary, slot: int, stack: Dictionary) -> void:
 	pill.visible = true
 	var charges := _equipment.charges(slot)
 	(cell.charges as Label).text = str(charges)
-	(cell.charges_style as StyleBoxFlat).bg_color = UiStyle.CORAL if charges == 0 else UiStyle.INK
+	(cell.charges_style as StyleBoxFlat).bg_color = UiStyle.CORAL if charges == 0 else UiStyle.DEEP
 
 
 func _animate_selection(cell: Dictionary, active: bool) -> void:
 	var panel: Control = cell.panel
 	panel.pivot_offset = panel.size * 0.5
-	var tween := panel.create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(panel, "scale", Vector2.ONE * (ACTIVE_SCALE if active else 1.0), 0.14)
-	tween.tween_property(panel, "position:y", ACTIVE_LIFT if active else 0.0, 0.14)
-	(cell.badge_style as StyleBoxFlat).bg_color = ACTIVE_BADGE if active else UiStyle.INK
+	var tween := panel.create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(panel, "scale", Vector2.ONE * (ACTIVE_SCALE if active else 1.0), 0.1)
+	tween.tween_property(panel, "position:y", ACTIVE_LIFT if active else 0.0, 0.1)
+	(cell.badge_style as StyleBoxFlat).bg_color = ACTIVE_BADGE if active else UiStyle.DEEP
+	(cell.style as StyleBoxFlat).set_border_width_all(ACTIVE_EDGE if active else EDGE)
+	panel.modulate.a = 1.0 if active else 0.85
 
 
 func _pop(panel: Control) -> void:
 	panel.pivot_offset = panel.size * 0.5
 	var settled := panel.scale
-	panel.scale = settled * 1.25
-	panel.create_tween().set_trans(Tween.TRANS_BACK).tween_property(panel, "scale", settled, 0.2)
+	panel.scale = settled * 1.1
+	panel.create_tween().set_trans(Tween.TRANS_QUAD).tween_property(panel, "scale", settled, 0.15)
 
 
 func _build_cell(slot: int) -> Dictionary:
@@ -107,7 +115,8 @@ func _build_cell(slot: int) -> Dictionary:
 	panel.size = SLOT_SIZE
 	panel.custom_minimum_size = SLOT_SIZE
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := UiStyle.sticker(EMPTY_FILL, 18, 5)
+	var style := UiStyle.sticker(EMPTY_FILL, 14)
+	style.shadow_size = 0
 	style.set_content_margin_all(4)
 	panel.add_theme_stylebox_override("panel", style)
 	holder.add_child(panel)
@@ -120,19 +129,19 @@ func _build_cell(slot: int) -> Dictionary:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 	inner.add_child(icon)
-	var badge_style := _chip_style(15)
+	var badge_style := _chip_style()
 	var badge := _chip(badge_style, BADGE_SIZE)
 	badge.position = -BADGE_SIZE * 0.5 + Vector2(4, 4)
 	inner.add_child(badge)
-	var number := _chip_label("", 16)
+	var number := _chip_label("", 13)
 	badge.add_child(number)
 	var update := func() -> void: number.text = Keybinds.label_of("slot_%d" % (slot + 1))
 	update.call()
 	Settings.changed.connect(update)
 
-	var charges_style := _chip_style(13)
+	var charges_style := _chip_style()
 	var charges_pill := _chip(charges_style, CHARGES_SIZE)
-	charges_pill.position = Vector2((SLOT_SIZE.x - 8.0 - CHARGES_SIZE.x) * 0.5, SLOT_SIZE.y - 8.0 - CHARGES_SIZE.y * 0.5)
+	charges_pill.position = Vector2((SLOT_SIZE.x - 8.0 - CHARGES_SIZE.x) * 0.5, SLOT_SIZE.y - 8.0 - CHARGES_SIZE.y * 0.6)
 	charges_pill.visible = false
 	inner.add_child(charges_pill)
 	var row := HBoxContainer.new()
@@ -140,8 +149,8 @@ func _build_cell(slot: int) -> Dictionary:
 	row.add_theme_constant_override("separation", 2)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	charges_pill.add_child(row)
-	row.add_child(UiStyle.ammo_icon(Vector2(19, 19)))
-	var charges := _chip_label("", 16)
+	row.add_child(UiStyle.ammo_icon(Vector2(16, 16)))
+	var charges := _chip_label("", 14)
 	row.add_child(charges)
 	return {
 		"panel": panel,
@@ -154,14 +163,8 @@ func _build_cell(slot: int) -> Dictionary:
 	}
 
 
-func _chip_style(radius: int) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = UiStyle.INK
-	style.border_color = Color.WHITE
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(radius)
-	style.anti_aliasing = true
-	return style
+func _chip_style() -> StyleBoxFlat:
+	return UiStyle.chip_box()
 
 
 func _chip(style: StyleBoxFlat, chip_size: Vector2) -> PanelContainer:

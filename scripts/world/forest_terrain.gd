@@ -34,13 +34,13 @@ const CREEK_Z := 32.0
 const CREEK_WAVE := 6.5
 const CREEK_FREQUENCY := 0.1
 
-const GRASS := Color("5f9438")
-const GRASS_LIGHT := Color("6da342")
-const FOREST_FLOOR := Color("4c7c2f")
-const RIM_GRASS := Color("3f6a2a")
-const DIRT := Color("94744a")
-const CREEK_BED := Color("a3925f")
-const WATER := Color(0.36, 0.66, 0.82, 0.72)
+const GRASS := Color("56733f")
+const GRASS_LIGHT := Color("627d45")
+const FOREST_FLOOR := Color("41582e")
+const RIM_GRASS := Color("384d2a")
+const DIRT := Color("7a6146")
+const CREEK_BED := Color("8a7d5c")
+const WATER := Color(0.25, 0.41, 0.46, 0.78)
 const PATH_WIDTH := 1.6
 const PATH_RADIUS := 40.0
 const FOREST_FLOOR_START := 29.0
@@ -150,6 +150,8 @@ func _build_ground() -> void:
 		return
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
+	# Kolory w kodzie sa w sRGB. Bez tego Godot bierze je za liniowe i teren wychodzi wyblakly.
+	material.vertex_color_is_srgb = true
 	material.roughness = 1.0
 	surface_tool.set_material(material)
 	var mesh := MeshInstance3D.new()

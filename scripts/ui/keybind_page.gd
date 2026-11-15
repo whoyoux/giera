@@ -87,7 +87,7 @@ func _row(entry: Dictionary) -> HBoxContainer:
 	var caption := UiStyle.label(entry.label, 19, UiStyle.INK, false)
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(caption)
-	var button := UiStyle.button("", UiStyle.BLUE, Color.WHITE, Sfx.UiCue.PRESS)
+	var button := UiStyle.secondary_button("", Sfx.UiCue.PRESS)
 	button.name = "bind_%s" % entry.action
 	button.custom_minimum_size = Vector2(BUTTON_WIDTH, ROW_HEIGHT)
 	button.add_theme_font_size_override("font_size", 17)

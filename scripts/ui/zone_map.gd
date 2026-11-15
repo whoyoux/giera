@@ -4,10 +4,13 @@ extends Control
 ## Widz widzi na niej ogladanego gracza.
 
 const SIDE := 170.0
-const BORDER := 5.0
+const BORDER := 1.5
 const INNER_MARGIN := 7.0
-const DANGER_COLOR := Color("8d78e8")
-const SAFE_COLOR := Color("cfe8b8")
+## Radar: ciemne, polprzezroczyste kolo z cienka obwodka. Poza strefa ma czerwony odcien.
+const BACK_COLOR := Color(0.035, 0.04, 0.052, 0.72)
+const RIM_COLOR := Color(1.0, 1.0, 1.0, 0.28)
+const DANGER_COLOR := Color(0.32, 0.07, 0.08, 0.72)
+const SAFE_COLOR := Color(0.06, 0.075, 0.085, 0.78)
 const TARGET_WIDTH := 2.5
 const ARROW_LENGTH := 11.0
 const ARROW_WIDTH := 7.0
@@ -44,23 +47,27 @@ func _draw() -> void:
 	var map_scale := (side * 0.5 - INNER_MARGIN) / Maps.info().zone_radius
 	middle -= Maps.info().zone_center * map_scale
 	var outer_middle := size * 0.5
-	draw_circle(outer_middle + Vector2(0.0, 4.0), side * 0.5, UiStyle.SHADOW)
-	draw_circle(outer_middle, side * 0.5, Color.WHITE)
 	if state.is_empty():
 		# Team Deathmatch nie ma strefy: cala mapa jest bezpieczna, a liczy sie, gdzie sa swoi.
-		draw_circle(outer_middle, side * 0.5 - BORDER, SAFE_COLOR)
+		draw_circle(outer_middle, side * 0.5, BACK_COLOR)
+		_draw_rim(outer_middle)
 		_draw_places(middle, map_scale)
 		_draw_allies(middle, map_scale)
 		_draw_player(middle, map_scale)
 		return
-	draw_circle(outer_middle, side * 0.5 - BORDER, DANGER_COLOR)
+	draw_circle(outer_middle, side * 0.5, DANGER_COLOR)
 	var center: Vector2 = state.center
 	draw_circle(middle + center * map_scale, state.radius * map_scale, SAFE_COLOR)
 	var target: Vector2 = state.target_center
 	draw_arc(middle + target * map_scale, state.target_radius * map_scale, 0.0, TAU, CIRCLE_POINTS, Color.WHITE, TARGET_WIDTH, true)
+	_draw_rim(outer_middle)
 	_draw_places(middle, map_scale)
 	_draw_drops(middle, map_scale)
 	_draw_player(middle, map_scale)
+
+
+func _draw_rim(outer_middle: Vector2) -> void:
+	draw_arc(outer_middle, side * 0.5 - BORDER * 0.5, 0.0, TAU, CIRCLE_POINTS, RIM_COLOR, BORDER, true)
 
 
 ## Nazwy miejsc na duzej mapie, zeby latwiej sie umowic, gdzie isc.
@@ -68,14 +75,14 @@ func _draw_places(middle: Vector2, map_scale: float) -> void:
 	var places := Maps.info().places
 	if places.size() < 4 and not big:
 		return
-	var font := ThemeDB.fallback_font
+	var font := UiStyle.font(false)
 	for place: Dictionary in places:
 		var at: Vector2 = middle + (place.at as Vector2) * map_scale
-		draw_circle(at, 2.5, UiStyle.INK)
+		draw_circle(at, 2.0, Color(UiStyle.INK, 0.6))
 		var text: String = place.name
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size()).x
-		draw_string_outline(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), 3, Color.WHITE)
-		draw_string(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), UiStyle.INK)
+		draw_string_outline(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), 3, UiStyle.DEEP)
+		draw_string(font, at + Vector2(-width * 0.5, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, _font_size(), Color(UiStyle.INK, 0.85))
 
 
 func _draw_player(middle: Vector2, map_scale: float) -> void:
@@ -87,8 +94,8 @@ func _draw_player(middle: Vector2, map_scale: float) -> void:
 	var forward := Vector2(look.x, look.z).normalized()
 	var side := forward.orthogonal() * ARROW_WIDTH
 	var points := PackedVector2Array([at + forward * ARROW_LENGTH, at - forward * ARROW_LENGTH * 0.5 + side, at - forward * ARROW_LENGTH * 0.5 - side])
-	draw_colored_polygon(points, UiStyle.CORAL)
-	draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[0]]), Color.WHITE, 1.5, true)
+	draw_colored_polygon(points, UiStyle.INK)
+	draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[0]]), UiStyle.DEEP, 1.5, true)
 
 
 ## Sojusznicy jako kropki w kolorze druzyny. Wrogow mapa nie zdradza.
@@ -104,7 +111,7 @@ func _draw_allies(middle: Vector2, map_scale: float) -> void:
 		var offset := at - size * 0.5
 		if offset.length() > limit:
 			at = size * 0.5 + offset.normalized() * limit
-		draw_circle(at, radius + 1.5, Color.WHITE)
+		draw_circle(at, radius + 1.5, UiStyle.DEEP)
 		draw_circle(at, radius, Teams.color_of(Teams.team_of(other.peer_id)))
 
 
@@ -128,5 +135,5 @@ func _draw_drops(middle: Vector2, map_scale: float) -> void:
 		var half := 7.0 if big else 4.0
 		if not drop.landed and int(Time.get_ticks_msec() / 250) % 2 == 0:
 			continue
-		draw_rect(Rect2(at - Vector2.ONE * (half + 2.0), Vector2.ONE * (half + 2.0) * 2.0), UiStyle.INK)
+		draw_rect(Rect2(at - Vector2.ONE * (half + 2.0), Vector2.ONE * (half + 2.0) * 2.0), UiStyle.DEEP)
 		draw_rect(Rect2(at - Vector2.ONE * half, Vector2.ONE * half * 2.0), Color("ffcb47"))

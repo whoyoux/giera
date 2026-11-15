@@ -3,7 +3,7 @@ extends Control
 ## Szesciokatny wykres dwoch broni nalozonych na siebie. Wartosci sa od 0 do 1.
 
 const RINGS: Array[float] = [0.25, 0.5, 0.75, 1.0]
-const GRID_COLOR := Color("e6dbc6")
+const GRID_COLOR := UiStyle.LINE
 const FILL_ALPHA := 0.32
 const LINE_WIDTH := 4.0
 const LABEL_SIZE := 15

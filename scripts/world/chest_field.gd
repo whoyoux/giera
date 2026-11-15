@@ -36,6 +36,10 @@ func _ready() -> void:
 	Chests.chests_reset.connect(func() -> void:
 		for chest_id: int in _shapes:
 			_set_open_shape(chest_id, Chests.chests[chest_id].open))
+	# Klient poznaje tryb dopiero po wczytaniu mapy, wiec obecnosc skrzynek ustawia sie przy kazdej
+	# zmianie etapu meczu.
+	Match.phase_changed.connect(_apply_mode)
+	_apply_mode()
 	if Net.is_headless:
 		return
 	Chests.chest_opened.connect(_on_opened)
@@ -49,6 +53,14 @@ func _process(_delta: float) -> void:
 		var view := _views[id] as ChestView
 		view.set_shaking(chest.busy or Chests.is_locally_opening(id))
 		view.set_focused(id == Chests.focused_id)
+
+
+## W trybie bez skrzynek (Rundy) nie widac ich i nie maja kolizji.
+func _apply_mode() -> void:
+	var on := Match.uses_chests()
+	visible = on
+	for body in get_children():
+		(body as Node).process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
 
 
 func _add_chest(id: int, at: Vector3, rotation_y: float) -> void:

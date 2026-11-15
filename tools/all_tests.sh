@@ -72,6 +72,7 @@ exit 0
 #- zone_test
 #- hud_layout_test --mode=deathmatch --map=desert
 #- hud_layout_test --mode=team_deathmatch --map=desert
+#- hud_layout_test --mode=rounds --map=desert
 #- hud_layout_test --mode=battle_royale --map=valley
 # KONIEC
 # OKNO
@@ -98,6 +99,7 @@ exit 0
 #- new_weapons_test
 #- regen_test
 #- round_test --round-seconds=40 --round-kill-limit=3
+#- rounds_test --round-seconds=6 --round-kill-limit=2
 #- city_map_test --map=city
 #- valley_map_test --map=valley
 #- desert_map_test --map=desert

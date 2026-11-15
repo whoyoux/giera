@@ -4,8 +4,8 @@ extends CanvasLayer
 ## Liczby bierze z ArsenalStats, wiec nowy przedmiot z ItemRegistry pojawia sie tu sam.
 
 const CARD_SIZE := Vector2(1200, 680)
-const FIELD := Color("f3ecdd")
-const SELECTED_FILL := Color("fff3d6")
+const FIELD := UiStyle.PANEL_2
+const SELECTED_FILL := Color(UiStyle.BLUE, 0.18)
 const MUTED := Color(UiStyle.INK, 0.62)
 const OFF_TINT := Color(1.0, 1.0, 1.0, 0.55)
 const LIST_WIDTH := 560.0
@@ -26,7 +26,7 @@ const BOB_TILT_DEGREES := -6.0
 const SIDE_WIDTH := 300.0
 const PICK_SIZE := Vector2(66, 56)
 const SIDE_COLORS: Array[Color] = [UiStyle.CORAL, UiStyle.BLUE]
-const WIN_COLOR := Color("1f9e5a")
+const WIN_COLOR := UiStyle.TEAL
 const RADAR_LABELS: Array[String] = ["Obrażenia", "Szybkość", "Celność", "Magazynek", "Przeładowanie", "Mobilność"]
 
 var _card: PanelContainer
@@ -102,7 +102,7 @@ func _process(delta: float) -> void:
 
 func _build() -> void:
 	var shade := ColorRect.new()
-	shade.color = Color(UiStyle.INK, 0.35)
+	shade.color = Color(UiStyle.DEEP, 0.35)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
 	var center := CenterContainer.new()
@@ -130,7 +130,7 @@ func _build() -> void:
 func _build_header() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	var title := UiStyle.label("Zbrojownia", 34, UiStyle.CORAL)
+	var title := UiStyle.display_label("Zbrojownia", 36)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(title)
 	for index in 2:
@@ -154,7 +154,7 @@ func _build_header() -> Control:
 func _show_page(index: int) -> void:
 	for page_index in _pages.size():
 		_pages[page_index].visible = page_index == index
-		_tab_buttons[page_index].modulate = Color.WHITE if page_index == index else OFF_TINT
+		_paint_choice(_tab_buttons[page_index], page_index == index)
 
 
 # ===== Wszystkie przedmioty =====
@@ -199,7 +199,7 @@ func _add_filter(parent: Container, category: int, text: String, color: Color) -
 func _filter(category: int) -> void:
 	_category = category
 	for key: int in _category_buttons:
-		(_category_buttons[key] as Button).modulate = Color.WHITE if key == category else OFF_TINT
+		_paint_choice(_category_buttons[key], key == category)
 	for definition: ItemDefinition in _tiles:
 		(_tiles[definition] as Button).visible = category < 0 or ArsenalStats.category(definition) == category
 
@@ -239,7 +239,7 @@ func _build_tile(definition: ItemDefinition) -> Button:
 			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var style := StyleBoxFlat.new()
 			style.bg_color = Rarity.color(tier)
-			style.border_color = Color.WHITE
+			style.border_color = UiStyle.DEEP
 			style.set_border_width_all(2)
 			style.set_corner_radius_all(6)
 			dot.add_theme_stylebox_override("panel", style)
@@ -328,7 +328,7 @@ func _refresh_detail() -> void:
 	var definition := _selected
 	var tier := _tier if definition.has_tiers() else Rarity.Tier.COMMON
 	var color := ArsenalStats.color(definition, tier)
-	var hero_style := _flat(color, 20)
+	var hero_style := _hero_style(color)
 	_hero.add_theme_stylebox_override("panel", hero_style)
 	_hero_icon.texture = ArsenalStats.icon(definition, tier)
 	(_tiles[definition].get_meta("icon") as TextureRect).texture = _hero_icon.texture
@@ -454,13 +454,13 @@ func _refresh_compare() -> void:
 		var entry: Dictionary = _compare[side]
 		var gun := entry.gun as WeaponDefinition
 		var tier: int = entry.tier
-		(entry.hero as PanelContainer).add_theme_stylebox_override("panel", _flat(Rarity.color(tier), 20))
+		(entry.hero as PanelContainer).add_theme_stylebox_override("panel", _hero_style(Rarity.color(tier)))
 		(entry.icon as TextureRect).texture = ArsenalStats.icon(gun, tier)
 		(entry.name as Label).text = ArsenalStats.title(gun, tier)
 		for pick_gun: WeaponDefinition in entry.picks:
 			var picked: bool = pick_gun == gun
 			var button := entry.picks[pick_gun] as Button
-			var style := UiStyle.sticker(Color.WHITE, 14, 4) if picked else _flat(FIELD, 14)
+			var style := UiStyle.sticker(Color(UiStyle.BLUE, 0.2), 14, 4) if picked else _flat(FIELD, 14)
 			if picked:
 				style.border_color = SIDE_COLORS[side]
 			style.set_content_margin_all(4)
@@ -561,9 +561,13 @@ func _small_button(text: String, color: Color, font_size: int, height: float) ->
 		style.set_content_margin_all(6)
 		style.content_margin_left = 12
 		style.content_margin_right = 12
-		style.set_border_width_all(4)
 		button.add_theme_stylebox_override(state, style)
 	return button
+
+
+## Zakladka albo filtr: wybrany jest jasny z ciemnym tekstem, pozostale neutralne.
+func _paint_choice(button: Button, selected: bool) -> void:
+	UiStyle.paint_button(button, UiStyle.INK if selected else UiStyle.NEUTRAL, UiStyle.DEEP if selected else UiStyle.INK)
 
 
 func _icon_rect(texture: Texture2D, icon_size: Vector2) -> TextureRect:
@@ -576,10 +580,18 @@ func _icon_rect(texture: Texture2D, icon_size: Vector2) -> TextureRect:
 	return icon
 
 
+## Tlo duzej ikony: kolor klasy przyciemniony, z krawedzia w pelnym kolorze.
+func _hero_style(color: Color) -> StyleBoxFlat:
+	var style := _flat(Color(color.darkened(0.35), 0.45), 20)
+	style.border_color = Color(color, 0.8)
+	style.set_border_width_all(UiStyle.BORDER)
+	return style
+
+
 func _flat(color: Color, radius: int, margin := 8) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
-	style.set_corner_radius_all(radius)
+	style.set_corner_radius_all(UiStyle.corner(radius))
 	style.set_content_margin_all(margin)
 	style.anti_aliasing = true
 	return style

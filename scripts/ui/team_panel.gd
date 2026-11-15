@@ -119,7 +119,7 @@ func _refresh() -> void:
 		var blocker := Teams.join_blocker(me, team)
 		var footer := entry.footer as Label
 		footer.text = "Kliknij, żeby dołączyć" if blocker.is_empty() else blocker
-		footer.add_theme_color_override("font_color", Color(UiStyle.INK, 0.65) if blocker.is_empty() or team == mine else UiStyle.CORAL.darkened(0.1))
+		footer.add_theme_color_override("font_color", Color(UiStyle.INK, 0.65) if blocker.is_empty() or team == mine else UiStyle.CORAL)
 		(entry.badge as Control).visible = team == mine
 		entry.blocked = not blocker.is_empty()
 		(entry.card as Control).mouse_default_cursor_shape = Control.CURSOR_ARROW if entry.blocked else Control.CURSOR_POINTING_HAND
@@ -133,8 +133,8 @@ func _style_card(team: int) -> void:
 	var entry: Dictionary = _team_cards[team]
 	var mine: bool = Teams.team_of(multiplayer.get_unique_id()) == team
 	var hovered: bool = _hovered == team and not entry.blocked
-	var style := UiStyle.sticker(Teams.light_of(team).lightened(0.25 if hovered else 0.0), CARD_RADIUS, CARD_BORDER)
-	style.border_color = UiStyle.BLUE if mine else (UiStyle.SUN if hovered else Color.WHITE)
+	var style := UiStyle.sticker(Color(Teams.color_of(team), 0.26 if hovered else 0.16), CARD_RADIUS, CARD_BORDER)
+	style.border_color = UiStyle.BLUE if mine else (UiStyle.SUN if hovered else UiStyle.LINE)
 	style.set_content_margin_all(CARD_BORDER + CARD_PADDING)
 	(entry.card as PanelContainer).add_theme_stylebox_override("panel", style)
 	(entry.card as Control).modulate = Color(1, 1, 1, 0.7) if entry.blocked and not mine else Color.WHITE
@@ -168,7 +168,7 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 4)
 	_card.add_child(column)
 	column.add_child(UiStyle.label("Team Deathmatch", 14, Color(UiStyle.INK, 0.65), false))
-	column.add_child(UiStyle.label("Wybierz drużynę", 24, UiStyle.INK))
+	column.add_child(UiStyle.display_label("Wybierz drużynę", 28))
 	_hint = UiStyle.label("", 14, Color(UiStyle.INK, 0.65), false)
 	column.add_child(_hint)
 	var gap := Control.new()
@@ -219,7 +219,7 @@ func _build_team_card(team: int) -> PanelContainer:
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(header)
 	var swatch := PanelContainer.new()
-	var swatch_style := UiStyle.sticker(Teams.color_of(team), 8, 3)
+	var swatch_style := UiStyle.flat(Teams.color_of(team), 2)
 	swatch_style.set_content_margin_all(0)
 	swatch_style.shadow_size = 0
 	swatch.add_theme_stylebox_override("panel", swatch_style)
@@ -227,7 +227,7 @@ func _build_team_card(team: int) -> PanelContainer:
 	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_child(swatch)
-	var title := UiStyle.label(Teams.name_of(team), 19, Teams.color_of(team).darkened(0.25))
+	var title := UiStyle.label(Teams.name_of(team), 19, Teams.color_of(team))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var badge := PanelContainer.new()

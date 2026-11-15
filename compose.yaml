@@ -1,7 +1,7 @@
 # Wszystkie serwery gry w jednym miejscu: docker compose up -d --build
 # Kolejny serwer to kopia wpisu z innym portem. Trzeba tez otworzyc ten port UDP na VPS.
 # Menu laczy z portem wybranego trybu (scripts/core/game_mode.gd). Serwer na innym porcie
-# gracz wybiera, dopisujac port do adresu, np. 203.0.113.10:7780.
+# gracz wybiera, dopisujac port do adresu, np. 203.0.113.10:7790.
 
 x-game-server: &game-server
   image: giera-server
@@ -30,3 +30,9 @@ services:
     command: ["--port=7779", "--mode=team_deathmatch"]
     ports:
       - "7779:7779/udp"
+
+  rounds:
+    <<: *game-server
+    command: ["--port=7780", "--mode=rounds"]
+    ports:
+      - "7780:7780/udp"

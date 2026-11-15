@@ -5,7 +5,7 @@ extends Node
 ## walki zajmuja najwyzej 20% ekranu, lista zabojstw ma odstep od sasiadow, a samouczek nie nachodzi
 ## na mapke ani czat. Potem sprawdza kolejke napisow pod zegarem, tabele pod Tab z 32 graczami
 ## i ekran wynikow: niska karta na dole, schowany HUD walki i brak strzalow.
-## Tryb podaje flaga --mode (deathmatch, team_deathmatch, battle_royale), a all_tests.sh uruchamia
+## Tryb podaje flaga --mode (deathmatch, team_deathmatch, rounds, battle_royale), a all_tests.sh uruchamia
 ## test raz na kazdy tryb. Nowy element HUD-u trzeba dopisac do _show_everything.
 ## Uzycie: godot --headless --path . -- --settings-path=user://t.cfg --map=desert --mode=team_deathmatch
 ##         --tool=res://tools/hud_layout_test.gd    Z oknem i --shot-dir=C:/folder zapisuje tez zrzuty.
@@ -16,8 +16,9 @@ const WINDOWS: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1280, 800), Vect
 const SCALES: Array[float] = [Settings.UI_SIZE_MIN, 1.0]
 ## Strefa walki: srodek ekranu, 40% szerokosci i 50% wysokosci.
 const COMBAT_ZONE := Vector2(0.4, 0.5)
-## Te napisy moga stac w strefie walki, bo pojawiaja sie, gdy gracz nie walczy.
-const ZONE_ALLOWED: Array[String] = ["smierc", "odliczanie"]
+## Te napisy moga stac w strefie walki, bo pojawiaja sie, gdy gracz nie walczy. Zestawy w Rundach
+## widac tylko w czasie wyboru, gdy postacie stoja zamrozone w bazach.
+const ZONE_ALLOWED: Array[String] = ["smierc", "odliczanie", "zestawy"]
 ## Elementy widoczne przez cala walke. Razem zajmuja najwyzej COMBAT_COVER_LIMIT ekranu.
 const PERSISTENT: Array[String] = ["zegar", "najlepsi", "druzyna 0", "druzyna 1", "zdrowie", "amunicja", "przedmioty", "wyrzuc", "mapka", "strefa info"]
 const COMBAT_COVER_LIMIT := 0.2
@@ -36,6 +37,8 @@ const EXCLUSIVE: Array[Array] = [
 	# Widz w Battle Royale nie ma juz paska przedmiotow, zdrowia ani podpowiedzi.
 	["ogladasz", "przedmioty"], ["ogladasz", "zdrowie"], ["ogladasz", "wyrzuc"], ["ogladasz", "amunicja"],
 	["ogladasz", "nazwa przedmiotu"], ["ogladasz", "podpowiedz"], ["ogladasz", "uzycie"], ["ogladasz", "smierc"],
+	# Rundy: zestaw wybiera tylko zywy gracz, a w czasie wyboru nikt jeszcze nie ginie.
+	["zestawy", "smierc"],
 ]
 
 var _failures := 0
@@ -59,6 +62,11 @@ func _ready() -> void:
 		for id: int in GameState.players:
 			GameState.server_set_team(id, id % 2)
 		await _wait(1.0)
+	# Sztuczni gracze nie maja klienta, ktory dokonczylby odrodzenie. W Rundach martwi rozstrzygneliby
+	# runde od razu, wiec test konczy je sam.
+	if Match.is_rounds_mode():
+		for id: int in GameState.players:
+			GameState.server_finish_respawn(id)
 	# Bez ochrony po odrodzeniu, zeby trafienie wlaczylo napis o leczeniu.
 	GameState.server_on_shot(1)
 	GameState.server_damage(1, 30, 2)
@@ -146,6 +154,8 @@ func _show_everything() -> Dictionary:
 	panel._roster_card.visible = elimination
 	panel._watch_panel.visible = elimination
 	panel._watch_label.text = "Oglądasz: Bardzo Dlugi Nick Na Steamie"
+	_hud._loadout_panel.set_process(false)
+	_hud._loadout_panel.visible = Match.is_rounds_mode()
 	await _wait(0.1)
 	var result := {
 		"fps": _hud._fps_panel,
@@ -168,6 +178,7 @@ func _show_everything() -> Dictionary:
 		"strefa info": panel._info_panel,
 		"lobby BR": panel._roster_card,
 		"ogladasz": panel._watch_panel,
+		"zestawy": _hud._loadout_panel._row.get_parent(),
 	}
 	for team in round_panel._team_chips.size():
 		result["druzyna %d" % team] = round_panel._team_chips[team]
@@ -316,6 +327,9 @@ func _check_results() -> void:
 		NetworkTime.before_tick_loop.connect(func() -> void:
 			if _hold_fire:
 				me.input.use_primary = true)
+		# W Rundach bron dziala dopiero po czasie wyboru zestawu.
+		while Match.is_frozen_at(NetworkTime.tick):
+			await _wait(0.2)
 		# Proba kontrolna: w trakcie rundy ten sam spust strzela.
 		var live_shots := await _fire_for(me, 0.5)
 		_check("w trakcie rundy spust strzela", live_shots > 0)

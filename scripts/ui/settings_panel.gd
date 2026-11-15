@@ -70,7 +70,7 @@ func _input(event: InputEvent) -> void:
 
 func _build() -> void:
 	_shade = ColorRect.new()
-	_shade.color = Color(UiStyle.INK, 0.35)
+	_shade.color = Color(UiStyle.DEEP, 0.35)
 	_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_shade)
 
@@ -87,7 +87,7 @@ func _build() -> void:
 	layout.add_theme_constant_override("separation", 10)
 	_card.add_child(layout)
 
-	var title := UiStyle.label("Ustawienia", 36, UiStyle.BLUE)
+	var title := UiStyle.display_label("Ustawienia", 36)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	layout.add_child(title)
 
@@ -335,7 +335,8 @@ func _show_page(id: String) -> void:
 	_keys.cancel()
 	for page: String in _pages:
 		(_pages[page] as Control).visible = page == id
-		(_tabs[page] as Button).modulate = Color.WHITE if page == id else Color(1.0, 1.0, 1.0, 0.6)
+		var on: bool = page == id
+		UiStyle.paint_button(_tabs[page], UiStyle.INK if on else UiStyle.NEUTRAL, UiStyle.DEEP if on else UiStyle.INK)
 	_scroll.scroll_vertical = 0
 
 

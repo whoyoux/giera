@@ -78,9 +78,9 @@ func _process(delta: float) -> void:
 	_sync_pings.rpc(fresh)
 
 
-## Leczy rannych, ktorzy dlugo nie oberwali. Tylko serwer i tylko poza Battle Royale.
+## Leczy rannych, ktorzy dlugo nie oberwali. Tylko serwer i tylko w trybach z odradzaniem.
 func _update_regeneration(delta: float) -> void:
-	if not Net.in_session or not multiplayer.is_server() or Match.is_elimination():
+	if not Net.in_session or not multiplayer.is_server() or not Match.uses_regen():
 		return
 	_regen_timer += delta
 	if _regen_timer < REGEN_STEP_SECONDS:
@@ -200,6 +200,8 @@ func server_add_player(id: int, player_name: String, character := "", steam_id :
 		"headshots": 0,
 		# Druzyna w Team Deathmatchu. -1, dopoki gracz jej nie wybierze, a do tego czasu oglada mecz.
 		"team": Teams.NONE,
+		# Zestaw broni w trybie Rundy (numer w Loadouts.LIST).
+		"loadout": Loadouts.DEFAULT,
 	}
 	if not Match.accepts_new_players() or Match.is_team_mode():
 		_set_spectator(players[id], NetworkTime.tick)
@@ -248,7 +250,7 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		players[attacker_id].hits += 1
 		players[attacker_id].headshots += 1 if headshot else 0
 	# Kazde trafienie przerywa leczenie i odlicza czas od nowa.
-	victim.regen_tick = -1 if killed or Match.is_elimination() else NetworkTime.tick + NetworkTime.seconds_to_ticks(REGEN_DELAY_SECONDS)
+	victim.regen_tick = -1 if killed or not Match.uses_regen() else NetworkTime.tick + NetworkTime.seconds_to_ticks(REGEN_DELAY_SECONDS)
 	_regen_carry.erase(victim_id)
 	if killed:
 		victim.alive = false
@@ -260,7 +262,7 @@ func server_damage(victim_id: int, amount: int, attacker_id: int, source := Vect
 		victim.killer_id = attacker_id
 		victim.killer_health = players[attacker_id].health if players.has(attacker_id) else 0
 		victim.death_headshot = headshot
-		if not Match.is_elimination():
+		if Match.has_respawn():
 			victim.spawn_index = _safest_spawn(victim_id)
 		_drop_loot_on_death(victim_id)
 		Match.server_on_player_out(victim_id)
@@ -348,7 +350,7 @@ func server_finish_respawn(id: int) -> void:
 	info.health = MAX_HEALTH
 	info.regen_tick = -1
 	info.hit_tick = -1
-	if not Match.is_elimination():
+	if Match.has_respawn():
 		info.protected_until = NetworkTime.tick + NetworkTime.seconds_to_ticks(SPAWN_PROTECTION_SECONDS)
 		_give_debug_items(id)
 	print("[serwer] %s wraca do gry" % display_name(id))
@@ -356,7 +358,8 @@ func server_finish_respawn(id: int) -> void:
 
 
 ## Gracz wybral druzyne. Kto juz byl w grze, wraca od razu po stronie nowej druzyny, bez punktu
-## smierci. Kto ogladal, dolacza do meczu.
+## smierci. Kto ogladal, dolacza do meczu. W Rundach wejscie do gry jest tylko w czasie wyboru
+## zestawu, a poza nim gracz czeka na nastepna runde jako widz swojej druzyny.
 func server_set_team(id: int, team: int) -> void:
 	var info: Dictionary = players.get(id, {})
 	if info.is_empty():
@@ -371,6 +374,13 @@ func server_set_team(id: int, team: int) -> void:
 	info.killer_id = ZONE_ATTACKER
 	info.death_weapon = {}
 	info.spawn_index = _safest_spawn(id)
+	if Match.is_rounds_mode():
+		info.slots = Inventory.empty_slots()
+		info.inventory_tick = NetworkTime.tick
+		if Match.in_buy_time():
+			_give_loadout(id)
+		else:
+			info.respawn_tick = Match.NEVER_TICK
 	print("[serwer] %s gra w druzynie %s" % [info.name, Teams.name_of(team)])
 	_broadcast(id)
 
@@ -383,9 +393,10 @@ func server_set_ready(id: int, value: bool) -> void:
 
 
 ## Przygotowuje gracza do rundy: czysty stan i przeniesienie na miejsce w podanym ticku.
-## Dziala dla meczu Battle Royale i dla nowej rundy Deathmatchu.
+## Dziala dla meczu Battle Royale, nowej rundy Deathmatchu i kazdej rundy w trybie Rundy.
+## W Rundach zabojstwa i statystyki zostaja do konca meczu, wiec reset_stats jest wtedy false.
 ## Martwy ma juz inny respawn_id niz postac, wiec wystarczy mu nowy czas odrodzenia.
-func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
+func server_prepare_round(id: int, spawn_index: int, tick: int, reset_stats := true) -> void:
 	var info: Dictionary = players[id]
 	info.ready = false
 	info.in_match = true
@@ -394,14 +405,15 @@ func server_prepare_round(id: int, spawn_index: int, tick: int) -> void:
 	info.health = MAX_HEALTH
 	info.regen_tick = -1
 	info.hit_tick = -1
-	info.kills = 0
-	info.deaths = 0
 	info.streak = 0
 	info.multi = 0
-	info.shots = 0
-	info.hits = 0
-	info.headshots = 0
-	_first_blood = false
+	if reset_stats:
+		info.kills = 0
+		info.deaths = 0
+		info.shots = 0
+		info.hits = 0
+		info.headshots = 0
+		_first_blood = false
 	info.slots = Inventory.empty_slots()
 	info.inventory_tick = tick
 	if info.alive:
@@ -530,7 +542,32 @@ func _give_starter(id: int) -> void:
 func _give_starting_items(id: int) -> void:
 	if Match.starts_armed():
 		_give_starter(id)
+	elif Match.is_rounds_mode() and players[id].get("team", Teams.NONE) != Teams.NONE:
+		_give_loadout(id)
 	_give_debug_items(id)
+
+
+## Przedmioty z wybranego zestawu, do pustych slotow.
+func _give_loadout(id: int) -> void:
+	for item_id: StringName in Loadouts.items_of(players[id].get("loadout", Loadouts.DEFAULT)):
+		server_give_item(id, item_id, Rarity.Tier.COMMON)
+
+
+## Tryb Rundy: zapamietuje zestaw na kolejne rundy. W czasie wyboru zywy gracz dostaje go od razu
+## w miejsce poprzedniego. Po starcie walki zmiana dziala dopiero od nastepnej rundy.
+func server_set_loadout(id: int, index: int) -> void:
+	var info: Dictionary = players.get(id, {})
+	if info.is_empty() or not Loadouts.is_valid(index) or info.loadout == index:
+		return
+	info.loadout = index
+	if Match.in_buy_time() and info.alive and info.team != Teams.NONE:
+		info.slots = Inventory.empty_slots()
+		info.inventory_tick = NetworkTime.tick
+		_adding_player = true
+		_give_loadout(id)
+		_adding_player = false
+	print("[serwer] %s wybiera zestaw %s" % [info.name, Loadouts.name_of(index)])
+	_broadcast(id)
 
 
 func _give_debug_items(id: int) -> void:
@@ -552,7 +589,7 @@ func _give_debug_items(id: int) -> void:
 ## Zwykly zdobyty przedmiot zostaje na ziemi, a jeden startowy blaster przy graczu.
 ## Kto swoj wyrzucil, dostaje nowy, zeby nikt nie wracal do gry z pustymi rekami.
 func _drop_loot_on_death(id: int) -> void:
-	if Match.is_elimination():
+	if not Match.has_respawn():
 		_scatter_loot(id, false)
 		return
 	var kept_starter := _scatter_loot(id, true)

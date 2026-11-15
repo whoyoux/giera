@@ -1,6 +1,12 @@
 # Zasady interfejsu
 
-Styl gry to kolorowe naklejki: kremowy papier, biała gruba obwódka, miękki cień, zaokrąglone rogi i font Fredoka. Wszystko buduje `scripts/ui/ui_style.gd` (`UiStyle`), a nowe okna i karty korzystają z niego, zamiast ustawiać kolory i style od zera.
+Styl gry jest taktyczny i nowoczesny: ciemne grafitowe panele z cienką krawędzią 1 px, małe zaokrąglenia (2–6 px), bez przechyleń i sprężynujących animacji, oraz font Archivo (zmienna szerokość i grubość). Kolor to sygnał, a nie ozdoba: większość interfejsu jest neutralna, a akcent dostaje tylko to, co ważne. Wszystko buduje `scripts/ui/ui_style.gd` (`UiStyle`), a nowe okna i karty korzystają z niego, zamiast ustawiać kolory i style od zera.
+
+Czcionki z `UiStyle`:
+
+- `label(..., bold)`: zwykły tekst (Archivo 470) i gruby, lekko zwężony (680).
+- `display_label`: bardzo gruby, wąski krój (800, szerokość 72) do dużych liczb i tytułów: zegar, wynik, zdrowie, amunicja, tytuł okna.
+- `eyebrow`: mały nadtytuł wielkimi literami, np. „KONIEC RUNDY”, „ADRES SERWERA”.
 
 Każdą zmianę wyglądu sprawdzamy na zrzucie ekranu 1280×720, zanim uznamy ją za gotową.
 
@@ -27,7 +33,7 @@ Odstępy biorą wartości ze skali **4, 8, 12, 16, 20, 24**.
 
 - **Wnętrze panelu** (okno, karta wyników): margines 16–20 z każdej strony, po bokach może być 20–24.
 - **Wnętrze małej karty** (np. karta mapy): margines co najmniej 12. Tekst nigdy nie stoi bliżej niż 12 px od krawędzi karty, licząc od wewnętrznej strony obwódki.
-- **Obwódka nie jest odstępem.** `content_margin` w `StyleBoxFlat` liczy się od zewnętrznej krawędzi i obejmuje obwódkę, więc ustawiamy go jako obwódka + odstęp (np. `5 + 12`). Margines 8 przy obwódce 5 zostawia tekstowi tylko 3 px.
+- **Obwódka nie jest odstępem.** `content_margin` w `StyleBoxFlat` liczy się od zewnętrznej krawędzi i obejmuje obwódkę. Krawędź panelu ma 1 px (`UiStyle.BORDER`). Starsze wywołania `UiStyle.sticker(kolor, promień, obwódka)` podają dawne liczby (np. `5 + 12`). `sticker` traktuje promień tylko jako wskazówkę (`UiStyle.corner`), a grubość obwódki pomija.
 - Między elementami jednej grupy (tytuł i podtytuł, ikona i podpis): 4–8. Między grupami w panelu: 12–16. Między osobnymi kartami: 12–16.
 - Obraz w karcie (miniaturka, ikona) ma ten sam margines od krawędzi co tekst, żeby wszystko stało w jednej linii.
 - Zaokrąglenia zagnieżdżone: promień w środku = promień na zewnątrz − margines (np. karta 18 z marginesem 10 → obrazek 8). Inaczej rogi wyglądają krzywo.
@@ -41,22 +47,29 @@ Odstępy biorą wartości ze skali **4, 8, 12, 16, 20, 24**.
 
 ## 4. Klikalne rzeczy wyglądają na klikalne
 
-- Wszystko, co można kliknąć, ma trzy stany: zwykły, pod kursorem (jaśniejsze tło i żółta obwódka `SUN`) i wybrany (`BLUE`).
-- Pod kursorem pojawia się rączka (`CURSOR_POINTING_HAND`) i cichy dźwięk `HOVER`, a kliknięcie gra `CONFIRM` i lekko podskakuje.
+- Wszystko, co można kliknąć, ma trzy stany: zwykły, pod kursorem (jaśniejsze tło i cienka jasna krawędź, a karty żółtą krawędź `SUN`) i wybrany.
+- Przyciski: jeden główny w oknie ma kolor akcentu (`CORAL`, np. „Dołącz do gry”), reszta to `UiStyle.secondary_button` (neutralne tło `NEUTRAL`). Nie kolorujemy przycisków tylko po to, żeby się różniły.
+- Zakładki, filtry i wybór trybu działają jak przełącznik segmentowy: wybrany jest jasny (`INK`) z ciemnym tekstem (`DEEP`), pozostałe neutralne. Kolor zmienia `UiStyle.paint_button`.
+- Pod kursorem pojawia się rączka (`CURSOR_POINTING_HAND`) i cichy dźwięk `HOVER`. Przycisk lekko rośnie (`ButtonFeel`), ale się nie przechyla, a kliknięcie gra `CONFIRM`.
 - Jeśli coś działa też z klawiatury, pokazujemy klawisz w ciemnym znaczku (`UiStyle.key_chip` albo `ActionChip`), a jego nazwę bierzemy z `Keybinds.label_of`, nigdy na sztywno.
 - Panel z wyborem ma krótki tytuł, co wybieramy, i jednozdaniową podpowiedź jak.
 - Gdy gra czeka na kliknięcie, kursor jest widoczny. Po wyborze lub końcu etapu znika, a kliknięcie, które go schowało, nie strzela.
 
 ## 5. Kolory
 
-- Tło okien i kart: `PAPER`, w kartach zagnieżdżonych ciemniejszy krem `f3ecdd`. Tekst: `INK`.
-- Akcent i wybór: `BLUE`. Ostrzeżenie i zwycięzca: `CORAL`. Najechanie i odliczanie: `SUN`. Dobrze/gotowe: `TEAL`.
+- Tło okien: `PAPER` (ciemny grafit, nieprzezroczysty). Karta lub pole w oknie: `PANEL_2` (o ton jaśniejsza) albo `UiStyle.flat`. Elementy HUD w trakcie walki: `HUD_FILL` (półprzezroczysty, żeby nie zasłaniał gry).
+- Tekst: `INK` (jasny), drugi plan `INK` z przezroczystością 0.55–0.65.
+- `DEEP` (prawie czerń) to tło znaczków klawiszy (`UiStyle.chip_box`), przyciemnienie gry pod oknem i obrys napisów na obrazie gry. Nie używamy do tego `INK`, bo jest jasny.
+- Na jasnym albo kolorowym tle (żółta seria, wybrany wycinek koła tańców, wybrana zakładka) tekst jest ciemny (`DEEP`).
+- Główny przycisk i akcent marki: `CORAL`. Wybór i „to ty” w tabelach: `BLUE`. Najechanie, odliczanie i seria: `SUN`. Dobrze/gotowe/leczenie: `TEAL`. Pasek zdrowia jest jasny, a przy niskim zdrowiu `CORAL`.
+- **Bez cieni i bez kolorowych pudełek.** Panele są płaskie. Kolor sygnałowy (drużyna, ostrzeżenie, seria, klasa przedmiotu) nie wypełnia panelu, tylko daje ciemny półprzezroczysty pasek z lekkim odcieniem i grubszą krawędzią w tym kolorze (`UiStyle.accent`, a dla zmian w locie `paint_accent` i `paint_plain`). `UiStyle.sticker` z nasyconym kolorem robi to samo automatycznie. Tekst na takim pasku zostaje jasny, a kolor może dostać sama liczba (wynik drużyny, zegar w ostatnich 30 s). Pełnym kolorem zostają tylko małe elementy: próbka koloru drużyny, awatar, numer slotu.
+- Mapka to ciemny, półprzezroczysty radar z cienką obwódką. Poza strefą ma czerwony odcień.
 - Tekst na obrazku dostaje własne tło (znaczek), nigdy nie leży gołym tekstem na zdjęciu.
 
 ## 6. Układ na ekranie
 
 - Okna w trakcie gry nie zasłaniają środka ekranu ani tego, na co gracz ma patrzeć (np. postaci na podium).
-- **Strefa walki** to prostokąt na środku ekranu: 40% szerokości i 50% wysokości (przy 1280×720: x 384–896, y 180–540). Wolno w niej być tylko celownikowi, lunecie, wskaźnikowi kierunku obrażeń, liczbom obrażeń, kołu tańców i oknom modalnym (pauza, tabela, wybór drużyny). Wyjątki to napisy, gdy gracz nie walczy: o śmierci i odliczanie na starcie rundy, gdy postać stoi w miejscu. Sprawdza to `hud_layout_test`, a `tools/hud_sizes_probe.gd` wypisuje linie `STREFA WALKI`.
+- **Strefa walki** to prostokąt na środku ekranu: 40% szerokości i 50% wysokości (przy 1280×720: x 384–896, y 180–540). Wolno w niej być tylko celownikowi, lunecie, wskaźnikowi kierunku obrażeń, liczbom obrażeń, kołu tańców i oknom modalnym (pauza, tabela, wybór drużyny). Wyjątki to napisy, gdy gracz nie walczy: o śmierci, odliczanie na starcie rundy, gdy postać stoi w miejscu, i panel zestawów w trybie Rundy (widoczny tylko w czasie wyboru, w siatce 2 × 2, żeby nie nachodził na czat). Sprawdza to `hud_layout_test`, a `tools/hud_sizes_probe.gd` wypisuje linie `STREFA WALKI`.
 - **Stałe elementy walki** (zegar, „Najlepsi”, liczniki drużyn, zdrowie, amunicja, pasek przedmiotów, podpowiedź o wyrzucaniu, mapka, pasek strefy) zajmują razem najwyżej **20% ekranu**.
 - **Lista zabójstw**: najwyżej 4 wiersze, cała najwyżej **300 × 150 px**, co najmniej **16 px** od sąsiednich elementów przy najdłuższych nickach.
 - **Napis pod zegarem** (baner, seria): naklejka najwyżej **340 px**.

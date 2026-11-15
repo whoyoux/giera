@@ -35,7 +35,7 @@ var _copied_until := 0.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := UiStyle.sticker(UiStyle.PAPER, 14, 3)
+	var style := UiStyle.sticker(UiStyle.HUD_FILL, 14, 3)
 	style.set_content_margin_all(10)
 	style.content_margin_left = 14
 	style.content_margin_right = 14

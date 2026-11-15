@@ -18,7 +18,7 @@ func _ready() -> void:
 	_check("kazda klasa ma inny model", common.visual.model_path != epic.visual.model_path and epic.visual.model_path != legendary.visual.model_path)
 	_check("modele i ikony istnieja", _visuals_exist(blaster))
 	_check("wyzsza klasa ma silniejszy odrzut", common.recoil < epic.recoil and epic.recoil < legendary.recoil)
-	_check("nazwa dla gracza", ItemStack.display_name_of(ItemStack.create(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC)) == "Epicki Blaster")
+	_check("nazwa dla gracza", ItemStack.display_name_of(ItemStack.create(1, ItemRegistry.DEFAULT_WEAPON, Rarity.Tier.EPIC)) == "Epicki Karabinek")
 	_check("dzwieki strzalu sa rozne", Sfx.shot(common) != Sfx.shot(epic) and Sfx.shot(epic) != Sfx.shot(legendary))
 	_check("nazwy klas", Rarity.display_name(Rarity.Tier.EPIC) == "Epicki")
 	_check_shotgun()

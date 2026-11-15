@@ -5,8 +5,9 @@ extends RefCounted
 
 const NONE := -1
 const COUNT := 2
-## Pomarańcz i błękit różnią daltoniści każdego rodzaju.
-const NAMES: Array[String] = ["Kaktusy", "Żuczki"]
+## Pomarańcz i błękit różnią daltoniści każdego rodzaju. Nazwy są neutralne, jak oznaczenia
+## oddziałów, i pasują do zdań typu "drużyna Alfa".
+const NAMES: Array[String] = ["Alfa", "Bravo"]
 const COLORS: Array[Color] = [Color("ff8a1f"), Color("2f8cff")]
 ## Jaśniejszy odcień na tło karty i plakietki.
 const LIGHT: Array[Color] = [Color("ffd9b0"), Color("bcdcff")]

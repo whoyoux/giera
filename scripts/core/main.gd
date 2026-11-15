@@ -71,6 +71,8 @@ func _load_world(id: String) -> void:
 	Chests.clear_all()
 	var world := (load(Maps.info(id).scene_path) as PackedScene).instantiate() as Node3D
 	world.name = "World"
+	# Srodowisko sceny jest wspolne dla kolejnych wczytan tej mapy, a MapGrade zmienia je tylko raz.
+	MapGrade.apply(world)
 	add_child(world)
 	move_child(world, 0)
 	_chest_field = ChestField.new()

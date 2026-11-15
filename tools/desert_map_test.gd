@@ -27,7 +27,7 @@ func _ready() -> void:
 			team_counts[team] += 1
 	_check("co najmniej 16 punktow startu Deathmatchu", spawns.size() >= 16)
 	_check("co najmniej 8 punktow na druzyne (%s)" % str(team_counts), team_counts[0] >= 8 and team_counts[1] >= 8)
-	_check("Kaktusy startuja na polnocy, Zuczki na poludniu", _team_side(spawns, 0) < -40.0 and _team_side(spawns, 1) > 40.0)
+	_check("Alfa startuje na polnocy, Bravo na poludniu", _team_side(spawns, 0) < -40.0 and _team_side(spawns, 1) > 40.0)
 	_check("skrzynki na mapie", chests.size() >= 12)
 	_check("skrzynki zarejestrowane", Chests.chests.size() == chests.size())
 	_check("szesc miejsc z nazwami", Maps.info().places.size() >= 5)

@@ -4,16 +4,16 @@ extends Node
 ## Potem: godot --headless --path . --import, a ikony: --tool=res://tools/render_icons.gd --only=deagle,awp
 ## Uklad jak w paczce blasterow: lufa w -Z, gora w +Y, a wezel "magazine" wypada przy przeladowaniu.
 
-const GOLD := Color("e9b949")
-const GOLD_DARK := Color("b8862f")
-const INK := Color("3b3552")
-const GRIP := Color("6b4a3a")
-const STEEL := Color("8f96a8")
-const TEAL := Color("2f8f83")
-const TEAL_DARK := Color("226b62")
-const CORAL := Color("ef6f6c")
-const GLASS := Color("7fd3ff")
-const SILVER := Color("c4cbd9")
+const GOLD := Color("b8954a")
+const GOLD_DARK := Color("8a6a32")
+const INK := Color("2e3036")
+const GRIP := Color("4a3a30")
+const STEEL := Color("7d828b")
+const TEAL := Color("3e5a56")
+const TEAL_DARK := Color("2f4542")
+const CORAL := Color("9a4a42")
+const GLASS := Color("5f8fa8")
+const SILVER := Color("a7acb3")
 
 
 func _ready() -> void:

@@ -30,7 +30,7 @@ func _on_hit(details: Dictionary) -> void:
 	label.font_size = 64
 	label.outline_size = 14
 	label.modulate = Color("ffcb47") if headshot else (UiStyle.CORAL if details.get("killed", false) else Color.WHITE)
-	label.outline_modulate = UiStyle.INK
+	label.outline_modulate = UiStyle.DEEP
 	label.position = at + Vector3(randf_range(-0.2, 0.2), 0.3, randf_range(-0.2, 0.2))
 	add_child(label)
 	var tween := label.create_tween().set_parallel()

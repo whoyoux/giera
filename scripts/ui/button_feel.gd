@@ -4,11 +4,12 @@ extends Node
 ## Wszystkie stany przechodza przez jedno miejsce, wiec szybkie ruchy kursora nie zostawiaja
 ## przycisku przekrzywionego.
 
-const HOVER_SCALE := 1.035
-const PRESS_SCALE := 0.95
-const HOVER_TILT_DEGREES := -1.2
+const HOVER_SCALE := 1.015
+const PRESS_SCALE := 0.975
+## Styl taktyczny nie przechyla przyciskow. Stala zostaje dla tych, ktore chca to wlaczyc.
+const HOVER_TILT_DEGREES := 0.0
 const PRESS_SECONDS := 0.05
-const SETTLE_SECONDS := 0.14
+const SETTLE_SECONDS := 0.1
 
 var _button: BaseButton
 var _sound: Sfx.UiCue
@@ -100,10 +101,7 @@ func _settle() -> void:
 	if _tween != null:
 		_tween.kill()
 	_tween = create_tween().set_parallel()
-	if _held:
-		_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	else:
-		_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	var seconds := PRESS_SECONDS if _held else SETTLE_SECONDS
 	_tween.tween_property(_button, "scale", Vector2.ONE * target, seconds)
 	_tween.tween_property(_button, "rotation_degrees", tilt, seconds)

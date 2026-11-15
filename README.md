@@ -1,6 +1,6 @@
 # Giera
 
-Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki w pokoju pełnym wielkich zabawek.
+Strzelanka FPS multiplayer nastawiona na rywalizację: krótkie rundy, czytelna walka, serwer, który rozstrzyga każde trafienie, i stonowany, nowoczesny wygląd.
 
 ![Rozgrywka](docs/screenshots/gameplay.png)
 
@@ -12,13 +12,17 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 |---|---|---|---|
 | ![Wybór drużyny](docs/screenshots/tdm_lobby.png) | ![HUD Team Deathmatchu](docs/screenshots/tdm_hud.png) | ![Tabela drużyn](docs/screenshots/tdm_scoreboard.png) | ![Koniec rundy drużyn](docs/screenshots/tdm_results.png) |
 
+| Rundy: wybór zestawu | Rundy: wygrana runda | Rundy: koniec meczu |
+|---|---|---|
+| ![Wybór zestawu przed rundą](docs/screenshots/rounds_buy.png) | ![Wygrana runda](docs/screenshots/rounds_win.png) | ![Koniec meczu w trybie Rundy](docs/screenshots/rounds_results.png) |
+
 | Pustynia | Desert Eagle | Desert Eagle w ręku | Twoja runda | Wioska w dolinie |
 |---|---|---|---|---|
-| ![Targ na pustyni](docs/screenshots/desert_market.png) | ![Model Desert Eagle](docs/screenshots/deagle_po.png) | ![Desert Eagle w ręku](docs/screenshots/deagle_reka.png) | ![Statystyki rundy](docs/screenshots/dm_results.png) | ![Wioska w dolinie](docs/screenshots/valley_village_noc2.png) |
+| ![Targ na pustyni](docs/screenshots/desert_market.png) | ![Model Desert Eagle](docs/screenshots/deagle_po.png) | ![Desert Eagle w ręku](docs/screenshots/deagle_reka.png) | ![Statystyki rundy](docs/screenshots/dm_results.png) | ![Wioska w dolinie](docs/screenshots/valley_village.png) |
 
-| Lobby Battle Royale | Poza strefą | Wyniki meczu |
-|---|---|---|
-| ![Lobby Battle Royale](docs/screenshots/br_lobby.png) | ![Gracz poza strefą](docs/screenshots/br_zone.png) | ![Wyniki meczu](docs/screenshots/br_results.png) |
+| Lobby Battle Royale | Wyniki meczu |
+|---|---|
+| ![Lobby Battle Royale](docs/screenshots/br_lobby.png) | ![Wyniki meczu](docs/screenshots/br_results.png) |
 
 | Koło tańców | Taniec | Czat |
 |---|---|---|
@@ -42,19 +46,21 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 
 ## Co jest w grze
 
-- **Trzy tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, Team Deathmatch to walka dwóch drużyn, a w Battle Royale masz jedno życie.
-- **Team Deathmatch:** po wejściu wybierasz drużynę: pomarańczowe **Kaktusy** albo niebieskie **Żuczki** (albo „Losowo”). Drużyny różnią się najwyżej o jedną osobę. Liczą się zabójstwa całej drużyny, do 50. Nie ma ognia przyjacielskiego. Sojuszników poznasz po chuście w kolorze drużyny i plakietce widocznej przez ściany, a na mapce widać ich kropki. U góry ekranu jest wynik obu drużyn, pod Tab tabela w dwóch kolumnach, a na koniec rundy wygrana drużyna, MVP każdej z nich i podium zwycięzców.
+- **Wygląd:** ciemny, taktyczny interfejs z wąskim fontem do liczb, HUD przy krawędziach ekranu, który nie zasłania celownika, i jeden kolor akcentu. Świat jest low-poly, ale w stonowanych barwach: wspólna korekcja obrazu na wszystkich mapach, cegła i beton w Miasteczku, oliwkowa trawa w Dolinie, broń w kolorze metalu.
+- **Cztery tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, Team Deathmatch to walka dwóch drużyn, Rundy to drużynowy mecz na eliminację, a w Battle Royale masz jedno życie.
+- **Rundy:** dwie drużyny, Alfa i Bravo, na Pustyni. W rundzie masz jedno życie. Rundę wygrywa drużyna, która wyeliminuje przeciwników, a gdy skończy się czas (100 s), ta, która ma więcej żywych. Mecz wygrywa pierwsza drużyna z 5 wygranymi rundami. Przed każdą rundą drużyny stoją w swoich bazach przez 8 s i każdy wybiera zestaw klawiszami 1–4: **Szturm** (karabinek, nóż, granat), **Bliski dystans** (strzelba, Uzi, nóż), **Snajper** (AWP, Desert Eagle, nóż) albo **Zwiad** (Uzi, Desert Eagle, granat). Wszystkie bronie mają zwykłą klasę. Nie ma skrzynek ani regeneracji, a zabójstwa liczą się przez cały mecz, do MVP. Kto zginie, ogląda swoją drużynę. Kto dołączy w trakcie walki, wchodzi w następnej rundzie. Drużynę zmienisz tylko w czasie wyboru zestawu.
+- **Team Deathmatch:** po wejściu wybierasz drużynę: pomarańczowa **Alfa** albo niebieska **Bravo** (albo „Losowo”). Drużyny różnią się najwyżej o jedną osobę. Liczą się zabójstwa całej drużyny, do 50. Nie ma ognia przyjacielskiego. Sojuszników poznasz po chuście w kolorze drużyny i plakietce widocznej przez ściany, a na mapce widać ich kropki. U góry ekranu jest wynik obu drużyn, pod Tab tabela w dwóch kolumnach, a na koniec rundy wygrana drużyna, MVP każdej z nich i podium zwycięzców.
 - **Pustynia:** duża mapa (ok. 130 × 130 m) do Deathmatchu i Team Deathmatchu: Stacja z wagonami i wieżą ciśnień, gliniana Twierdza, Targ z płóciennymi daszkami, Kanion z mostem linowym, Oaza z palmami i Wydmy z wrakiem ciężarówki. Złote, niskie słońce, piasek niesiony wiatrem i toczące się krzaki-kulki.
-- **Odrzut broni:** każda broń kopie inaczej: Desert Eagle mocno podbija lufę i cofa zamek, AWP ciężko wchodzi w ramię i przeładowuje rygiel, strzelba szarpie i przesuwa pompkę, a blaster lekko drży. Siłę uderzenia kamery ustawisz w ustawieniach, a kierunek strzału się nie zmienia.
+- **Odrzut broni:** każda broń kopie inaczej: Desert Eagle mocno podbija lufę i cofa zamek, AWP ciężko wchodzi w ramię i przeładowuje rygiel, strzelba szarpie i przesuwa pompkę, a karabinek lekko drży. Siłę uderzenia kamery ustawisz w ustawieniach, a kierunek strzału się nie zmienia.
 - **Twoja runda:** po każdej rundzie widzisz swoje zabójstwa, śmierci, celność, trafienia w głowę, obrażenia, najdłuższe zabójstwo i ulubioną broń, ze strzałkami w porównaniu z poprzednią rundą.
 - **Rundy Deathmatchu:** runda trwa 5 minut albo do 25 zabójstw lidera. Na górze ekranu widać zegar, lidera i Twoje miejsce, a z boku najlepszą trójkę. Ostatnie 30 sekund ma wyraźny sygnał. Na koniec trójka zwycięzców tańczy na podium, są nagrody za zabójstwa, celność i trafienia w głowę, a po 12 s rusza nowa runda z czystym stanem. Między rundami głosujesz na następną mapę: klikasz jej kartę z podglądem albo naciskasz 1 lub 2.
-- **Mapy:** Deathmatch gra w kolorowym **Miasteczku** o zachodzie słońca, z ulicami, placem z fontanną, kamienicą i hotelem z wejściem na dach, kontenerami i zaułkami. Są tam drabiny, rura i dwa przejścia tylko w kucki. Battle Royale gra w dużej **Dolinie** (ok. 200 m promienia) z sześcioma miejscami: Stare ruiny, Wioska, Gospodarstwo, Kamieniołom, Jezioro z mostem i Obóz na wzgórzu, a między nimi drogi z drogowskazami, wozy, obozowiska, chaty i ruiny z łupem.
+- **Mapy:** Deathmatch gra w **Miasteczku** o zmierzchu, z ceglanymi kamienicami, ulicami, placem z fontanną, kamienicą i hotelem z wejściem na dach, kontenerami i zaułkami. Są tam drabiny, rura i dwa przejścia tylko w kucki. Battle Royale gra w dużej **Dolinie** (ok. 200 m promienia) z sześcioma miejscami: Stare ruiny, Wioska, Gospodarstwo, Kamieniołom, Jezioro z mostem i Obóz na wzgórzu, a między nimi drogi z drogowskazami, wozy, obozowiska, chaty i ruiny z łupem.
 - **Regeneracja w Deathmatchu:** nie ma apteczek. Po 6 s bez obrażeń zdrowie wraca o 8 punktów na sekundę, a każde trafienie przerywa leczenie.
 - **Desert Eagle i AWP:** Desert Eagle zabija dwoma trafieniami, a rzadki AWP jednym, z każdej odległości. Prawy przycisk z AWP daje lunetę na cały ekran, a strzał z niej wyrzuca.
 - **Trafienia w głowę:** inny znacznik i dźwięk (osobne dźwięki ma też zabójstwo, zabójstwo w głowę i zabójstwo z AWP), ikona na liście zabójstw i liczby obrażeń nad celem (można je wyłączyć).
 - **Ekran śmierci:** pokazuje, kto Cię zabił, jaką bronią i ile zdrowia mu zostało. W Deathmatchu odradzasz się z dala od wrogów i masz 2 s ochrony, która znika po strzale.
 - **Serie zabójstw:** pierwsza krew, podwójne i potrójne zabójstwo, serie i ich przerwanie.
-- **Zrzuty zaopatrzenia w Battle Royale:** skrzynia spada na spadochronie z kolorowym dymem i daje legendarny łup. Widać ją na mapce, a pod klawiszem M jest duża mapa z nazwami miejsc.
+- **Zrzuty zaopatrzenia w Battle Royale:** skrzynia spada na spadochronie z dymem sygnałowym i daje legendarny łup. Widać ją na mapce, a pod klawiszem M jest duża mapa z nazwami miejsc.
 - **Ślady po kulach:** pociski zostawiają ślady i odpryski w kolorze powierzchni, a metal sypie iskrami.
 - **Zbrojownia:** w menu głównym są wszystkie bronie i przedmioty z rodzajem, opisem, statystykami każdej klasy i szansą wypadnięcia ze skrzyni. Druga zakładka porównuje dwie bronie na wykresie i w tabeli.
 - **Statystyki:** zabójstwa, celność i ulubiona broń zapisane tylko na Twoim komputerze, w menu pod przyciskiem Statystyki. Przy pierwszej grze samouczek pokazuje Twoje klawisze.
@@ -66,7 +72,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Uzi:** pistolet maszynowy, który sypie 12 pociskami na sekundę i dobrze strzela w biegu. Najgroźniejszy z bliska, bo z daleka rozrzut zjada większość serii.
 - **Nóż:** dwa ciosy zabijają, nie ma naboi, a z nożem w ręku biegniesz szybciej.
 - **Ekwipunek na 4 sloty:** szybka zmiana broni klawiszami lub scrollem, osobna amunicja w każdej broni.
-- **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Każda daje jeden przedmiot: blaster, strzelbę, nóż, Desert Eagle, AWP, apteczkę albo granat (apteczki tylko w Battle Royale), a po minucie wraca. Wśród broni z klasami 55% to zwykłe, 35% epickie i 10% legendarne.
+- **Skrzynki z łupem:** rozsiane po mapie, otwierane przez przytrzymanie klawisza. Każda daje jeden przedmiot: karabinek, strzelbę, nóż, Desert Eagle, AWP, apteczkę albo granat (apteczki tylko w Battle Royale), a po minucie wraca. Wśród broni z klasami 55% to zwykłe, 35% epickie i 10% legendarne.
 - **Tańce:** przytrzymanie klawisza otwiera koło z 6 tańcami, każdy z własnym ruchem i muzyką, którą słyszą też gracze obok. Kamera odjeżdża wtedy za postać, a każdy ruch przerywa taniec.
 - **Lista zabójstw:** pokazuje, kto kogo zabił i jaką bronią.
 - **Czat:** wiadomości widać nad paskiem zdrowia przez chwilę, a po otwarciu czatu całą rozmowę. Znikają po wyjściu z gry, bo nikt ich nie zapisuje.
@@ -83,7 +89,7 @@ Kolorowa strzelanka FPS multiplayer, w której gracze walczą jako małe figurki
 - **Mapy brzmią po swojemu:** na Pustyni faluje wiatr, w Oazie pluszcze woda i szeleszczą palmy, na Targu łopocze płótno, na Stacji skrzypi wieża i stuka blacha wagonów, w Kanionie wyje wiatr i trzeszczą liny mostu, a na Wydmach syczy piasek i grają cykady. W Miasteczku słychać fontannę na placu, a w Dolinie fale jeziora i odgłosy Wioski.
 - **Zmiana klawiszy:** w ustawieniach, w menu i w pauzie, można przypisać każdą akcję do klawisza albo przycisku myszy. Zajęty klawisz zamienia się z poprzednim, a podpowiedzi w grze pokazują aktualne przypisanie.
 - **Sprint z limitem:** pasek zużywa się w biegu i odnawia po chwili odpoczynku.
-- **Leśna polana:** mapa w menu i druga mapa do głosowania w Deathmatchu, z ruinami i wieżą na środku, wzgórze, strumień i gęsty las dookoła, szum wiatru, śpiew ptaków i kroki zależne od podłoża, animowane postacie i żywy interfejs w stylu naklejek, który reaguje ruchem i dźwiękiem, z osobną głośnością.
+- **Leśna polana:** mapa w menu i druga mapa do głosowania w Deathmatchu, z ruinami i wieżą na środku, wzgórze, strumień i gęsty las dookoła, szum wiatru, śpiew ptaków i kroki zależne od podłoża, animowane postacie i interfejs, który odpowiada na najechanie i kliknięcie krótkim dźwiękiem, z osobną głośnością.
 - **Czytelna walka:** kierunek trafienia, znaczniki trafień, lista zabójstw i tabela wyników z pingiem.
 
 ## Jak zagrać
@@ -95,9 +101,9 @@ Pobierasz ją tylko raz: przy każdym uruchomieniu gra sama sprawdza i instaluje
 - **Windows:** rozpakuj `Giera-Windows.zip` do jednego folderu i uruchom `Giera.exe`. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
 - **macOS:** rozpakuj `Giera-macOS.zip` i uruchom `Giera.app`. Aplikacja nie ma podpisu Apple, więc przy pierwszym uruchomieniu wybierz **Otwórz mimo to** w **Ustawienia systemowe → Prywatność i ochrona**.
 
-Jeśli Steam jest włączony, gra zaloguje Cię sama. W innym wypadku wpisz nick. Potem podaj adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu UDP: 7777 dla Deathmatchu, 7778 dla Battle Royale, 7779 dla Team Deathmatchu.
+Jeśli Steam jest włączony, gra zaloguje Cię sama. W innym wypadku wpisz nick. Potem podaj adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu UDP: 7777 dla Deathmatchu, 7778 dla Battle Royale, 7779 dla Team Deathmatchu, 7780 dla Rund.
 
-Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d --build`.
+Serwery dedykowane wszystkich trybów uruchamia jedno polecenie: `docker compose up -d --build`.
 
 ## Sterowanie
 
@@ -113,13 +119,13 @@ Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d 
 | **Spacja** | Skok |
 | **Ctrl** | Kucanie (przytrzymaj), w sprincie ślizg |
 | **M** | Duża mapa w Battle Royale i Team Deathmatchu (przytrzymaj) |
-| **1–4 / scroll** | Zmiana broni, a na ekranie wyników głos na mapę |
+| **1–4 / scroll** | Zmiana broni, a na ekranie wyników głos na mapę. W Rundach przed startem rundy wybór zestawu |
 | **E** | Podniesienie przedmiotu, przytrzymanie otwiera skrzynkę |
 | **G** | Wyrzucenie przedmiotu |
 | **B** | Przytrzymanie otwiera koło tańców. Puszczenie albo LPM wybiera taniec, a ruch go przerywa |
 | **T** | Czat. Enter wysyła, Esc zamyka |
-| **Y** | Czat drużyny w Team Deathmatchu |
-| **N** | Wybór drużyny w Team Deathmatchu |
+| **Y** | Czat drużyny w Team Deathmatchu i Rundach |
+| **N** | Wybór drużyny w Team Deathmatchu i Rundach |
 | **Tab** | Wyniki |
 | **Esc** | Pauza i ustawienia |
 
@@ -133,4 +139,4 @@ Godot 4.7, GDScript i [netfox](https://github.com/foxssake/netfox). Serwer decyd
 
 Kod i własne pliki projektu są udostępnione wyłącznie do wglądu, a wszelkie prawa są zastrzeżone. Szczegóły są w pliku [LICENSE](LICENSE).
 
-Składniki innych autorów zachowują swoje licencje: [netfox](https://github.com/foxssake/netfox) (MIT), [GodotSteam](https://codeberg.org/godotsteam/godotsteam) (MIT), biblioteki Steamworks SDK (umowa Valve), postacie [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers) (CC0), [KayKit Skeletons](https://kaylousberg.itch.io/kaykit-skeletons) (CC0), [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) (CC0), [KayKit Forest Nature Pack](https://kaylousberg.itch.io/kaykit-forest) (CC0) i czcionka Fredoka (SIL OFL). Pliki licencji leżą przy zasobach.
+Składniki innych autorów zachowują swoje licencje: [netfox](https://github.com/foxssake/netfox) (MIT), [GodotSteam](https://codeberg.org/godotsteam/godotsteam) (MIT), biblioteki Steamworks SDK (umowa Valve), postacie [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers) (CC0), [KayKit Skeletons](https://kaylousberg.itch.io/kaykit-skeletons) (CC0), [Kenney Blaster Kit](https://kenney.nl/assets/blaster-kit) (CC0), [KayKit Forest Nature Pack](https://kaylousberg.itch.io/kaykit-forest) (CC0) i czcionka [Archivo](https://github.com/Omnibus-Type/Archivo) (SIL OFL). Pliki licencji leżą przy zasobach.

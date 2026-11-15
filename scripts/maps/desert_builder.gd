@@ -2,24 +2,25 @@ class_name DesertBuilder
 extends CityBuilder
 ## Pustynia dla Deathmatchu i Team Deathmatchu, okolo 130 x 130 m, budowana kodem przy starcie.
 ## Korzysta z klockow miasteczka (sciany, plyty, pochylnie, drabiny), ale ma wlasny uklad.
-## Uklad (x w prawo, z w dol mapy): na polnocy stacja kolejki z wagonami (baza Kaktusow), na poludniu
-## gliniana twierdza (baza Zuczkow). Srodek przecinaja trzy trasy: na zachodzie kanion z mostem
+## Uklad (x w prawo, z w dol mapy): na polnocy stacja kolejki z wagonami (baza druzyny Alfa), na poludniu
+## gliniana twierdza (baza druzyny Bravo). Srodek przecinaja trzy trasy: na zachodzie kanion z mostem
 ## linowym miedzy dwoma plaskowyzami, posrodku targ z placiennymi daszkami, a na wschodzie oaza z palmami.
 ## Miedzy targiem a twierdza leza wydmy z wrakiem ciezarowki. Brzeg mapy to skaly kanionu.
 
 const DESERT_HALF := 65.0
-const SAND := Color("f0c07c")
-const SAND_DARK := Color("e3b26f")
-const SAND_LIGHT := Color("f8dca6")
-const ROCK: Array[Color] = [Color("d9824f"), Color("c96f45"), Color("e79a62"), Color("b9603e")]
-const MUD := Color("d9a46c")
-const MUD_DARK := Color("b98552")
-const CANVAS: Array[Color] = [Color("ef6f6c"), Color("2ec4b6"), Color("ffcb47"), Color("9b7bff"), Color("f78fb3"), Color("5b8def")]
-const PALM_TRUNK := Color("a8784e")
-const PALM_LEAF := Color("5fbf6a")
-const WATER := Color("4fc3e8")
+const SAND := Color("d6ad74")
+const SAND_DARK := Color("c49a63")
+const SAND_LIGHT := Color("e2c696")
+const ROCK: Array[Color] = [Color("b9744c"), Color("a66242"), Color("c4875c"), Color("94553a")]
+const MUD := Color("bf9466")
+const MUD_DARK := Color("9c754e")
+## Plotno na straganach: wyplowiale barwniki, a nie kredki.
+const CANVAS: Array[Color] = [Color("8c3f36"), Color("3e6662"), Color("b38d45"), Color("5b4a63"), Color("a0705f"), Color("3f566e")]
+const PALM_TRUNK := Color("7d5a3d")
+const PALM_LEAF := Color("4f7a46")
+const WATER := Color("3f6f7a")
 const RAIL := Color("6b6e7a")
-const WAGONS: Array[Color] = [Color("e4572e"), Color("3a6ea5"), Color("2f8f83"), Color("f2a541")]
+const WAGONS: Array[Color] = [Color("8e3f2c"), Color("3d5670"), Color("3b6560"), Color("a8813f")]
 ## Wysokosc plaskowyzow kanionu i mostu miedzy nimi.
 const MESA_HEIGHT := 5.0
 ## Wieze twierdzy sa wyzsze od murow, zeby z tarasu bylo widac nad nimi.
@@ -28,7 +29,7 @@ const TOWER_HEIGHT := 5.0
 const POND_CENTER := Vector2(42.0, 2.0)
 const POND_RADIUS := 6.5
 
-## Punkty startu Team Deathmatchu: x, z, wysokosc podlogi. Kaktusy na stacji, Zuczki w twierdzy.
+## Punkty startu Team Deathmatchu: x, z, wysokosc podlogi. Alfa na stacji, Bravo w twierdzy.
 const TEAM_SPAWNS: Array[Array] = [
 	[
 		Vector3(-18.0, -52.0, 0.0), Vector3(-10.0, -51.0, 0.0), Vector3(-2.0, -52.0, 0.0), Vector3(6.0, -51.0, 0.0),
@@ -139,7 +140,7 @@ func _rock(center: Vector3, size: Vector3, color: Color, rot_y := 0.0, collide :
 	_box(center, size, color, collide, false, rot_y, minf(0.6, size.y * 0.15))
 
 
-# --- Stacja kolejki (baza Kaktusow) -------------------------------------------
+# --- Stacja kolejki (baza druzyny Alfa) -------------------------------------------
 
 ## Tory wzdluz calej polnocy, peron z budynkiem stacji, wagony do oslony i wieza cisnien z drabina.
 func _build_station() -> void:
@@ -247,7 +248,7 @@ func _barrel(at: Vector3) -> void:
 		LowPoly.part(_visuals, LowPoly.cylinder(0.47, 0.47, 0.08, 10), Color("3b3d46"), at + Vector3.UP * 0.3)
 
 
-# --- Gliniana twierdza (baza Zuczkow) ----------------------------------------
+# --- Gliniana twierdza (baza druzyny Bravo) ----------------------------------------
 
 ## Ruiny glinianego fortu: mury z wyrwami, dwie wieze z pochylniami na szczyt i studnia na dziedzincu.
 func _build_fort() -> void:

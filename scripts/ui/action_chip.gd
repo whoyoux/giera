@@ -11,12 +11,9 @@ static func create(action_name: String, chip_size: float, font_size: int) -> Act
 	chip.action = action_name
 	chip.custom_minimum_size = Vector2.ONE * chip_size
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = UiStyle.INK
-	style.set_corner_radius_all(10)
+	var style := UiStyle.chip_box()
 	style.content_margin_left = 8
 	style.content_margin_right = 8
-	style.anti_aliasing = true
 	chip.add_theme_stylebox_override("panel", style)
 	chip._label = UiStyle.label("", font_size, Color.WHITE)
 	chip._label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

@@ -88,7 +88,7 @@ func _build() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	add_child(column)
-	var title := UiStyle.label("Twoja postać", 17, UiStyle.INK, false)
+	var title := UiStyle.eyebrow("Twoja postać")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 
@@ -115,7 +115,7 @@ func _build() -> void:
 	row.add_theme_constant_override("separation", 8)
 	column.add_child(row)
 	row.add_child(_arrow("<", -1))
-	_name_label = UiStyle.label("", 22, UiStyle.BLUE)
+	_name_label = UiStyle.label("", 22, UiStyle.INK)
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_name_label)
@@ -123,7 +123,7 @@ func _build() -> void:
 
 
 func _arrow(text: String, direction: int) -> Button:
-	var button := UiStyle.button(text, UiStyle.TEAL, Color.WHITE, Sfx.UiCue.NONE)
+	var button := UiStyle.secondary_button(text, Sfx.UiCue.NONE)
 	button.name = "Next" if direction > 0 else "Previous"
 	button.custom_minimum_size = ARROW_SIZE
 	button.pressed.connect(step.bind(direction))

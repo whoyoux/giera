@@ -40,7 +40,7 @@ static func visual_of(stack: Dictionary) -> ItemVisual:
 	return definition.visual(tier_of(stack)) if definition != null else null
 
 
-## Nazwa do pokazania graczowi, np. "Epicki Blaster".
+## Nazwa do pokazania graczowi, np. "Epicki Karabinek".
 static func display_name_of(stack: Dictionary) -> String:
 	var definition := definition_of(stack)
 	if definition == null:

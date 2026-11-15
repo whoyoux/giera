@@ -19,20 +19,21 @@ const SHADOW_MIN_SIZE := 1.6
 const BORDER_SEGMENTS := 64
 const BORDER_HEIGHT := 60.0
 
-const GRASS := Color("6aa84a")
-const GRASS_DARK := Color("4f8a3a")
-const MEADOW := Color("8cc25a")
+const GRASS := Color("5b7f3f")
+const GRASS_DARK := Color("46682f")
+const MEADOW := Color("7a9a4c")
 const DIRT := Color("a8834f")
-const SAND := Color("d8c58c")
+const SAND := Color("bfae7f")
 const ROCK := Color("9a958c")
-const RIM := Color("4a7a36")
+const RIM := Color("3f5e2e")
 const STONE := Color("b9b3a6")
 const STONE_DARK := Color("8f897e")
 const WOOD := Color("a8784e")
 const WOOD_DARK := Color("7a5236")
-const ROOF_RED := Color("d9604f")
-const WALLS: Array[Color] = [Color("f6e3c3"), Color("f2c38b"), Color("cfe3b4"), Color("f3d1d8"), Color("cfdcf2")]
-const WATER := Color(0.34, 0.66, 0.86, 0.75)
+const ROOF_RED := Color("8e4a3c")
+## Tynk, wapno i stare drewno, przygaszone, zeby wies nie wygladala jak z bajki.
+const WALLS: Array[Color] = [Color("c9bba1"), Color("b39871"), Color("9da387"), Color("b0a096"), Color("a1a7ab")]
+const WATER := Color(0.24, 0.4, 0.47, 0.8)
 ## Male punkty miedzy miejscami z jedna skrzynka: miejsce i rodzaj.
 const OUTPOSTS: Array[Array] = [
 	[Vector2(-55.0, 20.0), "camp"], [Vector2(60.0, 35.0), "hut"], [Vector2(-40.0, -55.0), "ruin"],
@@ -108,6 +109,8 @@ func _build_terrain() -> void:
 		return
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
+	# Kolory w kodzie sa w sRGB. Bez tego Godot bierze je za liniowe i teren wychodzi wyblakly.
+	material.vertex_color_is_srgb = true
 	material.roughness = 1.0
 	var cells := size - 1
 	for cz in range(0, cells, CHUNK_CELLS):
@@ -343,7 +346,7 @@ func _build_farm(place: Dictionary) -> void:
 	var c: Vector2 = place.at
 	var barn := c + Vector2(-6, -4)
 	var y := _ground(barn.x, barn.y)
-	var color := Color("c8553d")
+	var color := Color("8a4434")
 	_box(Vector3(barn.x, y - 0.2, barn.y), Vector3(14.4, 0.8, 10.4), STONE_DARK)
 	for wall: Array in [[Vector2(0, -5), Vector3(14, 6, 0.3)], [Vector2(-7, 0), Vector3(0.3, 6, 10)], [Vector2(7, 0), Vector3(0.3, 6, 10)]]:
 		_box(Vector3(barn.x + wall[0].x, y + 0.2 + 3.0, barn.y + wall[0].y), wall[1], color)
@@ -361,10 +364,10 @@ func _build_farm(place: Dictionary) -> void:
 	_block(silo, Vector3(4.0, 9.0, 4.0), Color("d9d4c7"))
 	_block(silo, Vector3(4.6, 0.6, 4.6), Color("7d8597"), 0.0, 9.0)
 	for at: Vector2 in [Vector2(4, 8), Vector2(6, 9.5), Vector2(-2, 11), Vector2(12, 6)]:
-		_block(c + at, Vector3(1.6, 1.3, 1.6), Color("e6c35c"))
+		_block(c + at, Vector3(1.6, 1.3, 1.6), Color("b59a52"))
 	# Traktor jako oslona.
-	_block(c + Vector2(12, 1), Vector3(2.0, 1.4, 3.2), Color("2ec4b6"))
-	_block(c + Vector2(12, 0.4), Vector3(1.6, 1.0, 1.4), Color("2ec4b6").lightened(0.2), 0.0, 1.4)
+	_block(c + Vector2(12, 1), Vector3(2.0, 1.4, 3.2), Color("3d6b66"))
+	_block(c + Vector2(12, 0.4), Vector3(1.6, 1.0, 1.4), Color("3d6b66").lightened(0.2), 0.0, 1.4)
 	for side: Array in [[Vector2(-20, -16), Vector2(-20, 16)], [Vector2(-20, 16), Vector2(0, 20)], [Vector2(20, -18), Vector2(20, 14)]]:
 		_fence(c + side[0], c + side[1])
 	for at: Vector2 in [Vector2(5, 3), Vector2(14, -4), Vector2(-14, 12), Vector2(0, 15), Vector2(16, 12), Vector2(-16, -14), Vector2(-10, 16)]:
@@ -380,13 +383,13 @@ func _build_quarry(place: Dictionary) -> void:
 	var deck := c + Vector2(12, 14)
 	var top := _ground(deck.x, deck.y) + 3.0
 	for offset: Vector2 in [Vector2(-2, -2), Vector2(2, -2), Vector2(-2, 2), Vector2(2, 2)]:
-		_block(deck + offset, Vector3(0.3, 3.0, 0.3), Color("ffcb47"))
+		_block(deck + offset, Vector3(0.3, 3.0, 0.3), Color("b8933f"))
 	_box(Vector3(deck.x, top, deck.y), Vector3(5.0, 0.25, 5.0), WOOD)
 	_ramp(Vector3(deck.x - 8.0, _ground(deck.x - 8.0, deck.y), deck.y), Vector3(deck.x - 2.4, top + 0.12, deck.y), 1.6, WOOD)
 	_chests.append(Vector3(deck.x, top + 0.12, deck.y))
 	for at: Vector2 in [Vector2(-3, -3), Vector2(4, 2), Vector2(-10, -12), Vector2(2, 12), Vector2(14, -6), Vector2(-12, 10), Vector2(10, -14)]:
 		_chest_at(c + at)
-	_block(c + Vector2(4, -2), Vector3(3.2, 1.6, 1.8), Color("f9a03f"))
+	_block(c + Vector2(4, -2), Vector3(3.2, 1.6, 1.8), Color("a8743a"))
 
 
 ## Jezioro z mostem, pomostem i lodka. Woda jest plytka, wiec da sie ja przejsc w brod.
@@ -417,7 +420,7 @@ func _build_lake(place: Dictionary) -> void:
 		_ramp(Vector3(end.x, _ground(end.x, end.y + sign_z * 4.0), end.y + sign_z * 4.0), Vector3(end.x, deck_y + 0.15, end.y), 3.2, WOOD)
 	var pier := c + Vector2(-place.radius * 0.6, -6.0)
 	_box(Vector3(pier.x, deck_y, pier.y), Vector3(8.0, 0.3, 2.4), WOOD)
-	_box(Vector3(pier.x + 6.0, -0.2, pier.y + 3.0), Vector3(1.4, 0.7, 3.2), Color("ef6f6c"))
+	_box(Vector3(pier.x + 6.0, -0.2, pier.y + 3.0), Vector3(1.4, 0.7, 3.2), Color("8a3f38"))
 	_chests.append(Vector3(c.x, deck_y + 0.15, c.y))
 	_chests.append(Vector3(pier.x - 2.0, deck_y + 0.15, pier.y))
 	for at: Vector2 in [Vector2(28, 10), Vector2(-26, 18), Vector2(20, -26), Vector2(-24, -22), Vector2(32, -8), Vector2(6, 30)]:
@@ -432,7 +435,7 @@ func _build_lake(place: Dictionary) -> void:
 ## Oboz na wzgorzu: namioty, wieza obserwacyjna i ognisko. Stad widac pol mapy.
 func _build_camp(place: Dictionary) -> void:
 	var c: Vector2 = place.at
-	for tent: Array in [[Vector2(-8, -4), 0.3, Color("2f8f83")], [Vector2(6, -7), -0.4, Color("f2a541")], [Vector2(-5, 8), 1.2, Color("5b8def")], [Vector2(9, 6), -1.0, Color("ef6f6c")]]:
+	for tent: Array in [[Vector2(-8, -4), 0.3, Color("3b6560")], [Vector2(6, -7), -0.4, Color("a8813f")], [Vector2(-5, 8), 1.2, Color("445f7d")], [Vector2(9, 6), -1.0, Color("8a3f38")]]:
 		var at: Vector2 = c + tent[0]
 		_block(at, Vector3(3.0, 1.6, 3.6), tent[2], tent[1])
 		if not _headless:
@@ -542,12 +545,12 @@ func _is_free(at: Vector2, radius: float, off_road := true) -> bool:
 func _haystack(at: Vector2, rot := 0.0) -> void:
 	if not _is_free(at, 1.2):
 		return
-	_block(at, Vector3(1.8, 1.3, 1.4), Color("e6c35c"), rot)
-	_block(at, Vector3(1.6, 0.6, 1.2), Color("f0d77a"), rot, 1.3)
+	_block(at, Vector3(1.8, 1.3, 1.4), Color("b59a52"), rot)
+	_block(at, Vector3(1.6, 0.6, 1.2), Color("c4ab65"), rot, 1.3)
 
 
 ## Woz z drabinami: skrzynia na kolach i dyszel. Skrzynia ma kolizje, kola tylko wyglad.
-func _cart(at: Vector2, rot: float, load_color := Color("e6c35c")) -> void:
+func _cart(at: Vector2, rot: float, load_color := Color("b59a52")) -> void:
 	if not _is_free(at, 2.2):
 		return
 	var center := _block(at, Vector3(1.8, 0.9, 3.2), WOOD, rot, 0.55)
@@ -674,7 +677,7 @@ func _signpost(at: Vector2, rot: float) -> void:
 	_box(Vector3(at.x, y + 1.2, at.y), Vector3(0.18, 2.4, 0.18), WOOD_DARK, rot)
 	if not _headless:
 		for i in 2:
-			var board := LowPoly.part(_visuals, LowPoly.box(Vector3(1.2, 0.28, 0.06), 0.02), Color("f6e3c3") if i == 0 else Color("e6c35c"), Vector3(at.x, y + 1.9 - i * 0.4, at.y))
+			var board := LowPoly.part(_visuals, LowPoly.box(Vector3(1.2, 0.28, 0.06), 0.02), Color("c9bba1") if i == 0 else Color("b59a52"), Vector3(at.x, y + 1.9 - i * 0.4, at.y))
 			board.rotation.y = rot + (0.0 if i == 0 else 1.2)
 			board.translate_object_local(Vector3(0.45, 0.0, 0.0))
 
@@ -742,23 +745,23 @@ func _build_place_props() -> void:
 	var farm: Vector2 = ValleyTerrain.place("farm").at
 	if _is_free(farm + Vector2(14.0, -22.0), 3.5):
 		_house(farm + Vector2(14.0, -22.0), Vector2(6.0, 5.0), 0.0, WALLS[0], 0)
-	_cart(farm + Vector2(-2.0, 6.0), -0.4, Color("e6c35c"))
+	_cart(farm + Vector2(-2.0, 6.0), -0.4, Color("b59a52"))
 	_cart(farm + Vector2(-14.0, 4.0), 1.2, Color("7a5236"))
 	for at: Vector2 in [Vector2(2.0, -12.0), Vector2(-12.0, -14.0), Vector2(8.0, 14.0), Vector2(-8.0, 10.0)]:
 		_haystack(farm + at, at.y * 0.05)
 	_well(farm + Vector2(6.0, -2.0))
 	_watchtower(farm + Vector2(-24.0, -24.0), 5.0, -0.8)
 	for at: Vector2 in [Vector2(16.0, -12.0), Vector2(17.0, -10.8)]:
-		_barrel(farm + at, Color("3a6ea5"))
+		_barrel(farm + at, Color("3d5670"))
 
 	var quarry: Vector2 = ValleyTerrain.place("quarry").at
-	_hut(quarry + Vector2(-20.0, -18.0), 0.5, Color("cfdcf2"))
+	_hut(quarry + Vector2(-20.0, -18.0), 0.5, Color("a1a7ab"))
 	_watchtower(quarry + Vector2(22.0, -16.0), 5.0, 2.2)
 	for at: Vector2 in [Vector2(-4.0, 10.0), Vector2(10.0, -2.0)]:
 		_cart(quarry + at, at.x * 0.2, ROCK)
 	_crates(quarry + Vector2(-12.0, -4.0), 0.8)
 	for at: Vector2 in [Vector2(6.0, 8.0), Vector2(7.2, 8.6), Vector2(-16.0, 12.0)]:
-		_barrel(quarry + at, Color("e4572e"))
+		_barrel(quarry + at, Color("8e3f2c"))
 	# Podklady torow wagonikow przez dno kamieniolomu.
 	for i in 12:
 		var spot := quarry + Vector2(-16.0 + i * 2.6, -12.0 + i * 0.9)
@@ -767,12 +770,12 @@ func _build_place_props() -> void:
 	var lake: Vector2 = ValleyTerrain.place("lake").at
 	var radius: float = ValleyTerrain.place("lake").radius
 	_pier(lake + Vector2(radius * 0.95, 4.0), PI * 0.5, 10.0)
-	_hut(lake + Vector2(radius * 1.35, -12.0), -0.6, Color("f3d1d8"))
-	for tent: Array in [[Vector2(-radius * 1.3, 8.0), 0.4, Color("f2a541")], [Vector2(-radius * 1.25, 16.0), -0.2, Color("2f8f83")]]:
+	_hut(lake + Vector2(radius * 1.35, -12.0), -0.6, Color("b0a096"))
+	for tent: Array in [[Vector2(-radius * 1.3, 8.0), 0.4, Color("a8813f")], [Vector2(-radius * 1.25, 16.0), -0.2, Color("3b6560")]]:
 		_tent(lake + tent[0], tent[1], tent[2])
 	_campfire(lake + Vector2(-radius * 1.35, 0.0))
 	if not _headless:
-		for boat: Array in [[Vector2(10.0, -12.0), 0.7, Color("5b8def")], [Vector2(-14.0, 6.0), -0.4, Color("ffcb47")]]:
+		for boat: Array in [[Vector2(10.0, -12.0), 0.7, Color("445f7d")], [Vector2(-14.0, 6.0), -0.4, Color("b8933f")]]:
 			var at: Vector2 = lake + boat[0]
 			var hull := LowPoly.part(_visuals, LowPoly.box(Vector3(1.4, 0.5, 3.4), 0.12), boat[2], Vector3(at.x, ValleyTerrain.WATER_LEVEL + 0.15, at.y))
 			hull.rotation.y = boat[1]
@@ -781,7 +784,7 @@ func _build_place_props() -> void:
 	_campfire(camp + Vector2(-3.0, 1.0))
 	for at: Vector2 in [Vector2(14.0, -2.0), Vector2(-14.0, -8.0)]:
 		_crates(camp + at, at.x * 0.1)
-	_cart(camp + Vector2(-2.0, 15.0), 1.4, Color("2f8f83"))
+	_cart(camp + Vector2(-2.0, 15.0), 1.4, Color("3b6560"))
 	for i in 9:
 		# Palisada z pali od strony stoku.
 		var angle := -0.6 + i * 0.16
@@ -836,7 +839,7 @@ func _build_outposts() -> void:
 		_clear.append({ "at": at, "radius": 7.0 })
 		match outpost[1]:
 			"camp":
-				_tent(at + Vector2(-2.5, 0.0), 0.3, Color("ef6f6c"))
+				_tent(at + Vector2(-2.5, 0.0), 0.3, Color("8a3f38"))
 				_campfire(at + Vector2(2.5, 1.5))
 				_chest_at(at + Vector2(0.5, -3.0))
 			"hut":
@@ -890,8 +893,8 @@ func _build_vegetation() -> void:
 		return
 	_scatter(trees, _round_tree_parts(), TREE_VISIBLE)
 	_scatter(pines, _pine_parts(), TREE_VISIBLE)
-	_scatter(bushes, [[LowPoly.ball(0.8, 7, 4), Color("5a9a3e"), Vector3(0, 0.45, 0)]], BUSH_VISIBLE)
-	_scatter(grass, [[LowPoly.cylinder(0.0, 0.18, 0.7, 4), Color("7cbf52"), Vector3(0, 0.3, 0)]], GRASS_VISIBLE)
+	_scatter(bushes, [[LowPoly.ball(0.8, 7, 4), Color("4c6e36"), Vector3(0, 0.45, 0)]], BUSH_VISIBLE)
+	_scatter(grass, [[LowPoly.cylinder(0.0, 0.18, 0.7, 4), Color("64884a"), Vector3(0, 0.3, 0)]], GRASS_VISIBLE)
 	_build_ground_clutter()
 
 
@@ -905,7 +908,7 @@ func _build_ground_clutter() -> void:
 	var flower_colors: Array[Color] = []
 	var pebbles: Array[Transform3D] = []
 	var shrubs: Array[Transform3D] = []
-	var palette: Array[Color] = [Color("f7d154"), Color("f78fb3"), Color("f4f1ea")]
+	var palette: Array[Color] = [Color("c9a94a"), Color("b9788a"), Color("f4f1ea")]
 	for i in 7000:
 		var at := Vector2(rng.randf_range(-ValleyTerrain.RIM_START, ValleyTerrain.RIM_START), rng.randf_range(-ValleyTerrain.RIM_START, ValleyTerrain.RIM_START))
 		if at.length() > ValleyTerrain.RIM_START or ValleyTerrain.road_distance(at.x, at.y) < ValleyTerrain.ROAD_WIDTH:
@@ -929,7 +932,7 @@ func _build_ground_clutter() -> void:
 			shrubs.append(transform)
 	_scatter_colored(flowers, flower_colors, LowPoly.ball(0.1, 5, 3), Vector3(0, 0.22, 0), CLUTTER_VISIBLE)
 	_scatter(pebbles, [[LowPoly.box(Vector3(0.4, 0.22, 0.32), 0.08), STONE, Vector3(0, 0.08, 0)]], CLUTTER_VISIBLE, CLUTTER_CELL)
-	_scatter(shrubs, [[LowPoly.ball(0.45, 6, 4), Color("6fae4a"), Vector3(0, 0.25, 0)]], CLUTTER_VISIBLE + 15.0, CLUTTER_CELL)
+	_scatter(shrubs, [[LowPoly.ball(0.45, 6, 4), Color("557a3f"), Vector3(0, 0.25, 0)]], CLUTTER_VISIBLE + 15.0, CLUTTER_CELL)
 
 
 ## Jak _scatter, ale kazdy egzemplarz ma wlasny kolor, np. kwiaty roznych barw w jednym MultiMesh.
@@ -943,6 +946,8 @@ func _scatter_colored(transforms: Array[Transform3D], colors: Array[Color], mesh
 		cells[key].append(index)
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
+	# Kolory w kodzie sa w sRGB. Bez tego Godot bierze je za liniowe i teren wychodzi wyblakly.
+	material.vertex_color_is_srgb = true
 	material.roughness = 0.8
 	for key: Vector2i in cells:
 		var list: Array = cells[key]
@@ -987,15 +992,15 @@ func _tree_collision(base: Vector3) -> void:
 func _round_tree_parts() -> Array:
 	return [
 		[LowPoly.cylinder(0.2, 0.32, 3.0, 6), Color("8b5a3c"), Vector3(0, 1.5, 0)],
-		[LowPoly.ball(1.8, 8, 5), Color("5fae4a"), Vector3(0, 3.8, 0)],
+		[LowPoly.ball(1.8, 8, 5), Color("4f7a3c"), Vector3(0, 3.8, 0)],
 	]
 
 
 func _pine_parts() -> Array:
 	return [
 		[LowPoly.cylinder(0.16, 0.26, 2.0, 6), Color("7a4e34"), Vector3(0, 1.0, 0)],
-		[LowPoly.cylinder(0.0, 1.8, 3.2, 7), Color("3f8a4a"), Vector3(0, 3.3, 0)],
-		[LowPoly.cylinder(0.0, 1.3, 2.4, 7), Color("4a9a52"), Vector3(0, 4.9, 0)],
+		[LowPoly.cylinder(0.0, 1.8, 3.2, 7), Color("36603a"), Vector3(0, 3.3, 0)],
+		[LowPoly.cylinder(0.0, 1.3, 2.4, 7), Color("3f6b40"), Vector3(0, 4.9, 0)],
 	]
 
 
