@@ -130,6 +130,11 @@ var _dance_music: DanceMusic
 var _dance_camera := DanceCamera.new()
 var _tag_root: Node3D
 var _seen_present := true
+## Nick nad glowa widza tylko sojusznicy. Wroga nie da sie po nim wypatrzec z daleka,
+## a kogo sie zabilo, mowi karta pod zegarem.
+var _tag_for_ally := false
+## Widz chowa nick ogladanego gracza.
+var _tag_wanted := true
 var _seen_crouching := false
 var _seen_sliding := false
 var _seen_team := -2
@@ -176,13 +181,15 @@ func _ready() -> void:
 	camera.current = local
 	view_model.visible = local
 	model.visible = not local
-	name_label.visible = not local
+	# Do pierwszego sprawdzenia druzyny nick jest schowany, bo obcy to domyslnie wrog.
+	name_label.visible = false
 	name_label.text = info.name
 	if not local and not Net.is_headless:
 		var tag := AvatarTag.new(info.get("steam_id", 0))
 		tag.position = name_label.position
 		# Zdjecie samo decyduje o swojej widocznosci, wiec ukrywamy je przez rodzica.
 		_tag_root = Node3D.new()
+		_tag_root.visible = false
 		add_child(_tag_root)
 		_tag_root.add_child(tag)
 		_avatar_tag = tag
@@ -608,9 +615,17 @@ func _place_avatar_tag(tag: AvatarTag) -> void:
 
 ## Widz patrzy z bliska, wiec nazwa ogladanego gracza zaslanialaby mu pol ekranu.
 func set_name_tag_visible(shown: bool) -> void:
-	name_label.visible = shown and _seen_present
+	_tag_wanted = shown
+	_apply_tag_visibility()
+
+
+func _apply_tag_visibility() -> void:
+	if is_local():
+		return
+	var shown := _tag_wanted and _seen_present and _tag_for_ally
+	name_label.visible = shown
 	if _tag_root != null:
-		_tag_root.visible = shown and _seen_present
+		_tag_root.visible = shown
 
 
 ## Widzowie i ciala starsze niz kilka sekund znikaja z mapy, ale ich wezly zostaja do konca meczu.
@@ -622,13 +637,11 @@ func _update_presence() -> void:
 		return
 	_seen_present = present
 	model.visible = present
-	name_label.visible = present
-	if _tag_root != null:
-		_tag_root.visible = present
+	_apply_tag_visibility()
 
 
-## Kolor druzyny na postaci i plakietce. Plakietke sojusznika widac przez sciany, a wroga tylko
-## wtedy, gdy nic jej nie zaslania, jak w zwyklym Deathmatchu.
+## Kolor druzyny na postaci i plakietce. Plakietke sojusznika widac przez sciany, a wrog nie ma
+## jej wcale.
 func _update_team_look() -> void:
 	if is_local():
 		return
@@ -643,6 +656,8 @@ func _update_team_look() -> void:
 	name_label.no_depth_test = ally
 	name_label.render_priority = 10 if ally else 0
 	name_label.outline_render_priority = 9 if ally else -1
+	_tag_for_ally = ally
+	_apply_tag_visibility()
 
 
 ## Inni widza poze kucania, a nazwa nad glowa opada razem z nia.

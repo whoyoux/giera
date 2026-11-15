@@ -6,6 +6,11 @@ extends Node
 const ICON_SIZE := 256
 const AMMO_MODEL := "res://assets/weapons/bullet-foam-tip.glb"
 const TIER_NAMES := { Rarity.Tier.COMMON: "common", Rarity.Tier.EPIC: "epic", Rarity.Tier.LEGENDARY: "legendary" }
+## Ikony z prawie bialym metalem znikaja na kremowym tle naklejek (np. na liscie zabojstw przy 22 px),
+## wiec biale czesci dostaja stalowy odcien, ciemniejszy niz tlo.
+const STEEL_ICONS: Array[String] = ["res://assets/icons/knife.png"]
+const STEEL_TINT := Color(0.58, 0.67, 0.8)
+const STEEL_MIN_BRIGHTNESS := 0.8
 
 
 func _ready() -> void:
@@ -58,7 +63,10 @@ func _render(model_path: String, target: String, tilt := 0.0, view := Vector3(-1
 	camera.look_at_from_position(center + view.normalized() * 3.0, center)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
-	var error := viewport.get_texture().get_image().save_png(target)
+	var image := viewport.get_texture().get_image()
+	if STEEL_ICONS.has(target):
+		_tint_steel(image)
+	var error := image.save_png(target)
 	print("[test] %s: %s" % [target, error_string(error)])
 	viewport.queue_free()
 
@@ -72,3 +80,13 @@ func _bounds_of(model: Node3D) -> AABB:
 		bounds = box if first else bounds.merge(box)
 		first = false
 	return bounds
+
+
+## Prawie biale, nienasycone piksele (metal) dostaja odcien stali.
+func _tint_steel(image: Image) -> void:
+	image.convert(Image.FORMAT_RGBA8)
+	for y in image.get_height():
+		for x in image.get_width():
+			var pixel := image.get_pixel(x, y)
+			if pixel.a > 0.0 and pixel.v >= STEEL_MIN_BRIGHTNESS and pixel.s < 0.25:
+				image.set_pixel(x, y, Color(pixel.r * STEEL_TINT.r, pixel.g * STEEL_TINT.g, pixel.b * STEEL_TINT.b, pixel.a))

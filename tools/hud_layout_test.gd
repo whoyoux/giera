@@ -118,10 +118,14 @@ func _show_everything() -> Dictionary:
 	_hud._regen_label.text = "Leczenie przerwane!"
 	_hud._protection_label.visible = false
 	_hud._death_panel.visible = true
+	_hud._show_death_avatar({ "killer_id": 2 })
 	_hud._death_label.text = _hud._death_cause({ "killer_id": 2, "death_weapon": { "item": &"deagle", "tier": 4 }, "death_headshot": true, "killer_health": 45 }, 1) + "\nWracasz za 3"
-	UiStyle.fit_width(_hud._death_label, Hud.DEATH_MAX_WIDTH)
+	UiStyle.fit_width(_hud._death_label, _hud._death_text_width())
 	_hud._streak_panel.visible = false
+	# Najwieksza wersja napisu pod zegarem: seria razem z karta ofiary.
+	GameState.players[2].death_headshot = true
 	_hud._on_streak("ended", 1, 2, 7)
+	GameState.kill_announced.emit(1, 2)
 	_hud._streak_panel.modulate.a = 1.0
 	var round_panel := _round_panel()
 	var tutorials := _hud.find_children("*", "TutorialPanel", true, false)
@@ -250,6 +254,13 @@ func _check_messages() -> void:
 	var streak_width := _hud._streak_panel.size.x
 	print("[test] seria: %s (%.0f px)" % [_hud._streak_label.text, streak_width])
 	_check("napis o serii najwyzej 340 px", streak_width <= 340.0)
+	GameState.players[2].death_weapon = { "item": &"deagle", "tier": Rarity.Tier.LEGENDARY }
+	GameState.players[2].death_headshot = true
+	GameState.kill_announced.emit(1, 2)
+	await _wait(0.1)
+	var card_width := _hud._streak_panel.size.x
+	print("[test] karta zabojcy: %s (%.0f px)" % [GameState.display_name(2), card_width])
+	_check("karta zabojcy najwyzej 340 px", card_width <= 340.0 and _hud._kill_row.visible)
 	var feed := _hud._feed.get_global_rect()
 	print("[test] lista zabojstw: %s" % feed)
 	_check("lista zabojstw najwyzej 300 x 150 px", feed.size.x <= 300.0 and feed.size.y <= 150.0)
