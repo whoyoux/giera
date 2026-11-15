@@ -49,6 +49,8 @@ shot_start_hz = 760.0
 shot_end_hz = 160.0
 shot_seconds = 0.11
 shot_noise = 0.5
+shot_sample = "res://assets/sfx/weapons/smg_m45.wav"
+reload_sample = "res://assets/sfx/weapons/reload_rifle.wav"
 
 [sub_resource type="Resource" id="epic"]
 script = ExtResource("2_stats")
@@ -84,6 +86,8 @@ shot_start_hz = 740.0
 shot_end_hz = 160.0
 shot_seconds = 0.11
 shot_noise = 0.5
+shot_sample = "res://assets/sfx/weapons/smg_m45.wav"
+reload_sample = "res://assets/sfx/weapons/reload_rifle.wav"
 
 [sub_resource type="Resource" id="legendary"]
 script = ExtResource("2_stats")
@@ -119,6 +123,8 @@ shot_start_hz = 720.0
 shot_end_hz = 160.0
 shot_seconds = 0.11
 shot_noise = 0.5
+shot_sample = "res://assets/sfx/weapons/smg_m45.wav"
+reload_sample = "res://assets/sfx/weapons/reload_rifle.wav"
 
 [resource]
 script = ExtResource("1_definition")

@@ -1,6 +1,7 @@
 class_name Sfx
 extends RefCounted
-## Dzwieki generowane w kodzie, zeby prototyp nie potrzebowal plikow audio.
+## Dzwieki generowane w kodzie. Bronie maja nagrane strzaly i przeladowania (assets/sfx/weapons),
+## a generowany dzwiek zostaje jako zapasowy, gdy bron nie ma nagrania.
 
 const RATE := 22050
 const RELOAD_SOUND_SECONDS := 1.6
@@ -16,8 +17,12 @@ enum UiCue { NONE, HOVER, PRESS, CONFIRM, BACK, TOGGLE_ON, TOGGLE_OFF, SLIDER, O
 static var _cache := {}
 
 
-## Strzal zbudowany z parametrow broni: im nizszy koniec opadania, tym ciezszy dzwiek.
+## Nagrany strzal broni albo, bez nagrania, strzal zbudowany z jej parametrow: im nizszy koniec
+## opadania, tym ciezszy dzwiek.
 static func shot(stats: WeaponStats) -> AudioStreamWAV:
+	var recorded := sample(stats.shot_sample)
+	if recorded != null:
+		return recorded
 	var seconds := stats.shot_seconds
 	var key := "shot_%f_%f_%f_%f" % [stats.shot_start_hz, stats.shot_end_hz, seconds, stats.shot_noise]
 	return _make(key, seconds, func(t: float, phase: float) -> float:
@@ -110,6 +115,13 @@ static func hurt() -> AudioStreamWAV:
 		var envelope := pow(1.0 - t / 0.24, 1.5)
 		return (sin(TAU * phase) * 0.8 + randf_range(-0.25, 0.25)) * envelope
 	, func(t: float) -> float: return lerpf(240.0, 70.0, t / 0.24))
+
+
+## Nagrany dzwiek z pliku albo null, gdy sciezka jest pusta lub pliku nie ma.
+static func sample(path: String) -> AudioStreamWAV:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return load(path) as AudioStreamWAV
 
 
 ## Magazynek wypada, nowy wchodzi, a na koncu zamek. Czasy odpowiadaja animacji broni.

@@ -45,7 +45,7 @@ func current_progress(equipment: Equipment, _stack: Dictionary) -> float:
 
 
 ## Dzwiek dzialania. Gra odtwarza go tak szybko, zeby trwal tyle co dzialanie.
-func action_sound() -> AudioStreamWAV:
+func action_sound(_stack := {}) -> AudioStreamWAV:
 	return null
 
 

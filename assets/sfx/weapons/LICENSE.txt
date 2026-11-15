@@ -1,0 +1,13 @@
+Dzwieki broni w tym folderze sa wyciete z nagran na licencji CC0 1.0 (public domain):
+
+- Strzaly: The Free Firearm Sound Library ("Prepared SFX Library"),
+  https://opengameart.org/content/the-free-firearm-sound-library
+  rifle_ar15 (AR-15, D_32P), rifle_ak47 (AK-47, C_28P), rifle_sks (SKS, U_14P),
+  smg_m45 (Carl Gustav M45, G_31P), shotgun_nova (Benelli Nova, O_21P),
+  pistol_1911 (1911, A_42P), sniper_tikka (Tikka T3, W_29P).
+- Przeladowania: "Gun Reload Sounds" (SpringySpringo, nagrane na replikach airsoftowych),
+  https://opengameart.org/content/gun-reload-sounds
+  reload_pistol (gunreload1), reload_rifle (assaultriflereload1), reload_shotgun (shotguncock).
+
+Kazdy plik to pierwszy strzal z nagrania z naturalnym poglosem: mono, 44.1 kHz, 16 bit,
+wyrownana glosnosc i wyciszony koniec.
