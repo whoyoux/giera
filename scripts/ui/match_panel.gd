@@ -220,7 +220,7 @@ static func plural(count: int, one: String, few: String, many: String) -> String
 func _vote_card_style(state: int) -> StyleBoxFlat:
 	var fills: Array[Color] = [VOTE_CARD_FILL, Color(1.0, 1.0, 1.0, 0.12), Color(UiStyle.BLUE, 0.22)]
 	var borders: Array[Color] = [UiStyle.LINE, UiStyle.SUN, UiStyle.BLUE]
-	var style := UiStyle.sticker(fills[state], 20, VOTE_CARD_BORDER)
+	var style := UiStyle.sticker(fills[state], UiStyle.INNER_RADIUS, VOTE_CARD_BORDER)
 	style.border_color = borders[state]
 	style.set_content_margin_all(VOTE_CARD_BORDER + VOTE_CARD_PADDING)
 	return style
@@ -779,7 +779,8 @@ func _build_vote_card(index: int) -> PanelContainer:
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(column)
 
-	# Miniaturka z zaokraglonymi rogami: panel jest maska, a obraz rysuje sie tylko w nim.
+	# Miniaturka przycieta do rogow: panel jest maska, a obraz rysuje sie tylko w nim. Lezy w karcie,
+	# wiec jej rog to promien karty minus margines (UiStyle.inner), czyli zwykle ostry.
 	# Nad obrazem klawisz w lewym gornym rogu i znaczek wlasnego glosu w prawym.
 	var overlay := Control.new()
 	overlay.custom_minimum_size = VOTE_THUMB_SIZE
@@ -790,7 +791,7 @@ func _build_vote_card(index: int) -> PanelContainer:
 	frame.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var mask := StyleBoxFlat.new()
-	mask.set_corner_radius_all(8)
+	mask.set_corner_radius_all(UiStyle.inner(UiStyle.INNER_RADIUS, VOTE_CARD_BORDER + VOTE_CARD_PADDING))
 	mask.anti_aliasing = true
 	frame.add_theme_stylebox_override("panel", mask)
 	overlay.add_child(frame)
@@ -806,7 +807,7 @@ func _build_vote_card(index: int) -> PanelContainer:
 	chip.position = Vector2(8, 8)
 	overlay.add_child(chip)
 	var badge := PanelContainer.new()
-	var badge_style := UiStyle.sticker(UiStyle.BLUE, 12, 3)
+	var badge_style := UiStyle.flat(UiStyle.BLUE)
 	badge_style.set_content_margin_all(3 + 3)
 	badge_style.content_margin_left = 3 + 8
 	badge_style.content_margin_right = 3 + 8

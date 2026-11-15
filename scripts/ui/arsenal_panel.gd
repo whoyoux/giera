@@ -241,7 +241,7 @@ func _build_tile(definition: ItemDefinition) -> Button:
 			style.bg_color = Rarity.color(tier)
 			style.border_color = UiStyle.DEEP
 			style.set_border_width_all(2)
-			style.set_corner_radius_all(6)
+			style.set_corner_radius_all(6)  # kropka klasy: kolo, nie rog
 			dot.add_theme_stylebox_override("panel", style)
 			dots.add_child(dot)
 		tile.add_child(dots)
@@ -311,7 +311,7 @@ func _select(definition: ItemDefinition) -> void:
 		var tile := _tiles[tile_definition] as Button
 		var picked := tile_definition == definition
 		var fill := SELECTED_FILL if picked else FIELD
-		var normal := UiStyle.sticker(fill, 18, 4) if picked else _flat(fill, 18)
+		var normal := UiStyle.sticker(fill, UiStyle.INNER_RADIUS, 4) if picked else _flat(fill, 18)
 		tile.add_theme_stylebox_override("normal", normal)
 		tile.add_theme_stylebox_override("hover", UiStyle.sticker(SELECTED_FILL, 18, 4))
 		tile.add_theme_stylebox_override("pressed", normal)
@@ -460,7 +460,7 @@ func _refresh_compare() -> void:
 		for pick_gun: WeaponDefinition in entry.picks:
 			var picked: bool = pick_gun == gun
 			var button := entry.picks[pick_gun] as Button
-			var style := UiStyle.sticker(Color(UiStyle.BLUE, 0.2), 14, 4) if picked else _flat(FIELD, 14)
+			var style := UiStyle.sticker(Color(UiStyle.BLUE, 0.2), UiStyle.INNER_RADIUS, 4) if picked else _flat(FIELD, 14)
 			if picked:
 				style.border_color = SIDE_COLORS[side]
 			style.set_content_margin_all(4)
@@ -591,7 +591,9 @@ func _hero_style(color: Color) -> StyleBoxFlat:
 func _flat(color: Color, radius: int, margin := 8) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
-	style.set_corner_radius_all(UiStyle.corner(radius))
+	# Wszystko z tej funkcji lezy w oknie Zbrojowni, wiec dostaje rog wewnetrzny. Parametr radius
+	# zostal z dawnego stylu i nie zmienia juz wygladu.
+	style.set_corner_radius_all(UiStyle.INNER_RADIUS)
 	style.set_content_margin_all(margin)
 	style.anti_aliasing = true
 	return style

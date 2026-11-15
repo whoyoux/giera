@@ -3,18 +3,23 @@ extends RefCounted
 ## Wczytywanie modeli postaci i broni. Serwer bez ekranu ich nie uzywa.
 
 ## Lista postaci do wyboru. "id" idzie przez siec, wiec nie zmieniaj go po wydaniu gry.
+## Nazwy mowia o roli, a nie o klasie z bajki. Rekaw to kolor munduru w widoku z pierwszej osoby.
 const ROSTER: Array[Dictionary] = [
-	{ "id": "knight", "name": "Rycerz", "file": "Knight", "sleeve": Color("5b8def") },
-	{ "id": "barbarian", "name": "Barbarzyńca", "file": "Barbarian", "sleeve": Color("ef6f6c") },
-	{ "id": "mage", "name": "Mag", "file": "Mage", "sleeve": Color("9b7bff") },
-	{ "id": "rogue", "name": "Łotrzyk", "file": "Rogue", "sleeve": Color("2ec4b6") },
-	{ "id": "rogue_hooded", "name": "Zakapturzony", "file": "Rogue_Hooded", "sleeve": Color("f9a03f") },
-	{ "id": "skeleton_warrior", "name": "Szkielet wojownik", "file": "Skeleton_Warrior", "sleeve": BONE, "bare_rig": true },
-	{ "id": "skeleton_rogue", "name": "Szkielet łotr", "file": "Skeleton_Rogue", "sleeve": BONE, "bare_rig": true },
-	{ "id": "skeleton_mage", "name": "Szkielet mag", "file": "Skeleton_Mage", "sleeve": BONE, "bare_rig": true },
-	{ "id": "skeleton_minion", "name": "Szkielet sługa", "file": "Skeleton_Minion", "sleeve": BONE, "bare_rig": true },
+	{ "id": "knight", "name": "Szturmowiec", "file": "Knight", "sleeve": Color("3d5476") },
+	{ "id": "barbarian", "name": "Ciężki", "file": "Barbarian", "sleeve": Color("7a3a2e") },
+	{ "id": "mage", "name": "Technik", "file": "Mage", "sleeve": Color("4f3a5c") },
+	{ "id": "rogue", "name": "Zwiadowca", "file": "Rogue", "sleeve": Color("3f5a3a") },
+	{ "id": "rogue_hooded", "name": "Snajper", "file": "Rogue_Hooded", "sleeve": Color("5e4e36") },
+	{ "id": "skeleton_warrior", "name": "Kościej", "file": "Skeleton_Warrior", "sleeve": BONE, "bare_rig": true },
+	{ "id": "skeleton_rogue", "name": "Kościej zwiadowca", "file": "Skeleton_Rogue", "sleeve": BONE, "bare_rig": true },
+	{ "id": "skeleton_mage", "name": "Kościej technik", "file": "Skeleton_Mage", "sleeve": BONE, "bare_rig": true },
+	{ "id": "skeleton_minion", "name": "Kościej rekrut", "file": "Skeleton_Minion", "sleeve": BONE, "bare_rig": true },
 ]
-const BONE := Color("e8e2d0")
+const BONE := Color("bdb6a4")
+## Fantastyczne dodatki z paczki, ktore gra chowa: kapelusze, rogi, hełm z kolcami, peleryny
+## i płaszcze. Sprawdzane po poczatku nazwy siatki.
+const HIDDEN_PARTS: Array[String] = ["Mage_Hat", "Barbarian_Hat", "Skeleton_Warrior_Helmet", "Skeleton_Mage_Hat"]
+const HIDDEN_SUFFIXES: Array[String] = ["_Cape", "_Cloak"]
 ## Szkielety nie maja wlasnych animacji, ale ich kosci nazywaja sie tak samo jak u tej postaci.
 const ANIMATION_SOURCE := "res://assets/characters/Knight.glb"
 ## Paczka ma postac wysoka na 2,3 m, a kapsula gracza ma 1,8 m.
@@ -46,7 +51,16 @@ static func character_for(id: String) -> Node3D:
 	var character := (load("res://assets/characters/%s.glb" % entry.file) as PackedScene).instantiate() as Node3D
 	if entry.get("bare_rig", false):
 		_equip_bare_rig(character)
+	_hide_fantasy_parts(character)
 	return character
+
+
+## Chowa kapelusze, rogi, peleryny i podobne dodatki, ktore nie pasuja do strzelanki.
+static func _hide_fantasy_parts(character: Node3D) -> void:
+	for node in character.find_children("*", "MeshInstance3D", true, false):
+		var part := String(node.name)
+		if part in HIDDEN_PARTS or HIDDEN_SUFFIXES.any(func(suffix: String) -> bool: return part.ends_with(suffix)):
+			(node as MeshInstance3D).visible = false
 
 
 ## Szkielety to sam model, wiec dostaja wspolne animacje i miejsca na bron w dloniach.

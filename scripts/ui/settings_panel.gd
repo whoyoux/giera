@@ -204,7 +204,7 @@ func _add_slider(text: String, key: String, min_value: float, max_value: float, 
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var track := StyleBoxFlat.new()
 	track.bg_color = Color(UiStyle.INK, 0.16)
-	track.set_corner_radius_all(8)
+	track.set_corner_radius_all(UiStyle.INNER_RADIUS)
 	track.content_margin_top = 5
 	track.content_margin_bottom = 5
 	var filled := track.duplicate() as StyleBoxFlat
@@ -248,7 +248,7 @@ func _add_toggle(text: String, key: String) -> void:
 	toggle.add_theme_font_size_override("font_size", 17)
 	var off := StyleBoxFlat.new()
 	off.bg_color = Color(UiStyle.INK, 0.16)
-	off.set_corner_radius_all(17)
+	off.set_corner_radius_all(UiStyle.INNER_RADIUS)
 	var on_style := off.duplicate() as StyleBoxFlat
 	on_style.bg_color = UiStyle.TEAL
 	var off_hover := off.duplicate() as StyleBoxFlat
@@ -299,7 +299,7 @@ func _add_crosshair_preview() -> void:
 	var frame := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("8fb7d6")
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(UiStyle.INNER_RADIUS)
 	frame.add_theme_stylebox_override("panel", style)
 	frame.custom_minimum_size.y = PREVIEW_HEIGHT
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE

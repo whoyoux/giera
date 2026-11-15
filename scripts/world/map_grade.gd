@@ -6,18 +6,18 @@ extends RefCounted
 
 ## ACES daje mocniejszy kontrast niz Filmic i sam przygasza przesycone kolory w jasnych miejscach.
 const TONEMAPPER := Environment.TONE_MAPPER_ACES
-const EXPOSURE := 0.82
-const SATURATION := 0.85
-const CONTRAST := 1.12
+const EXPOSURE := 0.9
+const SATURATION := 0.97
+const CONTRAST := 1.1
 ## Rzadsza mgla: daleki plan nie zlewa sie w mleko.
 const FOG_SCALE := 0.7
 ## Ile koloru zabrac (0 nic, 1 szarosc).
-const SKY_DESATURATE := 0.35
-const FOG_DESATURATE := 0.45
-const AMBIENT_DESATURATE := 0.6
-const SUN_DESATURATE := 0.25
+const SKY_DESATURATE := 0.12
+const FOG_DESATURATE := 0.25
+const AMBIENT_DESATURATE := 0.35
+const SUN_DESATURATE := 0.1
 ## Ciemniejsze cienie: mniej swiatla otoczenia.
-const AMBIENT_SCALE := 0.8
+const AMBIENT_SCALE := 0.9
 const GLOW_SCALE := 0.6
 ## Ostre poludniowe slonce przepala jasne mapy, wiec jego moc ma gorny limit.
 const SUN_MAX_ENERGY := 1.05

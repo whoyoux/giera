@@ -11,7 +11,8 @@ const AVATAR_SIDE := 28.0
 const NAME_LENGTH := 18
 const CARD_BORDER := 5
 const CARD_PADDING := 16
-const CARD_RADIUS := 18
+## Karty druzyn leza w oknie, wiec maja rog wewnetrzny (promien okna minus margines).
+const CARD_RADIUS := UiStyle.INNER_RADIUS
 
 var _card: PanelContainer
 var _team_cards: Array[Dictionary] = []
@@ -231,7 +232,7 @@ func _build_team_card(team: int) -> PanelContainer:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var badge := PanelContainer.new()
-	var badge_style := UiStyle.sticker(UiStyle.BLUE, 12, 3)
+	var badge_style := UiStyle.flat(UiStyle.BLUE)
 	badge_style.set_content_margin_all(3 + 3)
 	badge_style.content_margin_left = 3 + 8
 	badge_style.content_margin_right = 3 + 8

@@ -1,7 +1,7 @@
-// Zaokragla rogi obrazka, zeby awatar pasowal do naklejek w interfejsie.
+// Przycina rogi obrazka do promienia tla awatara (czesc boku, 0 to ostre rogi).
 shader_type canvas_item;
 
-uniform float radius : hint_range(0.0, 0.5) = 0.18;
+uniform float radius : hint_range(0.0, 0.5) = 0.0;
 
 void fragment() {
 	vec2 corner = abs(UV - 0.5) - (0.5 - radius);
