@@ -16,17 +16,18 @@ const DOOR_HEIGHT := 2.5
 ## Niskie przejscia: tylko w kucki (kapsula kucajacego ma 1,2 m).
 const CRAWL_HEIGHT := 1.32
 
-const ASPHALT := Color("5d6170")
-const ASPHALT_DARK := Color("4f5262")
-const SIDEWALK := Color("c9c2b6")
-const LINE := Color("f4efe1")
-const CONCRETE := Color("b8b2a7")
-const ROOF := Color("8a8f9e")
-const WOOD := Color("a8784e")
-const GLASS := Color("8fd3f0")
-const FACADES: Array[Color] = [Color("f28b82"), Color("fbbc5d"), Color("7cc6a4"), Color("7fa7ef"), Color("c39bea"), Color("f7a6c7"), Color("ffd479"), Color("8fd1d8")]
-const CARS: Array[Color] = [Color("ef6f6c"), Color("2ec4b6"), Color("ffcb47"), Color("5b8def"), Color("9b7bff"), Color("f9a03f")]
-const CONTAINERS: Array[Color] = [Color("e4572e"), Color("2f8f83"), Color("3a6ea5"), Color("f2a541")]
+const ASPHALT := Color("4a4c50")
+const ASPHALT_DARK := Color("3e4044")
+const SIDEWALK := Color("a8a49b")
+const LINE := Color("d8d4c8")
+const CONCRETE := Color("9d9990")
+const ROOF := Color("5d6064")
+const WOOD := Color("7a5a3e")
+const GLASS := Color("6d8794")
+## Cegla, beton, ochra, lupek i oliwka: miasto, a nie pudelko kredek.
+const FACADES: Array[Color] = [Color("8e5b4b"), Color("a39b8d"), Color("6b777d"), Color("ad8b5e"), Color("66705c"), Color("9b9083"), Color("7a5043"), Color("bdb39f")]
+const CARS: Array[Color] = [Color("7d2f2c"), Color("3c4a55"), Color("c7c3b8"), Color("2e3135"), Color("56664a"), Color("8a8d91")]
+const CONTAINERS: Array[Color] = [Color("98402c"), Color("2f5d58"), Color("35506c"), Color("a9792f")]
 
 ## Punkty startu i skrzynki: x, z, wysokosc podlogi.
 const SPAWNS: Array[Vector3] = [
@@ -298,7 +299,7 @@ func _build_shop(rect: Rect2) -> void:
 	_ramp(Vector3(rect.position.x + 1.0, 0.0, rect.end.y + 5.2), Vector3(rect.position.x + 1.0, FLOOR_HEIGHT, rect.end.y + 0.1), 1.4, CONCRETE)
 	_box(Vector3(rect.position.x + 3.0, 0.5, rect.position.y + 2.0), Vector3(2.8, 1.0, 0.8), Color("e9edf3"))
 	# Markiza nad wejsciem.
-	_decal(Vector3(rect.end.x + 0.6, 2.7, rect.position.y + 3.5), Vector3(1.2, 0.15, 3.2), Color("ef6f6c"))
+	_decal(Vector3(rect.end.x + 0.6, 2.7, rect.position.y + 3.5), Vector3(1.2, 0.15, 3.2), Color("8a3a33"))
 	_glow(Vector3(rect.end.x + 0.18, 2.3, rect.position.y + 3.5), Vector3(0.06, 0.5, 2.4), Color("a6ff6e"))
 
 
@@ -318,7 +319,7 @@ func _build_hotel(rect: Rect2) -> void:
 	_box(Vector3(x0 + 1.3, FLOOR_HEIGHT * 2.0 + 0.5, z0 + 1.0), Vector3(2.2, 1.0, 0.12), WOOD.darkened(0.2))
 	_parapet(rect, FLOOR_HEIGHT * 2.0, color)
 	_box(Vector3(x0 + 6.0, 0.55, z0 + 8.5), Vector3(3.0, 1.1, 1.0), Color("f3e9d2"))
-	_box(Vector3(x0 + 5.0, FLOOR_HEIGHT + 0.5, z0 + 9.0), Vector3(2.0, 1.0, 2.0), Color("e8a0b4"))
+	_box(Vector3(x0 + 5.0, FLOOR_HEIGHT + 0.5, z0 + 9.0), Vector3(2.0, 1.0, 2.0), Color("8f6f66"))
 	_box(Vector3(x0 + 5.0, FLOOR_HEIGHT * 2.0 + 0.7, z0 + 8.0), Vector3(1.2, 1.4, 1.2), Color("7d8597"), true, true)
 	_glow(Vector3(x0 - 0.2, FLOOR_HEIGHT * 2.0 + 1.6, rect.get_center().y), Vector3(0.1, 0.9, 5.0), Color("4fe3ff"))
 
@@ -404,8 +405,8 @@ func _build_plaza(center: Vector2) -> void:
 		var at := center + offset
 		_box(Vector3(at.x, 0.35, at.y), Vector3(3.0, 0.7, 0.6), WOOD)
 	# Kiosk na rogu placu.
-	_box(Vector3(center.x + 7.5, 1.3, center.y + 0.5), Vector3(2.2, 2.6, 2.2), Color("ffcb47"))
-	_box(Vector3(center.x + 7.5, 2.75, center.y + 0.5), Vector3(2.8, 0.3, 2.8), Color("ef6f6c"))
+	_box(Vector3(center.x + 7.5, 1.3, center.y + 0.5), Vector3(2.2, 2.6, 2.2), Color("b08a45"))
+	_box(Vector3(center.x + 7.5, 2.75, center.y + 0.5), Vector3(2.8, 0.3, 2.8), Color("7d3a30"))
 
 
 ## Plac kontenerow: stosy, wozek i kontener na podporach, pod ktorym przejdzie sie tylko w kucki.
@@ -453,7 +454,7 @@ func _tree(base: Vector3) -> void:
 	if _headless:
 		return
 	LowPoly.part(_visuals, LowPoly.cylinder(0.12, 0.16, 1.6, 6), Color("8b5a3c"), base + Vector3.UP * 0.8)
-	LowPoly.part(_visuals, LowPoly.ball(1.0, 7, 5), Color("6fbf5f"), base + Vector3.UP * 2.1)
+	LowPoly.part(_visuals, LowPoly.ball(1.0, 7, 5), Color("4e7440"), base + Vector3.UP * 2.1)
 
 
 ## Auta, latarnie, murki i lawki przy ulicach. Auta stoja przy krawedziach, zeby ulica zostala otwarta.
@@ -478,13 +479,13 @@ func _build_street_props() -> void:
 		_box(wall[0], wall[1], CONCRETE)
 	# Zaulki: smietniki i skrzynie.
 	for at: Vector3 in [Vector3(-32.0, 0.6, -14.0), Vector3(-28.0, 0.6, 26.0), Vector3(32.0, 0.6, -6.0), Vector3(28.5, 0.6, 30.0)]:
-		_box(at, Vector3(1.6, 1.2, 1.0), Color("3f8f5a"), true, true)
+		_box(at, Vector3(1.6, 1.2, 1.0), Color("3c5c3b"), true, true)
 	for z in range(-30, 31, 12):
 		_lamp(Vector3(-5.6, 0.0, z))
 		_lamp(Vector3(5.6, 0.0, z + 6))
 	# Przystanek autobusowy przy glownej ulicy.
 	_box(Vector3(6.4, 1.2, -26.0), Vector3(0.12, 2.4, 3.0), GLASS)
-	_box(Vector3(5.9, 2.45, -26.0), Vector3(1.4, 0.12, 3.2), Color("5b8def"))
+	_box(Vector3(5.9, 2.45, -26.0), Vector3(1.4, 0.12, 3.2), Color("3c5a7a"))
 	_box(Vector3(6.1, 0.25, -26.0), Vector3(0.5, 0.5, 2.6), WOOD)
 
 

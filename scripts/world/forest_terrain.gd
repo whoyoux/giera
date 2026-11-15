@@ -40,7 +40,7 @@ const FOREST_FLOOR := Color("4c7c2f")
 const RIM_GRASS := Color("3f6a2a")
 const DIRT := Color("94744a")
 const CREEK_BED := Color("a3925f")
-const WATER := Color(0.36, 0.66, 0.82, 0.72)
+const WATER := Color(0.25, 0.41, 0.46, 0.78)
 const PATH_WIDTH := 1.6
 const PATH_RADIUS := 40.0
 const FOREST_FLOOR_START := 29.0
@@ -150,6 +150,8 @@ func _build_ground() -> void:
 		return
 	var material := StandardMaterial3D.new()
 	material.vertex_color_use_as_albedo = true
+	# Kolory w kodzie sa w sRGB. Bez tego Godot bierze je za liniowe i teren wychodzi wyblakly.
+	material.vertex_color_is_srgb = true
 	material.roughness = 1.0
 	surface_tool.set_material(material)
 	var mesh := MeshInstance3D.new()
