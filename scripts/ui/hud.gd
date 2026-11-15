@@ -44,6 +44,13 @@ const DEATH_MAX_WIDTH := 500.0
 const DEATH_LIFT := 8.0
 ## Seria ma ten sam rozmiar co baner rundy, bo stoi w jego miejscu.
 const STREAK_SECONDS := 2.0
+## Karta "kogo zabiles" pod zegarem: dluzej niz sama seria, bo jest co przeczytac.
+const KILL_CARD_SECONDS := 2.6
+const KILL_AVATAR_SIDE := 36.0
+const KILL_NAME_FONT := 19
+const KILL_TITLE_FONT := 14
+const DEATH_AVATAR_SIDE := 36.0
+const DEATH_AVATAR_GAP := 12
 ## Przy celowaniu elementy poboczne bledna, zeby nie odciagaly wzroku.
 const AIM_DIM_ALPHA := 0.35
 const AIM_DIM_SECONDS := 0.15
@@ -112,6 +119,15 @@ var _last_ammo := -1
 var _dance_wheel: DanceWheel
 var _streak_panel: PanelContainer
 var _streak_label: Label
+## Karta zabojcy: zdjecie ofiary po lewej, obok tytul, a pod nim nick i bron. Przy samej serii
+## zdjecie i wiersz sa schowane.
+var _kill_avatar_slot: Control
+var _kill_row: HBoxContainer
+var _streak_style: StyleBoxFlat
+## Seria przychodzi tuz przed zabojstwem, ktore ja dalo, i staje sie tytulem jego karty.
+var _pending_streak := { "victim": 0, "text": "" }
+var _death_avatar_slot: Control
+var _death_killer := -1
 var _streak_tween: Tween
 var _streak_audio: AudioStreamPlayer
 var _protection_label: Label
@@ -620,18 +636,47 @@ func _on_streak(kind: String, killer_id: int, victim_id: int, count: int) -> voi
 		var label := UiStyle.label(text, FEED_FONT, UiStyle.INK)
 		_add_feed_row(label, UiStyle.SUN)
 		return
-	# Odliczanie i ostrzezenie o strefie maja pierwszenstwo przed seria, a seria zastepuje baner rundy.
+	# Ofiara stoi w karcie pod spodem, wiec tytul jej nie powtarza.
+	_pending_streak = { "victim": victim_id, "text": "Przerywasz serię!" if kind == "ended" else text }
+	_show_top_card(text, 0, true)
+
+
+## Jedno miejsce pod zegarem na serie i karte zabojcy. Odliczanie i ostrzezenie o strefie maja
+## pierwszenstwo, a karta zastepuje baner rundy. victim_id 0 to sam napis bez wiersza ofiary.
+func _show_top_card(title: String, victim_id: int, streak: bool) -> void:
 	if _match_panel.is_counting() or _match_panel.is_warning_outside():
 		return
 	_round_panel.hide_banner()
-	_streak_label.text = text
+	var kill := victim_id != 0
+	for child in _kill_row.get_children() + _kill_avatar_slot.get_children():
+		child.free()
+	_kill_row.visible = kill
+	_kill_avatar_slot.visible = kill
+	_streak_label.text = title
+	_streak_label.add_theme_font_size_override("font_size", KILL_TITLE_FONT if kill else RoundPanel.BANNER_FONT)
+	_streak_label.add_theme_color_override("font_color", Color(UiStyle.INK, 0.65) if kill and not streak else UiStyle.INK)
+	_streak_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if kill else HORIZONTAL_ALIGNMENT_CENTER
 	UiStyle.fit_width(_streak_label, RoundPanel.BANNER_MAX_WIDTH)
+	if kill:
+		_kill_avatar_slot.add_child(_avatar_of(victim_id, KILL_AVATAR_SIDE))
+		var victim_name := UiStyle.label(_short_name(victim_id), KILL_NAME_FONT, Teams.player_color(victim_id, UiStyle.INK).darkened(0.1 if Teams.is_active() else 0.0))
+		_kill_row.add_child(victim_name)
+		_kill_row.add_child(_kill_cause(victim_id))
+		if GameState.players.get(victim_id, {}).get("death_headshot", false):
+			_kill_row.add_child(UiStyle.label("◎", KILL_NAME_FONT, Color("d99a00")))
+	_streak_style.bg_color = UiStyle.SUN if streak else UiStyle.PAPER
+	# Karta ma dwie linie, wiec w pionie dostaje mniej marginesu, zeby nie zjechac do strefy walki.
+	_streak_style.content_margin_top = 5 + (6 if kill else 8)
+	_streak_style.content_margin_bottom = 5 + (6 if kill else 8)
+	_streak_style.content_margin_left = 5 + (10 if kill else 16)
+	# Zawartosc mogla sie skurczyc, a PanelContainer sam z siebie nie maleje.
+	_streak_panel.reset_size()
 	_streak_panel.visible = true
 	UiStyle.pop_in(_streak_panel)
 	if _streak_tween != null:
 		_streak_tween.kill()
 	_streak_tween = create_tween()
-	_streak_tween.tween_interval(STREAK_SECONDS)
+	_streak_tween.tween_interval(KILL_CARD_SECONDS if kill else STREAK_SECONDS)
 	_streak_tween.tween_callback(func() -> void: _streak_panel.visible = false)
 
 
@@ -695,6 +740,12 @@ func _on_kill(killer_id: int, victim_id: int) -> void:
 	line.add_child(UiStyle.label(_short_name(victim_id), FEED_FONT, Teams.player_color(victim_id, UiStyle.CORAL).darkened(0.1 if Teams.is_active() else 0.0)))
 	# Liczbe zywych w Battle Royale podaje pasek u gory, wiec wiersz zostaje krotki.
 	_add_feed_row(line, UiStyle.PAPER)
+	# Nickow wrogow nie widac nad glowami, wiec zabojca dostaje karte z tym, kogo trafil.
+	var me := multiplayer.get_unique_id()
+	if killer_id == me and victim_id != me and GameState.players.has(victim_id):
+		var streak: bool = _pending_streak.victim == victim_id
+		_show_top_card(_pending_streak.text if streak else "Zabijasz", victim_id, streak)
+	_pending_streak = { "victim": 0, "text": "" }
 
 
 ## Lista ma kilka wierszy, zeby nie zjechac na srodek ekranu. Najstarszy znika od razu.
@@ -763,17 +814,42 @@ func _update_death_panel(info: Dictionary) -> void:
 		var killer_team := Teams.team_of(info.get("killer_id", 0)) if Teams.is_active() else Teams.NONE
 		(_death_panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = Teams.color_of(killer_team) if killer_team != Teams.NONE else UiStyle.CORAL
 		if not info.alive:
+			_show_death_avatar(info)
 			var seconds := maxf(0.0, (info.respawn_tick - NetworkTime.tick) * NetworkTime.ticktime)
 			_death_label.text = "%s\nWracasz za %d" % [_death_cause(info, multiplayer.get_unique_id()), ceili(seconds)]
-			UiStyle.fit_width(_death_label, DEATH_MAX_WIDTH)
+			UiStyle.fit_width(_death_label, _death_text_width())
 		_protection_label.visible = info.alive and NetworkTime.tick < info.get("protected_until", -1)
 		return
 	var fresh: bool = NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(ELIMINATED_SECONDS)
 	# Ekran wynikow podaje juz miejsce, a napis by go zaslonil.
 	_death_panel.visible = watching and info.in_match and fresh and Match.phase != Match.Phase.RESULTS
 	if _death_panel.visible:
-		_death_label.text = "Odpadasz!\nMiejsce %d" % info.place if info.place > 0 else "Odpadasz!"
-		UiStyle.fit_width(_death_label, DEATH_MAX_WIDTH)
+		_show_death_avatar(info)
+		var headline: String = "Odpadasz! Miejsce %d" % info.place if info.place > 0 else "Odpadasz!"
+		var cause := _death_cause(info, multiplayer.get_unique_id())
+		_death_label.text = headline if cause == "Auć!" else "%s\n%s" % [headline, cause]
+		UiStyle.fit_width(_death_label, _death_text_width())
+
+
+## Zdjecie zabojcy obok napisu o smierci. Strefa i wlasny granat nie maja zdjecia.
+func _show_death_avatar(info: Dictionary) -> void:
+	var killer: int = info.get("killer_id", 0)
+	if killer == multiplayer.get_unique_id() or not GameState.players.has(killer):
+		killer = 0
+	if killer == _death_killer:
+		return
+	_death_killer = killer
+	for child in _death_avatar_slot.get_children():
+		child.free()
+	_death_avatar_slot.visible = killer != 0
+	if killer != 0:
+		_death_avatar_slot.add_child(_avatar_of(killer, DEATH_AVATAR_SIDE))
+	_death_panel.reset_size()
+
+
+## Ze zdjeciem caly napis o smierci ma te sama szerokosc co bez niego.
+func _death_text_width() -> float:
+	return DEATH_MAX_WIDTH - (DEATH_AVATAR_SIDE + DEATH_AVATAR_GAP if _death_avatar_slot.visible else 0.0)
 
 
 ## Kto zabil, czym i ile zdrowia mu zostalo. Smierc od strefy albo wlasnego granatu ma krotszy opis.
@@ -1080,9 +1156,17 @@ func _build() -> void:
 	_death_panel.rotation_degrees = -2.0
 	_death_panel.visible = false
 	death_center.add_child(_death_panel)
+	var death_line := HBoxContainer.new()
+	death_line.add_theme_constant_override("separation", DEATH_AVATAR_GAP)
+	death_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_death_panel.add_child(death_line)
+	_death_avatar_slot = CenterContainer.new()
+	_death_avatar_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_death_avatar_slot.visible = false
+	death_line.add_child(_death_avatar_slot)
 	_death_label = UiStyle.label("", DEATH_FONT, Color.WHITE)
 	_death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_death_panel.add_child(_death_label)
+	death_line.add_child(_death_label)
 
 	var streak_center := CenterContainer.new()
 	_streak_center = streak_center
@@ -1097,12 +1181,30 @@ func _build() -> void:
 	streak_style.set_content_margin_all(5 + 8)
 	streak_style.content_margin_left = 5 + 16
 	streak_style.content_margin_right = 5 + 16
+	_streak_style = streak_style
 	_streak_panel.add_theme_stylebox_override("panel", streak_style)
 	_streak_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_streak_panel.visible = false
 	streak_center.add_child(_streak_panel)
+	var card_line := HBoxContainer.new()
+	card_line.add_theme_constant_override("separation", 10)
+	card_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_streak_panel.add_child(card_line)
+	_kill_avatar_slot = CenterContainer.new()
+	_kill_avatar_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_kill_avatar_slot.visible = false
+	card_line.add_child(_kill_avatar_slot)
+	var card := VBoxContainer.new()
+	card.add_theme_constant_override("separation", 0)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_line.add_child(card)
 	_streak_label = UiStyle.label("", RoundPanel.BANNER_FONT, UiStyle.INK)
-	_streak_panel.add_child(_streak_label)
+	card.add_child(_streak_label)
+	_kill_row = HBoxContainer.new()
+	_kill_row.add_theme_constant_override("separation", 8)
+	_kill_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_kill_row.visible = false
+	card.add_child(_kill_row)
 	_streak_audio = AudioStreamPlayer.new()
 	add_child(_streak_audio)
 
