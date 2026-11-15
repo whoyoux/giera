@@ -65,6 +65,8 @@ shot_start_hz = 420.0
 shot_end_hz = 55.0
 shot_seconds = 0.36
 shot_noise = 0.7
+shot_sample = "res://assets/sfx/weapons/shotgun_nova.wav"
+reload_sample = "res://assets/sfx/weapons/reload_shotgun.wav"
 
 [sub_resource type="Resource" id="epic"]
 script = ExtResource("2_stats")
@@ -100,6 +102,8 @@ shot_start_hz = 360.0
 shot_end_hz = 48.0
 shot_seconds = 0.4
 shot_noise = 0.72
+shot_sample = "res://assets/sfx/weapons/shotgun_nova.wav"
+reload_sample = "res://assets/sfx/weapons/reload_shotgun.wav"
 
 [sub_resource type="Resource" id="legendary"]
 script = ExtResource("2_stats")
@@ -135,6 +139,8 @@ shot_start_hz = 480.0
 shot_end_hz = 40.0
 shot_seconds = 0.44
 shot_noise = 0.75
+shot_sample = "res://assets/sfx/weapons/shotgun_nova.wav"
+reload_sample = "res://assets/sfx/weapons/reload_shotgun.wav"
 
 [resource]
 script = ExtResource("1_definition")

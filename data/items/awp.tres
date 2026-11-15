@@ -49,6 +49,8 @@ shot_start_hz = 300.0
 shot_end_hz = 38.0
 shot_seconds = 0.6
 shot_noise = 0.62
+shot_sample = "res://assets/sfx/weapons/sniper_tikka.wav"
+reload_sample = "res://assets/sfx/weapons/reload_rifle.wav"
 
 [sub_resource type="Resource" id="epic"]
 script = ExtResource("2_stats")
@@ -84,6 +86,8 @@ shot_start_hz = 290.0
 shot_end_hz = 36.0
 shot_seconds = 0.62
 shot_noise = 0.62
+shot_sample = "res://assets/sfx/weapons/sniper_tikka.wav"
+reload_sample = "res://assets/sfx/weapons/reload_rifle.wav"
 
 [sub_resource type="Resource" id="legendary"]
 script = ExtResource("2_stats")
@@ -119,6 +123,8 @@ shot_start_hz = 280.0
 shot_end_hz = 34.0
 shot_seconds = 0.64
 shot_noise = 0.64
+shot_sample = "res://assets/sfx/weapons/sniper_tikka.wav"
+reload_sample = "res://assets/sfx/weapons/reload_rifle.wav"
 
 [resource]
 script = ExtResource("1_definition")

@@ -67,6 +67,9 @@ extends Resource
 @export var cycle_seconds := 0.1
 ## Jak daleko jedzie czesc, w metrach modelu.
 @export var cycle_travel := 0.05
+## Nagrany strzal i przeladowanie. Pusta sciezka oznacza dzwiek generowany z parametrow ponizej.
+@export_file("*.wav") var shot_sample := ""
+@export_file("*.wav") var reload_sample := ""
 @export var shot_start_hz := 880.0
 @export var shot_end_hz := 130.0
 @export var shot_seconds := 0.2

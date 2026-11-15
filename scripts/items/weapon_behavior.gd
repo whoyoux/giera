@@ -29,8 +29,10 @@ func was_action_completed(equipment: Equipment, stack: Dictionary, slot: int, _a
 	return equipment.charges(slot) >= ItemStack.weapon_stats_of(stack).magazine
 
 
-func action_sound() -> AudioStreamWAV:
-	return Sfx.reload_sound()
+func action_sound(stack := {}) -> AudioStreamWAV:
+	var stats := ItemStack.weapon_stats_of(stack) if not stack.is_empty() else null
+	var recorded := Sfx.sample(stats.reload_sample) if stats != null else null
+	return recorded if recorded != null else Sfx.reload_sound()
 
 
 func timed_action_seconds(stack: Dictionary) -> float:

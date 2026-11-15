@@ -46,7 +46,7 @@ func timed_action_seconds(stack: Dictionary) -> float:
 	return (ItemStack.definition_of(stack) as MedkitDefinition).use_seconds
 
 
-func action_sound() -> AudioStreamWAV:
+func action_sound(_stack := {}) -> AudioStreamWAV:
 	return Sfx.medkit_use()
 
 

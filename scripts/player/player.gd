@@ -974,10 +974,11 @@ func _on_action_started() -> void:
 		return
 	var behavior := ItemStack.behavior_of(equipment.active_stack())
 	var seconds := behavior.timed_action_seconds(equipment.active_stack())
-	# Dzwiek ma stala dlugosc, wiec krotsze dzialanie odtwarzamy szybciej.
-	var sound := behavior.action_sound()
+	# Generowany dzwiek ma stala dlugosc, wiec krotsze dzialanie odtwarzamy szybciej. Nagranie
+	# gra w swojej wysokosci, bo przyspieszone albo zwolnione brzmi sztucznie.
+	var sound := behavior.action_sound(equipment.active_stack())
 	reload_audio.stream = sound
-	reload_audio.pitch_scale = sound.get_length() / maxf(seconds, 0.1)
+	reload_audio.pitch_scale = 1.0 if not sound.resource_path.is_empty() else sound.get_length() / maxf(seconds, 0.1)
 	reload_audio.play()
 	if is_local():
 		view_model.set_reload_seconds(seconds)
