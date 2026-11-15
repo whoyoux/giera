@@ -192,7 +192,7 @@ func _refresh_standings() -> void:
 		var row: Dictionary = rows[index]
 		var line := HBoxContainer.new()
 		line.add_theme_constant_override("separation", 8)
-		var color := UiStyle.BLUE if row.id == my_id else Teams.player_color(row.id, UiStyle.INK).darkened(0.15 if Match.is_team_mode() else 0.0)
+		var color := UiStyle.BLUE if row.id == my_id else Teams.player_color(row.id, UiStyle.INK)
 		line.add_child(UiStyle.label("%d." % row.place, 17, color))
 		var name_label := UiStyle.label(_short(row.name), 17, color, false)
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL

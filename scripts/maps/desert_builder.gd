@@ -2,8 +2,8 @@ class_name DesertBuilder
 extends CityBuilder
 ## Pustynia dla Deathmatchu i Team Deathmatchu, okolo 130 x 130 m, budowana kodem przy starcie.
 ## Korzysta z klockow miasteczka (sciany, plyty, pochylnie, drabiny), ale ma wlasny uklad.
-## Uklad (x w prawo, z w dol mapy): na polnocy stacja kolejki z wagonami (baza Kaktusow), na poludniu
-## gliniana twierdza (baza Zuczkow). Srodek przecinaja trzy trasy: na zachodzie kanion z mostem
+## Uklad (x w prawo, z w dol mapy): na polnocy stacja kolejki z wagonami (baza druzyny Alfa), na poludniu
+## gliniana twierdza (baza druzyny Bravo). Srodek przecinaja trzy trasy: na zachodzie kanion z mostem
 ## linowym miedzy dwoma plaskowyzami, posrodku targ z placiennymi daszkami, a na wschodzie oaza z palmami.
 ## Miedzy targiem a twierdza leza wydmy z wrakiem ciezarowki. Brzeg mapy to skaly kanionu.
 
@@ -29,7 +29,7 @@ const TOWER_HEIGHT := 5.0
 const POND_CENTER := Vector2(42.0, 2.0)
 const POND_RADIUS := 6.5
 
-## Punkty startu Team Deathmatchu: x, z, wysokosc podlogi. Kaktusy na stacji, Zuczki w twierdzy.
+## Punkty startu Team Deathmatchu: x, z, wysokosc podlogi. Alfa na stacji, Bravo w twierdzy.
 const TEAM_SPAWNS: Array[Array] = [
 	[
 		Vector3(-18.0, -52.0, 0.0), Vector3(-10.0, -51.0, 0.0), Vector3(-2.0, -52.0, 0.0), Vector3(6.0, -51.0, 0.0),
@@ -140,7 +140,7 @@ func _rock(center: Vector3, size: Vector3, color: Color, rot_y := 0.0, collide :
 	_box(center, size, color, collide, false, rot_y, minf(0.6, size.y * 0.15))
 
 
-# --- Stacja kolejki (baza Kaktusow) -------------------------------------------
+# --- Stacja kolejki (baza druzyny Alfa) -------------------------------------------
 
 ## Tory wzdluz calej polnocy, peron z budynkiem stacji, wagony do oslony i wieza cisnien z drabina.
 func _build_station() -> void:
@@ -248,7 +248,7 @@ func _barrel(at: Vector3) -> void:
 		LowPoly.part(_visuals, LowPoly.cylinder(0.47, 0.47, 0.08, 10), Color("3b3d46"), at + Vector3.UP * 0.3)
 
 
-# --- Gliniana twierdza (baza Zuczkow) ----------------------------------------
+# --- Gliniana twierdza (baza druzyny Bravo) ----------------------------------------
 
 ## Ruiny glinianego fortu: mury z wyrwami, dwie wieze z pochylniami na szczyt i studnia na dziedzincu.
 func _build_fort() -> void:

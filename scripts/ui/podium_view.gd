@@ -5,7 +5,7 @@ extends Node3D
 
 const STEP_HEIGHTS: Array[float] = [1.2, 0.8, 0.5]
 const STEP_OFFSETS: Array[float] = [0.0, -1.7, 1.7]
-const STEP_COLORS: Array[Color] = [Color("ffcb47"), Color("cfd6e3"), Color("e3a46b")]
+const STEP_COLORS: Array[Color] = [Color("b8954a"), Color("9ea3aa"), Color("94664a")]
 const CAMERA_DISTANCE := 6.5
 const CAMERA_HEIGHT := 2.4
 const NAME_LENGTH := 12

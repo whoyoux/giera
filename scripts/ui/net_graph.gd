@@ -154,6 +154,6 @@ func _draw_graph() -> void:
 			_graph.draw_rect(Rect2(x - step, area.size.y - height, maxf(step, 2.0), height), UiStyle.CORAL)
 		line.append(Vector2(x, area.size.y * (1.0 - _pings[i] / ping_scale)))
 	if line.size() >= 2:
-		_graph.draw_polyline(line, UiStyle.TEAL.darkened(0.2), 2.0, true)
+		_graph.draw_polyline(line, UiStyle.TEAL, 2.0, true)
 	var font := _ping_label.get_theme_font("font")
 	_graph.draw_string(font, Vector2(4, 13), "%d ms" % roundi(ping_scale), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(UiStyle.INK, 0.7))

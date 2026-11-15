@@ -119,7 +119,7 @@ func _refresh() -> void:
 		var blocker := Teams.join_blocker(me, team)
 		var footer := entry.footer as Label
 		footer.text = "Kliknij, żeby dołączyć" if blocker.is_empty() else blocker
-		footer.add_theme_color_override("font_color", Color(UiStyle.INK, 0.65) if blocker.is_empty() or team == mine else UiStyle.CORAL.darkened(0.1))
+		footer.add_theme_color_override("font_color", Color(UiStyle.INK, 0.65) if blocker.is_empty() or team == mine else UiStyle.CORAL)
 		(entry.badge as Control).visible = team == mine
 		entry.blocked = not blocker.is_empty()
 		(entry.card as Control).mouse_default_cursor_shape = Control.CURSOR_ARROW if entry.blocked else Control.CURSOR_POINTING_HAND
@@ -227,7 +227,7 @@ func _build_team_card(team: int) -> PanelContainer:
 	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_child(swatch)
-	var title := UiStyle.label(Teams.name_of(team), 19, Teams.color_of(team).darkened(0.25))
+	var title := UiStyle.label(Teams.name_of(team), 19, Teams.color_of(team))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var badge := PanelContainer.new()

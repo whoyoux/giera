@@ -365,7 +365,7 @@ func _update_regen(info: Dictionary) -> void:
 		_regen_label.add_theme_color_override("font_color", UiStyle.CORAL)
 	elif active:
 		_regen_label.text = "+ Leczenie %d/s" % roundi(GameState.REGEN_PER_SECOND)
-		_regen_label.add_theme_color_override("font_color", UiStyle.TEAL.darkened(0.2))
+		_regen_label.add_theme_color_override("font_color", UiStyle.TEAL)
 		_regen_label.modulate.a = 0.75 + sin(now * 6.0) * 0.25
 		return
 	else:
@@ -400,7 +400,7 @@ func _update_prompt() -> void:
 	_fit_prompt()
 	var color := Rarity.color(ItemStack.tier_of(stack))
 	_prompt_style.border_color = color
-	_prompt_name.add_theme_color_override("font_color", color.darkened(0.25))
+	_prompt_name.add_theme_color_override("font_color", color)
 	_bump(_prompt_panel)
 
 
@@ -796,7 +796,7 @@ func _kill_cause(victim_id: int) -> Control:
 		cause.add_child(stripe)
 		cause.move_child(stripe, 0)
 	else:
-		cause.add_child(UiStyle.label(ItemStack.display_name_of(weapon), FEED_FONT, tint.darkened(0.25)))
+		cause.add_child(UiStyle.label(ItemStack.display_name_of(weapon), FEED_FONT, tint))
 	return cause
 
 
@@ -827,9 +827,9 @@ func _update_death_panel(info: Dictionary) -> void:
 	_death_panel.visible = watching and info.in_match and fresh and Match.phase != Match.Phase.RESULTS
 	if _death_panel.visible:
 		_show_death_avatar(info)
-		var headline: String = "Odpadasz! Miejsce %d" % info.place if info.place > 0 else "Odpadasz!"
+		var headline: String = "Odpadasz · miejsce %d" % info.place if info.place > 0 else "Odpadasz"
 		var cause := _death_cause(info, multiplayer.get_unique_id())
-		_death_label.text = headline if cause == "Auć!" else "%s\n%s" % [headline, cause]
+		_death_label.text = "%s\n%s" % [headline, cause]
 		UiStyle.fit_width(_death_label, _death_text_width())
 
 
@@ -857,10 +857,12 @@ func _death_text_width() -> float:
 ## Kto zabil, czym i ile zdrowia mu zostalo. Smierc od strefy albo wlasnego granatu ma krotszy opis.
 func _death_cause(info: Dictionary, victim_id: int) -> String:
 	var killer: int = info.get("killer_id", 0)
-	if killer == GameState.ZONE_ATTACKER or not GameState.players.has(killer):
-		return "Auć!"
+	if killer == GameState.ZONE_ATTACKER:
+		return "Zabija Cię strefa"
+	if not GameState.players.has(killer):
+		return "Nie żyjesz"
 	if killer == victim_id:
-		return "Własny granat!"
+		return "Własny granat"
 	var weapon := ItemStack.display_name_of(info.get("death_weapon", {}))
 	var head := " w głowę" if info.get("death_headshot", false) else ""
 	return "Zabija Cię %s%s · %s · zostało mu %d HP" % [_short_name(killer), head, weapon, info.get("killer_health", 0)]
@@ -934,10 +936,10 @@ func _refresh_team_scoreboard() -> void:
 		var header := HBoxContainer.new()
 		header.add_theme_constant_override("separation", 8)
 		column.add_child(header)
-		var title := UiStyle.label(Teams.name_of(team), 22, Teams.color_of(team).darkened(0.2))
+		var title := UiStyle.label(Teams.name_of(team), 22, Teams.color_of(team))
 		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		header.add_child(title)
-		header.add_child(UiStyle.label(str(Match.team_scores[team]), 22, Teams.color_of(team).darkened(0.2)))
+		header.add_child(UiStyle.label(str(Match.team_scores[team]), 22, Teams.color_of(team)))
 		column.add_child(_team_score_row("Gracz", "Z", "Ś", "Ping", Color(UiStyle.INK, 0.65), Color(UiStyle.INK, 0.65), false))
 		var members := Teams.members(team)
 		members.sort_custom(func(a: int, b: int) -> bool:
@@ -993,10 +995,10 @@ func _ping_color(ping: int) -> Color:
 	if ping < 0:
 		return UiStyle.INK
 	if ping < GOOD_PING:
-		return UiStyle.TEAL.darkened(0.15)
+		return UiStyle.TEAL
 	if ping < BAD_PING:
 		return UiStyle.SUN
-	return UiStyle.CORAL.darkened(0.1)
+	return UiStyle.CORAL
 
 
 ## W dwoch kolumnach komorki sa wezsze, zeby obie zmiescily sie obok siebie.

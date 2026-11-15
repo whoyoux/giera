@@ -392,8 +392,8 @@ func _fill_team_results(my_id: int) -> void:
 		_results_title.text = "Remis!"
 		_results_title.add_theme_color_override("font_color", UiStyle.INK)
 	else:
-		_results_title.text = ("Wygrywacie, %s!" if winner == mine else "Wygrywają %s") % Teams.name_of(winner)
-		_results_title.add_theme_color_override("font_color", Teams.color_of(winner).darkened(0.15))
+		_results_title.text = ("Wygrywacie jako %s!" if winner == mine else "Wygrywa drużyna %s") % Teams.name_of(winner)
+		_results_title.add_theme_color_override("font_color", Teams.color_of(winner))
 	# Wynik druzyn stoi w naglowkach kolumn, wiec nie ma osobnej linii.
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 16)
@@ -408,7 +408,7 @@ func _team_column(team: int, my_id: int) -> VBoxContainer:
 	column.add_theme_constant_override("separation", 2)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var header := UiStyle.label("%s · %d" % [Teams.name_of(team), Match.team_scores[team]], 15, Teams.color_of(team).darkened(0.25))
+	var header := UiStyle.label("%s · %d" % [Teams.name_of(team), Match.team_scores[team]], 15, Teams.color_of(team))
 	column.add_child(header)
 	var mvp := Match.team_mvp(Match.results, team)
 	var rows := Match.results.filter(func(entry: Dictionary) -> bool: return entry.get("team", -1) == team)
@@ -521,7 +521,7 @@ func _stat_cell(caption: String, value: String, trend: int, width := 84.0) -> VB
 	line.add_child(number)
 	if trend > 0:
 		var good := trend == 1 or trend == 3
-		line.add_child(UiStyle.label("▲" if trend <= 2 else "▼", 14, UiStyle.TEAL.darkened(0.15) if good else UiStyle.CORAL))
+		line.add_child(UiStyle.label("▲" if trend <= 2 else "▼", 14, UiStyle.TEAL if good else UiStyle.CORAL))
 	cell.add_child(UiStyle.label(caption, 13, Color(UiStyle.INK, 0.65), false))
 	return cell
 
@@ -535,7 +535,7 @@ func _row(info: Dictionary) -> HBoxContainer:
 	var name_label := UiStyle.label(_short(info.name), 19)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
-	row.add_child(UiStyle.label("gotowy" if info.ready else "czeka", 17, UiStyle.TEAL.darkened(0.2) if info.ready else Color(UiStyle.INK, 0.55)))
+	row.add_child(UiStyle.label("gotowy" if info.ready else "czeka", 17, UiStyle.TEAL if info.ready else Color(UiStyle.INK, 0.55)))
 	return row
 
 
