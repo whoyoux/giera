@@ -544,7 +544,7 @@ func _after_tick_loop() -> void:
 		if is_local():
 			input.on_respawn()
 			# Na starcie meczu gracz patrzy w strone srodka mapy, gdzie toczy sie gra.
-			if Match.is_elimination():
+			if not Match.has_respawn():
 				input.look_yaw = atan2(position.x, position.z)
 	if multiplayer.is_server() and not info.alive and applied_respawn == info.respawn_id:
 		GameState.server_finish_respawn(peer_id)
@@ -632,7 +632,7 @@ func _apply_tag_visibility() -> void:
 func _update_presence() -> void:
 	if is_local():
 		return
-	var present: bool = info.alive or (info.in_match and NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(CORPSE_SECONDS)) or (not Match.is_elimination() and info.in_match)
+	var present: bool = info.alive or (info.in_match and NetworkTime.tick < info.death_tick + NetworkTime.seconds_to_ticks(CORPSE_SECONDS)) or (Match.has_respawn() and info.in_match)
 	if present == _seen_present:
 		return
 	_seen_present = present

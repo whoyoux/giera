@@ -103,6 +103,7 @@ var _vignette: ColorRect
 var _vignette_material: ShaderMaterial
 var _indicator: DamageIndicator
 var _status_panel: PanelContainer
+var _loadout_panel: LoadoutPanel
 var _hit_amount := 0.0
 var _pulse_time := 0.0
 var _score_center: CenterContainer
@@ -806,11 +807,11 @@ func _avatar_of(id: int, side: float) -> AvatarView:
 
 ## Po eliminacji znika to, co dotyczy wlasnej postaci, a napis o miejscu znika po chwili.
 func _update_death_panel(info: Dictionary) -> void:
-	var watching: bool = Match.is_elimination() and not info.alive
+	var watching: bool = not Match.has_respawn() and not info.alive
 	_status_panel.visible = not watching
 	_hotbar.visible = not watching
 	_crosshair.visible = not watching and _scope.amount < 0.5
-	if not Match.is_elimination():
+	if Match.has_respawn():
 		_death_panel.visible = not info.alive and info.in_match
 		# W Team Deathmatchu tlo ma kolor druzyny zabojcy.
 		var killer_team := Teams.team_of(info.get("killer_id", 0)) if Teams.is_active() else Teams.NONE
@@ -827,9 +828,15 @@ func _update_death_panel(info: Dictionary) -> void:
 	_death_panel.visible = watching and info.in_match and fresh and Match.phase != Match.Phase.RESULTS
 	if _death_panel.visible:
 		_show_death_avatar(info)
-		var headline: String = "Odpadasz · miejsce %d" % info.place if info.place > 0 else "Odpadasz"
-		var cause := _death_cause(info, multiplayer.get_unique_id())
-		_death_label.text = "%s\n%s" % [headline, cause]
+		var killer_team := Teams.team_of(info.get("killer_id", 0)) if Teams.is_active() else Teams.NONE
+		(_death_panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = Teams.color_of(killer_team) if killer_team != Teams.NONE else UiStyle.CORAL
+		if Match.is_rounds_mode():
+			# Gracz, ktory wybral druzyne w trakcie walki, nie zginal, tylko czeka.
+			var joined: bool = info.get("killer_id", 0) == GameState.ZONE_ATTACKER
+			_death_label.text = "Dołączasz w następnej rundzie" if joined else "Odpadasz do końca rundy\n%s" % _death_cause(info, multiplayer.get_unique_id())
+		else:
+			var headline: String = "Odpadasz · miejsce %d" % info.place if info.place > 0 else "Odpadasz"
+			_death_label.text = "%s\n%s" % [headline, _death_cause(info, multiplayer.get_unique_id())]
 		UiStyle.fit_width(_death_label, _death_text_width())
 
 
@@ -1232,6 +1239,9 @@ func _build() -> void:
 	score_stack.add_child(_round_holder)
 	_match_panel.move_round_stats(_round_holder)
 	_add_shade_behind(_score_center)
+
+	_loadout_panel = LoadoutPanel.new()
+	add_child(_loadout_panel)
 
 	_team_panel = TeamPanel.new()
 	_team_panel.closed.connect(_on_team_panel_closed)

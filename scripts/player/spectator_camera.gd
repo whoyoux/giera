@@ -73,7 +73,7 @@ func _should_watch(me: Player) -> bool:
 	# Gracz bez druzyny w Team Deathmatchu oglada mecz za oknem wyboru druzyny.
 	if Match.is_team_mode() and not me.info.in_match:
 		return true
-	if not Match.is_elimination() or me.info.alive:
+	if Match.has_respawn() or me.info.alive:
 		return false
 	return NetworkTime.tick >= me.info.death_tick + NetworkTime.seconds_to_ticks(DELAY_SECONDS)
 
@@ -91,7 +91,11 @@ func _follow(target: Player, delta: float) -> void:
 
 func _is_valid_target(id: int) -> bool:
 	var info: Dictionary = GameState.players.get(id, {})
-	return not info.is_empty() and info.alive and info.in_match
+	if info.is_empty() or not info.alive or not info.in_match:
+		return false
+	# W Rundach martwy gracz oglada tylko swoja druzyne, zeby nie zdradzal pozycji wrogow.
+	var mine := Teams.team_of(multiplayer.get_unique_id())
+	return not Match.is_rounds_mode() or mine == Teams.NONE or info.get("team", Teams.NONE) == mine
 
 
 func _select_next() -> void:

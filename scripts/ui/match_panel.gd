@@ -120,7 +120,7 @@ func _process(_delta: float) -> void:
 	# Na ekranie wynikow mapka nie jest potrzebna, a stalaby obok karty.
 	_mini_map.modulate.a = 0.0 if Match.phase == Match.Phase.RESULTS else 1.0
 	if _results_center.visible:
-		_results_timer.text = ("Powrót do lobby za %d" if Match.is_elimination() else "Nowa runda za %d") % ceili(Match.seconds_left())
+		_results_timer.text = _results_countdown_format() % ceili(Match.seconds_left())
 		# W Battle Royale licznik i podpowiedz o tabeli stoja w jednej linii, zeby karta byla niska.
 		if Match.is_elimination():
 			_results_timer.text += " · " + _results_tab_hint.text
@@ -142,8 +142,24 @@ func _process(_delta: float) -> void:
 	if second == _shown_second:
 		return
 	_shown_second = second
-	_big_label.text = ("Start za %d" if Match.phase == Match.Phase.COUNTDOWN else "Ruszasz za %d") % second
+	_big_label.text = _countdown_text(second)
 	UiSound.play(Sfx.UiCue.NOTE)
+
+
+## Napis odliczania. W Rundach przypomina o wyborze zestawu.
+func _countdown_text(second: int) -> String:
+	if Match.phase == Match.Phase.COUNTDOWN:
+		return "Start za %d" % second
+	# Numer rundy stoi pod zegarem, a tu jest to, co gracz ma teraz zrobic.
+	if Match.is_rounds_mode():
+		return "Wybierz zestaw · start za %d" % second
+	return "Ruszasz za %d" % second
+
+
+func _results_countdown_format() -> String:
+	if Match.is_elimination():
+		return "Powrót do lobby za %d"
+	return "Nowy mecz za %d" if Match.is_rounds_mode() else "Nowa runda za %d"
 
 
 ## Odliczanie startu albo poczatku rundy. Wtedy nie ma miejsca na inne napisy pod zegarem.
@@ -323,7 +339,10 @@ func _place_results() -> void:
 	if Match.is_elimination():
 		_results_eyebrow.text = "Koniec meczu · Battle Royale"
 	else:
-		_results_eyebrow.text = "Koniec rundy · Team Deathmatch" if Match.is_team_mode() else "Koniec rundy"
+		if Match.is_rounds_mode():
+			_results_eyebrow.text = "Koniec meczu · Rundy %d:%d" % [Match.team_scores[0], Match.team_scores[1]]
+		else:
+			_results_eyebrow.text = "Koniec rundy · Team Deathmatch" if Match.is_team_mode() else "Koniec rundy"
 
 
 func _fill_results() -> void:
@@ -870,5 +889,5 @@ func _build_big_label() -> void:
 	_big_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_big_panel.visible = false
 	center.add_child(_big_panel)
-	_big_label = UiStyle.display_label("", 36, UiStyle.INK)
+	_big_label = UiStyle.display_label("", 36, UiStyle.DEEP)
 	_big_panel.add_child(_big_label)

@@ -11,7 +11,7 @@ const PICKER_LEFT := 520.0
 const ACCOUNT_AVATAR_SIDE := 56.0
 const INTRO_STAGGER_SECONDS := 0.06
 ## Kolejnosc kart trybow: Team Deathmatch stoi przy zwyklym Deathmatchu.
-const MODE_ORDER: Array[int] = [GameMode.Id.DEATHMATCH, GameMode.Id.TEAM_DEATHMATCH, GameMode.Id.BATTLE_ROYALE]
+const MODE_ORDER: Array[int] = [GameMode.Id.DEATHMATCH, GameMode.Id.TEAM_DEATHMATCH, GameMode.Id.ROUNDS, GameMode.Id.BATTLE_ROYALE]
 ## Wybrany tryb jest jasny z ciemnym tekstem, pozostale neutralne.
 const MODE_ON_FILL := UiStyle.INK
 const MODE_ON_TEXT := UiStyle.DEEP
@@ -75,19 +75,19 @@ func _ready() -> void:
 		_name_field.max_length = GameState.MAX_NAME_LENGTH
 		column.add_child(_name_field)
 
-	column.add_child(_gap(8))
+	column.add_child(_gap(4))
 	column.add_child(UiStyle.eyebrow("Tryb gry"))
 	column.add_child(_build_mode_picker())
 
-	column.add_child(_gap(8))
+	column.add_child(_gap(4))
 	column.add_child(UiStyle.eyebrow("Adres serwera"))
 	_address_field = UiStyle.field(Settings.player_value("address", ""), "np. 203.0.113.10")
 	column.add_child(_address_field)
 
-	column.add_child(_gap(12))
+	column.add_child(_gap(8))
 
 	_join_button = UiStyle.button("Dołącz do gry", UiStyle.CORAL, Color.WHITE, Sfx.UiCue.NONE)
-	_join_button.custom_minimum_size.y = 54
+	_join_button.custom_minimum_size.y = 50
 	_join_button.add_theme_font_size_override("font_size", 22)
 	_join_button.pressed.connect(_on_join)
 	column.add_child(_join_button)
@@ -137,19 +137,20 @@ func _build_version_label() -> void:
 	add_child(_version_label)
 
 
-## Przelacznik segmentowy: wybrany tryb jest jasny, pozostale neutralne. Wszystkie zawsze widac.
+## Przelacznik: wybrany tryb jest jasny, pozostale neutralne. Wszystkie zawsze widac.
 func _build_mode_picker() -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 4)
+	# Cztery tryby w siatce 2 x 2, zeby kazda nazwa miescila sie w jednej linii.
+	var row := GridContainer.new()
+	row.columns = 2
+	row.add_theme_constant_override("h_separation", 4)
+	row.add_theme_constant_override("v_separation", 4)
 	box.add_child(row)
 	for id: int in MODE_ORDER:
 		var button := UiStyle.secondary_button(GameMode.title_of(id), Sfx.UiCue.PRESS)
-		# Trzy karty w jednym rzedzie: dluzsza nazwa lamie sie na dwie linie zamiast znikac.
 		button.add_theme_font_size_override("font_size", 15)
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.custom_minimum_size = Vector2(0.0, 44.0)
+		button.custom_minimum_size = Vector2(0.0, 38.0)
 		for state in ["normal", "hover", "pressed", "disabled"]:
 			var style := button.get_theme_stylebox(state) as StyleBoxFlat
 			style.content_margin_left = 8
@@ -249,7 +250,7 @@ func _build_title() -> Control:
 	accent.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(accent)
-	var title := UiStyle.display_label("GIERA", 76)
+	var title := UiStyle.display_label("GIERA", 64)
 	title.add_theme_constant_override("line_spacing", -12)
 	column.add_child(title)
 	column.add_child(UiStyle.eyebrow("Multiplayer FPS", 14, Color(UiStyle.INK, 0.7)))

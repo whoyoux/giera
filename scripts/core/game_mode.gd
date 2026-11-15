@@ -3,7 +3,7 @@ extends RefCounted
 ## Tryby gry. Jeden proces serwera prowadzi jeden tryb, a menu wybiera serwer po jego porcie.
 ## Kolejny serwer dopisuje sie w compose.yaml.
 
-enum Id { DEATHMATCH, BATTLE_ROYALE, TEAM_DEATHMATCH }
+enum Id { DEATHMATCH, BATTLE_ROYALE, TEAM_DEATHMATCH, ROUNDS }
 
 const INFO := {
 	Id.DEATHMATCH: {
@@ -25,6 +25,13 @@ const INFO := {
 		"title": "Team Deathmatch",
 		"hint": "Dwie drużyny. Liczą się zabójstwa całej drużyny.",
 		"port": 7779,
+		"map": "desert",
+	},
+	Id.ROUNDS: {
+		"key": "rounds",
+		"title": "Rundy",
+		"hint": "Dwie drużyny, jedno życie na rundę. Wygrywa pierwsza do 5 rund.",
+		"port": 7780,
 		"map": "desert",
 	},
 }

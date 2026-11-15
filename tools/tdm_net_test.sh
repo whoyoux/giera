@@ -39,10 +39,10 @@ wait
 FAILED=0
 SERVER="$LOGS/tdm_server.log"
 for name in A B; do
-	grep -q "$name gra w druzynie Kaktusy" "$SERVER" || { echo "$name nie trafil do Kaktusow"; FAILED=1; }
+	grep -q "$name gra w druzynie Alfa" "$SERVER" || { echo "$name nie trafil do Alfy"; FAILED=1; }
 done
 for name in C D; do
-	grep -q "$name gra w druzynie Żuczki" "$SERVER" || { echo "$name nie trafil do Zuczkow"; FAILED=1; }
+	grep -q "$name gra w druzynie Bravo" "$SERVER" || { echo "$name nie trafil do Bravo"; FAILED=1; }
 done
 grep -q "E gra w druzynie" "$SERVER" && echo "E: $(grep -o 'E gra w druzynie [^ ]*' "$SERVER" | head -1)" || { echo "E nie dostal druzyny"; FAILED=1; }
 grep -h '\[tdm\] druzyny' "$SERVER" | grep -vE '\[(2, 2|2, 3|3, 2|1, 2|2, 1|1, 1|0, 1|1, 0|0, 0)\]' | grep -q . && { echo "nierowne druzyny"; FAILED=1; }

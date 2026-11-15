@@ -46,6 +46,7 @@ func _ready() -> void:
 	GameState.player_removed.connect(func(_id: int) -> void: _dirty = true)
 	Match.phase_changed.connect(func() -> void: _dirty = true)
 	Match.team_scores_changed.connect(_on_team_scores_changed)
+	Match.duel_finished.connect(_on_duel_finished)
 	set_process(not Net.is_headless)
 
 
@@ -105,8 +106,8 @@ func _update_clock(delta: float) -> void:
 	_clock_style.bg_color = UiStyle.CORAL if final else UiStyle.HUD_FILL
 	_clock.add_theme_color_override("font_color", Color.WHITE if final else UiStyle.INK)
 	_place.add_theme_color_override("font_color", Color(Color.WHITE, 0.9) if final else Color(UiStyle.INK, 0.65))
-	if final and _warned_round != Match.round_number:
-		_warned_round = Match.round_number
+	if final and _warned_round != _round_key():
+		_warned_round = _round_key()
 		_show_banner("Ostatnie 30 sekund!", UiStyle.CORAL)
 		_audio.stream = Sfx.match_start()
 		_audio.play()
@@ -118,6 +119,24 @@ func _update_clock(delta: float) -> void:
 	_shown_second = left
 	_banner_timer = maxf(0.0, _banner_timer - delta)
 	_banner.visible = _banner_timer > 0.0
+
+
+## Ostrzezenie o koncu czasu pada raz na runde Deathmatchu i raz na kazda runde w trybie Rundy.
+func _round_key() -> int:
+	return Match.round_number * 1000 + Match.duel_number
+
+
+## Tryb Rundy: kto wygral runde. Baner ma kolor zwyciezcy, a remis jest neutralny.
+func _on_duel_finished(winner: int) -> void:
+	_dirty = true
+	var mine := Teams.team_of(multiplayer.get_unique_id())
+	if winner < 0:
+		_show_banner("Remis w rundzie", UiStyle.NEUTRAL)
+	elif winner == mine:
+		_show_banner("Rundę wygrywa Twoja drużyna", Teams.color_of(winner))
+	else:
+		_show_banner("Rundę wygrywa drużyna %s" % Teams.name_of(winner), Teams.color_of(winner))
+	UiSound.play(Sfx.UiCue.NOTE, 1.2 if winner >= 0 and winner == mine else 0.85)
 
 
 func _show_banner(text: String, color: Color) -> void:
@@ -139,7 +158,8 @@ func hide_banner() -> void:
 ## Krotki napis, gdy prowadzenie przechodzi na druga strone. Remis niczego nie oglasza.
 func _on_team_scores_changed() -> void:
 	_dirty = true
-	if not Match.is_team_mode():
+	# W Rundach wynik zmienia sie tylko po rozstrzygnieciu rundy, a to oglasza _on_duel_finished.
+	if not Match.is_team_mode() or Match.is_rounds_mode():
 		return
 	if _seen_round != Match.round_number:
 		_seen_round = Match.round_number
@@ -163,6 +183,15 @@ func _refresh_team_status() -> void:
 	for team in Teams.COUNT:
 		_team_scores[team].text = str(Match.team_scores[team])
 	var mine := Teams.team_of(multiplayer.get_unique_id())
+	if Match.is_rounds_mode():
+		_leader.text = "Gramy do %d wygranych rund" % Match.kill_limit
+		if mine == Teams.NONE:
+			_place.text = "Wybierz drużynę"
+		elif Match.duel_number == 0:
+			_place.text = "Rozgrzewka · czekamy na rywali"
+		else:
+			_place.text = "Runda %d · do %d wygranych" % [Match.duel_number, Match.kill_limit]
+		return
 	_leader.text = "Gramy do %d zabójstw" % Match.kill_limit
 	_place.text = "Wybierz drużynę" if mine == Teams.NONE else "Do %d · drużyna %s" % [Match.kill_limit, Teams.name_of(mine)]
 

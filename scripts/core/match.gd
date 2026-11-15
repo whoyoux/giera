@@ -6,6 +6,8 @@ extends Node
 signal phase_changed
 ## Wynik druzyn Team Deathmatchu zmienil sie bez zmiany etapu.
 signal team_scores_changed
+## Tryb Rundy: runda rozstrzygnieta. winner to numer druzyny albo -1 przy remisie.
+signal duel_finished(winner: int)
 
 enum Phase { LOBBY, COUNTDOWN, STARTING, LIVE, RESULTS }
 
@@ -29,6 +31,13 @@ const FINAL_WARNING_SECONDS := 30.0
 const VOTE_MAPS: Array[String] = ["city", "desert", "forest"]
 ## Tick, ktory nigdy nie nadejdzie: wyeliminowany nie wraca sam do gry.
 const NEVER_TICK := 1 << 62
+## Tryb Rundy: tyle wygranych rund konczy mecz. Kazda runda zaczyna sie od wyboru zestawu
+## (gracze stoja w bazach), potem jest walka bez odradzania i krotka przerwa po rozstrzygnieciu.
+## Testy skracaja walke flaga --round-seconds, a liczbe wygranych flaga --round-kill-limit.
+const ROUNDS_TO_WIN := 5
+const ROUNDS_BUY_SECONDS := 8.0
+const ROUNDS_FIGHT_SECONDS := 100.0
+const ROUNDS_BREAK_SECONDS := 4.0
 
 var mode := GameMode.Id.DEATHMATCH
 var phase := Phase.LIVE
@@ -52,6 +61,13 @@ var votes := {}
 var team_scores: Array = [0, 0]
 ## Druzyna, ktora wygrala ostatnia runde, albo -1 przy remisie i poza Team Deathmatchem.
 var winning_team := -1
+## Tryb Rundy: numer rundy w meczu (od 1). W tym trybie team_scores to wygrane rundy,
+## round_number to numer meczu, a kill_limit to liczba wygranych potrzebna do zwyciestwa.
+var duel_number := 0
+## Tryb Rundy: tick konca przerwy po rozstrzygnietej rundzie, tylko na serwerze. -1, gdy runda trwa.
+var _break_end_tick := -1
+## Tryb Rundy: czy runda zaczela sie z graczami w obu druzynach. Bez tego to tylko rozgrzewka.
+var _duel_contested := false
 
 ## Gracze meczu, razem z tymi, ktorzy juz wyszli z gry: id -> { id, name, kills, place }.
 var _ranking := {}
@@ -73,8 +89,38 @@ func is_elimination() -> bool:
 	return mode == GameMode.Id.BATTLE_ROYALE
 
 
+## Druzyny Alfa i Bravo: Team Deathmatch i Rundy.
 func is_team_mode() -> bool:
-	return mode == GameMode.Id.TEAM_DEATHMATCH
+	return mode == GameMode.Id.TEAM_DEATHMATCH or mode == GameMode.Id.ROUNDS
+
+
+func is_rounds_mode() -> bool:
+	return mode == GameMode.Id.ROUNDS
+
+
+## Odradzanie po smierci jest tylko w Deathmatchu i Team Deathmatchu.
+func has_respawn() -> bool:
+	return not is_elimination() and not is_rounds_mode()
+
+
+## Zdrowie odnawia sie samo tam, gdzie gracze sie odradzaja.
+func uses_regen() -> bool:
+	return has_respawn()
+
+
+## W Rundach bron daje zestaw, wiec skrzynek nie ma.
+func uses_chests() -> bool:
+	return not is_rounds_mode()
+
+
+## Tryb Rundy: czas wyboru zestawu, gdy gracze stoja w bazach.
+func in_buy_time(tick := NetworkTime.tick) -> bool:
+	return is_rounds_mode() and phase == Phase.LIVE and is_frozen_at(tick)
+
+
+## Tryb Rundy: runda rozstrzygnieta, trwa przerwa przed nastepna. Wie to tylko serwer.
+func in_round_break() -> bool:
+	return is_rounds_mode() and phase == Phase.LIVE and _break_end_tick >= 0
 
 
 ## Obrazenia i skrzynki dzialaja tylko w trakcie meczu.
@@ -83,7 +129,7 @@ func allows_combat() -> bool:
 
 
 func starts_armed() -> bool:
-	return not is_elimination()
+	return not is_elimination() and not is_rounds_mode()
 
 
 ## Dolaczajacy po starcie meczu oglada go do konca.
@@ -92,7 +138,7 @@ func accepts_new_players() -> bool:
 
 
 func respawn_tick_after_death(tick: int, respawn_seconds: float) -> int:
-	return NEVER_TICK if is_elimination() else tick + NetworkTime.seconds_to_ticks(respawn_seconds)
+	return tick + NetworkTime.seconds_to_ticks(respawn_seconds) if has_respawn() else NEVER_TICK
 
 
 ## Zywi uczestnicy meczu. Wiadomosc o zabojstwie przychodzi przed nowym stanem ofiary,
@@ -158,9 +204,12 @@ func server_begin(new_mode: int) -> void:
 	phase = Phase.LOBBY if is_elimination() else Phase.LIVE
 	phase_end_tick = -1
 	round_number = 0 if is_elimination() else 1
-	kill_limit = int(Net.args.get("round-kill-limit", TEAM_KILL_LIMIT if is_team_mode() else ROUND_KILL_LIMIT))
+	kill_limit = int(Net.args.get("round-kill-limit", _default_kill_limit()))
 	team_scores = [0, 0]
 	winning_team = -1
+	duel_number = 0
+	_break_end_tick = -1
+	_duel_contested = false
 	freeze_from_tick = -1
 	freeze_end_tick = -1
 	phase_changed.emit()
@@ -184,10 +233,19 @@ func server_send_state(id: int) -> void:
 	_sync_state.rpc_id(id, _state())
 
 
+func _default_kill_limit() -> int:
+	if is_rounds_mode():
+		return ROUNDS_TO_WIN
+	return TEAM_KILL_LIMIT if is_team_mode() else ROUND_KILL_LIMIT
+
+
 func _process(delta: float) -> void:
 	if Net.in_session and not multiplayer.is_server() and not Net.bot_mode.is_empty() and Engine.get_process_frames() % 30 == 0:
 		_on_player_changed(multiplayer.get_unique_id())
 	if not Net.in_session or not multiplayer.is_server():
+		return
+	if is_rounds_mode():
+		_update_rounds_mode()
 		return
 	if not is_elimination():
 		_update_round()
@@ -241,7 +299,104 @@ func _update_round() -> void:
 
 
 func _round_seconds() -> float:
-	return float(Net.args.get("round-seconds", ROUND_SECONDS))
+	return float(Net.args.get("round-seconds", ROUNDS_FIGHT_SECONDS if is_rounds_mode() else ROUND_SECONDS))
+
+
+## Tryb Rundy. Pusty serwer czeka na graczy. Runda konczy sie, gdy jedna druzyna nie ma zywych
+## albo minie czas (wtedy wygrywa druzyna z wieksza liczba zywych). Po przerwie jest kolejna
+## runda albo, gdy ktos ma juz komplet wygranych, ekran wynikow calego meczu.
+func _update_rounds_mode() -> void:
+	match phase:
+		Phase.LIVE:
+			if GameState.players.is_empty():
+				phase_end_tick = -1
+				duel_number = 0
+				_break_end_tick = -1
+				_duel_contested = false
+				team_scores = [0, 0]
+				return
+			if phase_end_tick < 0:
+				_start_duel()
+				return
+			if _break_end_tick >= 0:
+				if NetworkTime.tick >= _break_end_tick:
+					if maxi(team_scores[0], team_scores[1]) >= kill_limit:
+						_break_end_tick = -1
+						_finish_round(standings())
+					else:
+						_start_duel()
+				return
+			var sizes := _team_sizes()
+			var both_teams: bool = sizes[0] > 0 and sizes[1] > 0
+			# Bez przeciwnika nie ma o co grac: runda zaczyna sie od nowa, gdy ktos dolaczy do
+			# drugiej druzyny, a koniec czasu nie daje punktu.
+			if not _duel_contested:
+				if both_teams or (not is_frozen_at(NetworkTime.tick) and NetworkTime.tick >= phase_end_tick):
+					_start_duel()
+				return
+			if is_frozen_at(NetworkTime.tick):
+				return
+			var alive := team_alive_counts()
+			if alive[0] == 0 or alive[1] == 0:
+				_end_duel(-1 if alive[0] == alive[1] else (0 if alive[0] > 0 else 1))
+			elif NetworkTime.tick >= phase_end_tick:
+				_end_duel(-1 if alive[0] == alive[1] else (0 if alive[0] > alive[1] else 1))
+		Phase.RESULTS:
+			if NetworkTime.tick >= phase_end_tick:
+				_start_next_round()
+
+
+## Zywi gracze kazdej druzyny.
+func team_alive_counts() -> Array:
+	var counts := [0, 0]
+	for id: int in GameState.players:
+		var info: Dictionary = GameState.players[id]
+		var team: int = info.get("team", Teams.NONE)
+		if team >= 0 and team < Teams.COUNT and info.alive and info.in_match:
+			counts[team] += 1
+	return counts
+
+
+func _team_sizes() -> Array:
+	var sizes := [0, 0]
+	for id: int in GameState.players:
+		var team: int = GameState.players[id].get("team", Teams.NONE)
+		if team >= 0 and team < Teams.COUNT:
+			sizes[team] += 1
+	return sizes
+
+
+## Nowa runda w meczu: wszyscy z druzyn wracaja do baz z wybranym zestawem, a zabojstwa
+## zostaja do konca meczu. Gracze bez druzyny ogladaja.
+func _start_duel() -> void:
+	var tick := NetworkTime.tick + NetworkTime.seconds_to_ticks(TELEPORT_LEAD_SECONDS)
+	var sizes := _team_sizes()
+	_duel_contested = sizes[0] > 0 and sizes[1] > 0
+	# Runda bez przeciwnika to rozgrzewka (numer 0) i nie zmienia numeru rundy.
+	if _duel_contested:
+		duel_number += 1
+	_break_end_tick = -1
+	freeze_from_tick = NetworkTime.tick
+	freeze_end_tick = tick + NetworkTime.seconds_to_ticks(ROUNDS_BUY_SECONDS)
+	_clear_world.rpc()
+	for id: int in GameState.players:
+		if Teams.team_of(id) == Teams.NONE:
+			GameState.server_make_spectator(id, tick)
+		else:
+			GameState.server_prepare_round(id, -1, tick, duel_number <= 1)
+	_enter_phase(Phase.LIVE, freeze_end_tick + NetworkTime.seconds_to_ticks(_round_seconds()))
+	print("[serwer] mecz %d, runda %d do ticku %d" % [round_number, duel_number, phase_end_tick])
+
+
+func _end_duel(winner: int) -> void:
+	if winner >= 0:
+		team_scores[winner] += 1
+	_break_end_tick = NetworkTime.tick + NetworkTime.seconds_to_ticks(ROUNDS_BREAK_SECONDS)
+	var alive := team_alive_counts()
+	print("[serwer] runda %d: %s, wynik %d:%d, zywi %d:%d" % [duel_number, Teams.name_of(winner) if winner >= 0 else "remis", team_scores[0], team_scores[1], alive[0], alive[1]])
+	team_scores_changed.emit()
+	_sync_team_scores.rpc(team_scores)
+	_announce_duel.rpc(winner)
 
 
 func _finish_round(rows: Array) -> void:
@@ -264,6 +419,10 @@ func _start_next_round() -> void:
 	team_scores = [0, 0]
 	winning_team = -1
 	round_number += 1
+	if is_rounds_mode():
+		duel_number = 0
+		_start_duel()
+		return
 	# Chwila na rozejrzenie sie po przeniesieniu, zanim ktos zacznie strzelac. Zamrozenie rusza
 	# od razu, bo do przeniesienia gracze stoja jeszcze tam, gdzie skonczyli runde.
 	freeze_from_tick = NetworkTime.tick
@@ -299,8 +458,9 @@ func vote_counts() -> Dictionary:
 	return counts
 
 
+## W Rundach gra sie tylko na Pustyni, wiec glosowania nie ma.
 func can_vote() -> bool:
-	return not is_elimination() and phase == Phase.RESULTS
+	return not is_elimination() and not is_rounds_mode() and phase == Phase.RESULTS
 
 
 func vote(map_id: String) -> void:
@@ -436,7 +596,7 @@ func _enter_phase(new_phase: int, end_tick: int) -> void:
 
 
 func _state() -> Dictionary:
-	return { "map": Maps.current_id, "votes": votes, "mode": mode, "team_scores": team_scores, "winning_team": winning_team, "round": round_number, "kill_limit": kill_limit, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
+	return { "map": Maps.current_id, "votes": votes, "mode": mode, "team_scores": team_scores, "winning_team": winning_team, "round": round_number, "duel": duel_number, "kill_limit": kill_limit, "phase": phase, "phase_end_tick": phase_end_tick, "freeze_from_tick": freeze_from_tick, "freeze_end_tick": freeze_end_tick, "results": results, "zone_seed": zone_seed, "zone_start_tick": zone_start_tick, "zone_speed": zone_speed }
 
 
 func _clear() -> void:
@@ -445,6 +605,9 @@ func _clear() -> void:
 	team_scores = [0, 0]
 	winning_team = -1
 	round_number = 0
+	duel_number = 0
+	_break_end_tick = -1
+	_duel_contested = false
 	kill_limit = ROUND_KILL_LIMIT
 	phase = Phase.LIVE
 	phase_end_tick = -1
@@ -501,14 +664,32 @@ func request_team(team: int) -> void:
 
 ## Punkt dla druzyny zabojcy. Wolane przez serwer przy kazdym zabojstwie wroga.
 func server_on_team_kill(team: int) -> void:
-	if not is_team_mode() or team < 0 or team >= Teams.COUNT or phase != Phase.LIVE:
+	if not is_team_mode() or is_rounds_mode() or team < 0 or team >= Teams.COUNT or phase != Phase.LIVE:
 		return
 	team_scores[team] += 1
 	team_scores_changed.emit()
 	_sync_team_scores.rpc(team_scores)
 
 
+## Tryb Rundy: wybor zestawu. Dziala zawsze, a w czasie wyboru zestaw podmienia sie od razu.
+func request_loadout(index: int) -> void:
+	if is_rounds_mode() and Loadouts.is_valid(index):
+		_request_loadout.rpc_id(1, index)
+
+
 # --- RPC --------------------------------------------------------------------
+
+@rpc("any_peer", "call_local", "reliable")
+func _request_loadout(index: int) -> void:
+	if not multiplayer.is_server() or not is_rounds_mode() or not Loadouts.is_valid(index):
+		return
+	GameState.server_set_loadout(multiplayer.get_remote_sender_id(), index)
+
+
+@rpc("authority", "call_local", "reliable")
+func _announce_duel(winner: int) -> void:
+	duel_finished.emit(winner)
+
 
 @rpc("any_peer", "call_local", "reliable")
 func _request_ready(value: bool) -> void:
@@ -538,6 +719,9 @@ func _request_team(team: int) -> void:
 	var chosen := Teams.smaller_team(id) if team == Teams.NONE else team
 	if chosen == Teams.team_of(id):
 		return
+	# W Rundach zmiana druzyny w trakcie walki bylaby ucieczka z przegranej rundy.
+	if is_rounds_mode() and Teams.team_of(id) != Teams.NONE and not in_buy_time():
+		return
 	if not Teams.can_join(id, chosen):
 		print("[serwer] %s nie moze dolaczyc do druzyny %d" % [GameState.display_name(id), chosen])
 		return
@@ -559,6 +743,7 @@ func _sync_state(state: Dictionary) -> void:
 	team_scores = state.team_scores
 	winning_team = state.winning_team
 	round_number = state.round
+	duel_number = state.get("duel", 0)
 	kill_limit = state.kill_limit
 	phase = state.phase
 	phase_end_tick = state.phase_end_tick

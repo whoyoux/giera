@@ -12,6 +12,10 @@ Strzelanka FPS multiplayer nastawiona na rywalizację: krótkie rundy, czytelna 
 |---|---|---|---|
 | ![Wybór drużyny](docs/screenshots/tdm_lobby.png) | ![HUD Team Deathmatchu](docs/screenshots/tdm_hud.png) | ![Tabela drużyn](docs/screenshots/tdm_scoreboard.png) | ![Koniec rundy drużyn](docs/screenshots/tdm_results.png) |
 
+| Rundy: wybór zestawu | Rundy: wygrana runda | Rundy: koniec meczu |
+|---|---|---|
+| ![Wybór zestawu przed rundą](docs/screenshots/rounds_buy.png) | ![Wygrana runda](docs/screenshots/rounds_win.png) | ![Koniec meczu w trybie Rundy](docs/screenshots/rounds_results.png) |
+
 | Pustynia | Desert Eagle | Desert Eagle w ręku | Twoja runda | Wioska w dolinie |
 |---|---|---|---|---|
 | ![Targ na pustyni](docs/screenshots/desert_market.png) | ![Model Desert Eagle](docs/screenshots/deagle_po.png) | ![Desert Eagle w ręku](docs/screenshots/deagle_reka.png) | ![Statystyki rundy](docs/screenshots/dm_results.png) | ![Wioska w dolinie](docs/screenshots/valley_village.png) |
@@ -43,7 +47,8 @@ Strzelanka FPS multiplayer nastawiona na rywalizację: krótkie rundy, czytelna 
 ## Co jest w grze
 
 - **Wygląd:** ciemny, taktyczny interfejs z wąskim fontem do liczb, HUD przy krawędziach ekranu, który nie zasłania celownika, i jeden kolor akcentu. Świat jest low-poly, ale w stonowanych barwach: wspólna korekcja obrazu na wszystkich mapach, cegła i beton w Miasteczku, oliwkowa trawa w Dolinie, broń w kolorze metalu.
-- **Trzy tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, Team Deathmatch to walka dwóch drużyn, a w Battle Royale masz jedno życie.
+- **Cztery tryby:** wybierasz je w menu głównym. Deathmatch to walka z odradzaniem, Team Deathmatch to walka dwóch drużyn, Rundy to drużynowy mecz na eliminację, a w Battle Royale masz jedno życie.
+- **Rundy:** dwie drużyny, Alfa i Bravo, na Pustyni. W rundzie masz jedno życie. Rundę wygrywa drużyna, która wyeliminuje przeciwników, a gdy skończy się czas (100 s), ta, która ma więcej żywych. Mecz wygrywa pierwsza drużyna z 5 wygranymi rundami. Przed każdą rundą drużyny stoją w swoich bazach przez 8 s i każdy wybiera zestaw klawiszami 1–4: **Szturm** (karabinek, nóż, granat), **Bliski dystans** (strzelba, Uzi, nóż), **Snajper** (AWP, Desert Eagle, nóż) albo **Zwiad** (Uzi, Desert Eagle, granat). Wszystkie bronie mają zwykłą klasę. Nie ma skrzynek ani regeneracji, a zabójstwa liczą się przez cały mecz, do MVP. Kto zginie, ogląda swoją drużynę. Kto dołączy w trakcie walki, wchodzi w następnej rundzie. Drużynę zmienisz tylko w czasie wyboru zestawu.
 - **Team Deathmatch:** po wejściu wybierasz drużynę: pomarańczowa **Alfa** albo niebieska **Bravo** (albo „Losowo”). Drużyny różnią się najwyżej o jedną osobę. Liczą się zabójstwa całej drużyny, do 50. Nie ma ognia przyjacielskiego. Sojuszników poznasz po chuście w kolorze drużyny i plakietce widocznej przez ściany, a na mapce widać ich kropki. U góry ekranu jest wynik obu drużyn, pod Tab tabela w dwóch kolumnach, a na koniec rundy wygrana drużyna, MVP każdej z nich i podium zwycięzców.
 - **Pustynia:** duża mapa (ok. 130 × 130 m) do Deathmatchu i Team Deathmatchu: Stacja z wagonami i wieżą ciśnień, gliniana Twierdza, Targ z płóciennymi daszkami, Kanion z mostem linowym, Oaza z palmami i Wydmy z wrakiem ciężarówki. Złote, niskie słońce, piasek niesiony wiatrem i toczące się krzaki-kulki.
 - **Odrzut broni:** każda broń kopie inaczej: Desert Eagle mocno podbija lufę i cofa zamek, AWP ciężko wchodzi w ramię i przeładowuje rygiel, strzelba szarpie i przesuwa pompkę, a karabinek lekko drży. Siłę uderzenia kamery ustawisz w ustawieniach, a kierunek strzału się nie zmienia.
@@ -96,9 +101,9 @@ Pobierasz ją tylko raz: przy każdym uruchomieniu gra sama sprawdza i instaluje
 - **Windows:** rozpakuj `Giera-Windows.zip` do jednego folderu i uruchom `Giera.exe`. Jeśli pojawi się SmartScreen, wybierz **Więcej informacji**, a potem **Uruchom mimo to**.
 - **macOS:** rozpakuj `Giera-macOS.zip` i uruchom `Giera.app`. Aplikacja nie ma podpisu Apple, więc przy pierwszym uruchomieniu wybierz **Otwórz mimo to** w **Ustawienia systemowe → Prywatność i ochrona**.
 
-Jeśli Steam jest włączony, gra zaloguje Cię sama. W innym wypadku wpisz nick. Potem podaj adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu UDP: 7777 dla Deathmatchu, 7778 dla Battle Royale, 7779 dla Team Deathmatchu.
+Jeśli Steam jest włączony, gra zaloguje Cię sama. W innym wypadku wpisz nick. Potem podaj adres serwera i kliknij **Dołącz** albo wybierz **Hostuj na tym komputerze**. Hostowanie wymaga otwartego portu UDP: 7777 dla Deathmatchu, 7778 dla Battle Royale, 7779 dla Team Deathmatchu, 7780 dla Rund.
 
-Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d --build`.
+Serwery dedykowane wszystkich trybów uruchamia jedno polecenie: `docker compose up -d --build`.
 
 ## Sterowanie
 
@@ -114,13 +119,13 @@ Serwery dedykowane obu trybów uruchamia jedno polecenie: `docker compose up -d 
 | **Spacja** | Skok |
 | **Ctrl** | Kucanie (przytrzymaj), w sprincie ślizg |
 | **M** | Duża mapa w Battle Royale i Team Deathmatchu (przytrzymaj) |
-| **1–4 / scroll** | Zmiana broni, a na ekranie wyników głos na mapę |
+| **1–4 / scroll** | Zmiana broni, a na ekranie wyników głos na mapę. W Rundach przed startem rundy wybór zestawu |
 | **E** | Podniesienie przedmiotu, przytrzymanie otwiera skrzynkę |
 | **G** | Wyrzucenie przedmiotu |
 | **B** | Przytrzymanie otwiera koło tańców. Puszczenie albo LPM wybiera taniec, a ruch go przerywa |
 | **T** | Czat. Enter wysyła, Esc zamyka |
-| **Y** | Czat drużyny w Team Deathmatchu |
-| **N** | Wybór drużyny w Team Deathmatchu |
+| **Y** | Czat drużyny w Team Deathmatchu i Rundach |
+| **N** | Wybór drużyny w Team Deathmatchu i Rundach |
 | **Tab** | Wyniki |
 | **Esc** | Pauza i ustawienia |
 
