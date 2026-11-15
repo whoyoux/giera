@@ -24,9 +24,9 @@ const CONCRETE := Color("9d9990")
 const ROOF := Color("5d6064")
 const WOOD := Color("7a5a3e")
 const GLASS := Color("6d8794")
-## Cegla, beton, ochra, lupek i oliwka: miasto, a nie pudelko kredek.
-const FACADES: Array[Color] = [Color("8e5b4b"), Color("a39b8d"), Color("6b777d"), Color("ad8b5e"), Color("66705c"), Color("9b9083"), Color("7a5043"), Color("bdb39f")]
-const CARS: Array[Color] = [Color("7d2f2c"), Color("3c4a55"), Color("c7c3b8"), Color("2e3135"), Color("56664a"), Color("8a8d91")]
+## Cegla, piaskowiec, ochra i terakota z akcentami morskiego i granatu: zywe, ale nie cukierkowe.
+const FACADES: Array[Color] = [Color("9a5442"), Color("b3a892"), Color("4f7a7a"), Color("c0904f"), Color("6b7f59"), Color("3f5a78"), Color("b4644a"), Color("d2c6a8")]
+const CARS: Array[Color] = [Color("8f2b2a"), Color("2f4f74"), Color("c9c5ba"), Color("2a2d31"), Color("3f6a5c"), Color("9a9da2")]
 const CONTAINERS: Array[Color] = [Color("98402c"), Color("2f5d58"), Color("35506c"), Color("a9792f")]
 
 ## Punkty startu i skrzynki: x, z, wysokosc podlogi.

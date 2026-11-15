@@ -1,6 +1,6 @@
 # Zasady interfejsu
 
-Styl gry jest taktyczny i nowoczesny: ciemne grafitowe panele z cienką krawędzią 1 px, małe zaokrąglenia (2–6 px), bez przechyleń i sprężynujących animacji, oraz font Archivo (zmienna szerokość i grubość). Kolor to sygnał, a nie ozdoba: większość interfejsu jest neutralna, a akcent dostaje tylko to, co ważne. Wszystko buduje `scripts/ui/ui_style.gd` (`UiStyle`), a nowe okna i karty korzystają z niego, zamiast ustawiać kolory i style od zera.
+Styl gry jest taktyczny i nowoczesny: ciemne grafitowe panele z cienką krawędzią 1 px, małe zaokrąglenia (do 4 px na samodzielnych panelach, ostre rogi w środku), bez przechyleń i sprężynujących animacji, oraz font Archivo (zmienna szerokość i grubość). Kolor to sygnał, a nie ozdoba: większość interfejsu jest neutralna, a akcent dostaje tylko to, co ważne. Wszystko buduje `scripts/ui/ui_style.gd` (`UiStyle`), a nowe okna i karty korzystają z niego, zamiast ustawiać kolory i style od zera.
 
 Czcionki z `UiStyle`:
 
@@ -36,7 +36,7 @@ Odstępy biorą wartości ze skali **4, 8, 12, 16, 20, 24**.
 - **Obwódka nie jest odstępem.** `content_margin` w `StyleBoxFlat` liczy się od zewnętrznej krawędzi i obejmuje obwódkę. Krawędź panelu ma 1 px (`UiStyle.BORDER`). Starsze wywołania `UiStyle.sticker(kolor, promień, obwódka)` podają dawne liczby (np. `5 + 12`). `sticker` traktuje promień tylko jako wskazówkę (`UiStyle.corner`), a grubość obwódki pomija.
 - Między elementami jednej grupy (tytuł i podtytuł, ikona i podpis): 4–8. Między grupami w panelu: 12–16. Między osobnymi kartami: 12–16.
 - Obraz w karcie (miniaturka, ikona) ma ten sam margines od krawędzi co tekst, żeby wszystko stało w jednej linii.
-- Zaokrąglenia zagnieżdżone: promień w środku = promień na zewnątrz − margines (np. karta 18 z marginesem 10 → obrazek 8). Inaczej rogi wyglądają krzywo.
+- **Zaokrąglenia zagnieżdżone:** promień w środku = promień na zewnątrz − margines, nie mniej niż 0 (`UiStyle.inner`). Samodzielne panele (okna, elementy HUD, karty zestawów, sloty) mają do 4 px (`UiStyle.corner`, `MAX_RADIUS`). Przy marginesach od 8 px wszystko w środku (przyciski, pola, karty w oknie, miniatury, znaczki, awatary, przełączniki) ma ostre rogi: `UiStyle.INNER_RADIUS` = 0. Wewnętrzny róg nigdy nie jest bardziej zaokrąglony niż zewnętrzny.
 
 ## 3. Jeden moment, jeden panel
 

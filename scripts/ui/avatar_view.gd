@@ -20,7 +20,8 @@ func _init(steam_id: int, player_name: String, side: float) -> void:
 	size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
-	var style := UiStyle.flat(FILLS[absi(player_name.hash()) % FILLS.size()], maxi(2, roundi(side * 0.08)))
+	# Awatar zawsze lezy w czyms (karta, wiersz listy), wiec ma ostre rogi jak inne elementy w srodku.
+	var style := UiStyle.flat(FILLS[absi(player_name.hash()) % FILLS.size()], UiStyle.INNER_RADIUS)
 	style.set_content_margin_all(0)
 	add_theme_stylebox_override("panel", style)
 
@@ -36,6 +37,7 @@ func _init(steam_id: int, player_name: String, side: float) -> void:
 	_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var rounded := ShaderMaterial.new()
 	rounded.shader = ROUNDED_SHADER
+	rounded.set_shader_parameter("radius", float(UiStyle.INNER_RADIUS) / maxf(side, 1.0))
 	_picture.material = rounded
 	add_child(_picture)
 

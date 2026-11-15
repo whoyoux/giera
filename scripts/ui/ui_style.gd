@@ -34,7 +34,11 @@ const POP_SECONDS := 0.14
 const SHAKE_PIXELS := 7.0
 const SHAKE_STEP_SECONDS := 0.04
 ## Zaokraglenie i krawedz panelu sa male niezaleznie od tego, o co prosi wywolujacy.
-const MAX_RADIUS := 6
+const MAX_RADIUS := 4
+## Rogi elementow w srodku panelu: promien panelu minus jego margines, wiec przy zwyklych
+## marginesach (8 px i wiecej) przyciski, pola, karty, znaczki i awatary maja ostre rogi.
+## Tak rog wewnetrzny jest wspolsrodkowy z zewnetrznym i nie wyglada na krzywy.
+const INNER_RADIUS := 0
 const BORDER := 1
 
 static var _bold: FontVariation
@@ -149,11 +153,18 @@ static func paint_plain(style: StyleBoxFlat, fill := HUD_FILL) -> void:
 
 ## Promien rogu w nowym stylu dla promienia z dawnego stylu.
 static func corner(old_radius: int) -> int:
-	return clampi(roundi(old_radius * 0.3), 2, MAX_RADIUS)
+	if old_radius <= 0:
+		return 0
+	return clampi(roundi(old_radius * 0.2), 2, MAX_RADIUS)
+
+
+## Promien elementu w srodku panelu: promien panelu minus margines, nie mniej niz 0.
+static func inner(outer_radius: int, padding: int) -> int:
+	return maxi(outer_radius - padding, 0)
 
 
 ## Plaskie tlo bez krawedzi i cienia, np. wiersz albo karta w panelu.
-static func flat(fill := PANEL_2, radius := 4) -> StyleBoxFlat:
+static func flat(fill := PANEL_2, radius := INNER_RADIUS) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill
 	style.set_corner_radius_all(radius)
@@ -225,7 +236,7 @@ static func button(text: String, fill := CORAL, text_color := Color.WHITE, sound
 	if _bold != null:
 		node.add_theme_font_override("font", _bold)
 	paint_button(node, fill, text_color)
-	node.add_theme_stylebox_override("focus", focus_ring(4))
+	node.add_theme_stylebox_override("focus", focus_ring(INNER_RADIUS))
 	ButtonFeel.attach(node, sound)
 	return node
 
@@ -260,7 +271,7 @@ static func _button_box(fill: Color, edge: Color) -> StyleBoxFlat:
 	style.bg_color = fill
 	style.border_color = edge
 	style.set_border_width_all(BORDER if edge.a > 0.0 else 0)
-	style.set_corner_radius_all(4)
+	style.set_corner_radius_all(INNER_RADIUS)
 	style.set_content_margin_all(12)
 	style.anti_aliasing = true
 	return style
@@ -313,7 +324,7 @@ static func field(text: String, placeholder: String) -> LineEdit:
 	normal.bg_color = Color(0.0, 0.0, 0.0, 0.3)
 	normal.border_color = LINE
 	normal.set_border_width_all(BORDER)
-	normal.set_corner_radius_all(4)
+	normal.set_corner_radius_all(INNER_RADIUS)
 	normal.set_content_margin_all(12)
 	var focus := normal.duplicate() as StyleBoxFlat
 	focus.border_color = BLUE
@@ -342,7 +353,7 @@ static func chip_box() -> StyleBoxFlat:
 	style.bg_color = DEEP
 	style.border_color = Color(1.0, 1.0, 1.0, 0.3)
 	style.set_border_width_all(BORDER)
-	style.set_corner_radius_all(3)
+	style.set_corner_radius_all(INNER_RADIUS)
 	style.anti_aliasing = true
 	return style
 
